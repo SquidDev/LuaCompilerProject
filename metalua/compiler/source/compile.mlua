@@ -1,0 +1,690 @@
+-------------------------------------------------------------------------------
+-- Copyright (c) 2006-2013 Fabien Fleutot and others.
+--
+-- All rights reserved.
+--
+-- This program and the accompanying materials are made available
+-- under the terms of the Eclipse Public License v1.0 which
+-- accompanies this distribution, and is available at
+-- http://www.eclipse.org/legal/epl-v10.html
+--
+-- This program and the accompanying materials are also made available
+-- under the terms of the MIT public license which accompanies this
+-- distribution, and is available at http://www.lua.org/license.html
+--
+-- Contributors:
+--	Fabien Fleutot - API and implementation
+--
+-------------------------------------------------------------------------------
+
+-{ extension ('match', ...) }
+-{ extension ('class', ...) }
+
+local pp = require 'metalua.pprint'
+
+local insert, concat = table.insert, table.concat
+
+local function create_lookup(tbl)
+	local r = {}
+	for _, k in pairs(tbl) do r[k] = true end
+	return r
+end
+
+local function create_precedence(tbl)
+	local r = {}
+	for prec, ops in ipairs(tbl) do
+		for _, op in ipairs(ops) do r[op] = prec end
+	end
+	return r
+end
+
+class SourceCompiler has
+	--- Keywords, which are illegal as identifiers.
+	-- This is shared between instances so should be copied before using
+	local keywords = create_lookup {
+		"and", "break", "do", "else", "elseif",
+		"end", "false", "for", "function", "if", "in",
+		"local", "nil", "not", "or", "repeat", "return",
+		"then", "true", "until", "while"
+	}
+
+	--- Operator -> precedences lookup table, in increasing order.
+	local op_preprec = create_precedence {
+		{ "or", "and" },
+		{ "lt", "le", "eq", "ne" },
+		{ "concat" },
+		{ "add", "sub" },
+		{ "mul", "div", "mod" },
+		{ "unm", "not", "len" },
+		{ "pow" },
+		{ "index" }
+	}
+
+	--- operator --> source representation.
+	-- This is shared between instances so should be copied before using
+	local op_symbol = {
+		add = " + ",
+		sub = " - ",
+		mul = " * ",
+		div = " / ",
+		mod = " % ",
+		pow = " ^ ",
+		concat = " .. ",
+		eq = " == ",
+		ne = " ~= ",
+		lt = " < ",
+		le = " <= ",
+		["and"] = " and ",
+		["or"]  = " or ",
+		["not"] = "not ",
+		len     = "#",
+		unm     = '-',
+	}
+
+	-- Instanciate a new AST->source synthetizer
+	function new(resolver)
+		self._acc = {} -- Accumulates pieces of source as strings
+		self.current_indent = 0 -- Current level of line indentation
+		self.indent_step = "\t"  -- Indentation symbol, normally spaces or '\t'
+		self.resolver = resolver -- Custom resolver
+	end
+
+	--- Run a synthetizer on the `ast' arg and return the source as a string.
+	function run(ast)
+		self._acc = { }
+		self:visit(ast)
+		return concat(self._acc)
+	end
+
+	--- Accumulate a piece of source file in the synthetizer.
+	function acc(x)
+		if x then insert(self._acc, x) end
+	end
+
+	--- Accumulate an indented newline.
+	-- Jumps an extra line if indentation is 0, so that
+	-- toplevel definitions are separated by an extra empty line.
+	function nl()
+		if self.current_indent == 0 then self:acc "\n"  end
+		self:acc ("\n" .. self.indent_step:rep (self.current_indent))
+	end
+
+	--- Join two statements together with a new line
+	-- Checks if a semicolon is needed to prevent syntax ambiguities.
+	function joinStatements (previous, next)
+		if type(next) == "table"then
+			local semicolon = true
+			match next with
+			| `Invoke { ... }
+			| `Call { ... }
+				-> semicolon = true
+			| _ -> semicolon = false
+			end
+
+			local right = previous
+			if semicolon then
+				match previous with
+				| `Set { lhs, rhs }
+				| `Local { lhs, rhs }
+				| `Localrec { lhs, rhs }
+					-> right = rhs[#rhs]
+				| _ ->
+				end
+
+				match right with
+					| `Call { ...}
+					| `Invoke { ...}
+					| `Paren { ...}
+						-> semicolon = true
+					| _ -> semicolon = false
+				end
+			end
+
+			if semicolon then
+				self:acc(';')
+			end
+		end
+		self:nl()
+	end
+
+	--- Increase indentation and accumulate a new line.
+	function nlindent()
+		self.current_indent = self.current_indent + 1
+		self:nl ()
+	end
+
+	--- Decrease indentation and accumulate a new line.
+	function nldedent ()
+		self.current_indent = self.current_indent - 1
+		self:acc ("\n" .. self.indent_step:rep (self.current_indent))
+	end
+
+	--- Return true iff string `id' is a legal identifier name.
+	function is_ident (id)
+		return string['match'](id, "^[%a_][%w_]*$") and not self.keywords[id]
+	end
+
+	--- Sanitize the name of the class
+	function sanitize_name(name)
+		return '_' .. name:gsub('[^%w_]', '_')
+	end
+
+	--- Statements such as "HELLO".sub(1,1) are valid in metalua
+	-- but not in normal lua so we wrap them with ("HELLO").sub(1,1)
+	-- Also applies to table and function literals
+	function should_wrap(node)
+		match node with
+		| `String{...}
+		| `Table{...}
+		| `Function{...} -> return true
+		| _ -> return false
+		end
+	end
+
+	--- Return true iff ast represents a legal function name for
+	-- syntax sugar ``function foo.bar.gnat() ... end'':
+	-- a series of nested string indexes, with an identifier as
+	-- the innermost node.
+	function is_idx_stack(ast, require_ident)
+		match ast with
+		| `Id{ _ } -> return true
+		| `Index{ left, `String{ str } } ->
+			if require_ident and not self:is_ident(str) then
+				return false
+			end
+			return self:is_idx_stack(left, require_ident)
+		| _ -> return false
+		end
+	end
+
+	--- Accumulate the source representation of AST `node' in
+	-- the synthetizer. Most of the work is done by delegating to
+	-- the method having the name of the AST tag.
+	-- If something can't be converted to normal sources, it's
+	-- instead dumped as a `-{ ... }' splice in the source accumulator.
+	function visit(node)
+		if node==nil then
+			self:acc'<<error: node is nil>>'
+		else
+			if not node.tag then -- tagless block (and so unindented)
+				self:list(node, self.joinStatements)
+			else
+				self:node(node)
+			end
+		end
+	end
+
+	function node(node)
+		local f = self[node.tag]
+		if type(f) == "function" then -- Delegate to tag method.
+			f(self, node, unpack (node))
+		elseif type(f) == "string" then -- tag string.
+			self:acc(f)
+		else
+			local resolver = self.resolver
+			if resolver then
+				local resolved = resolver:resolve(node)
+				if resolved ~= node then
+					return self:visit(node)
+				end
+			end
+
+			-- No appropriate method, fall back to splice dumping.
+			-- This cannot happen in a plain Lua AST.
+			self:acc " -{ "
+			self:acc(pp.tostring(node, {metalua_tag=1, hide_hash=1}))
+			self:acc " }"
+		end
+	end
+
+	--- Write an AST block
+	-- This first checks if it should call custom printer and if not
+	-- indents it
+	function block(body)
+		self:nlindent()
+		self:list(body, self.joinStatements)
+		self:nldedent()
+	end
+
+	--- Convert every node in the AST list `list' passed as 1st arg.
+	-- `sep' is an optional separator to be accumulated between each list element,
+	-- it can be a string or a synth method.
+	-- `start' is an optional number (default == 1), indicating which is the
+	-- first element of list to be converted, so that we can skip the begining
+	-- of a list.
+	function list(list, sep, start)
+		for i = start or 1, # list do
+			self:visit(list[i])
+			if list[i + 1] then
+				if not sep then
+				elseif type (sep) == "function" then sep (self, list[i], list[i + 1])
+				elseif type (sep) == "string"	then self:acc (sep)
+				else error "Invalid list separator" end
+			end
+		end
+	end
+
+	--- Tag methods.
+	--
+	-- Specific AST node dumping methods, associated to their node kinds
+	-- by their name, which is the corresponding AST tag.
+	-- synth:node() is in charge of delegating a node's treatment to the
+	-- appropriate tag method.
+	--
+	-- Such tag methods are called with the AST node as 1st arg.
+	-- As a convenience, the n node's children are passed as args #2 ... n+1.
+	--
+	-- There are several things that could be refactored into common subroutines
+	-- here: statement blocks dumping, function dumping...
+	-- However, given their small size and linear execution
+	-- (they basically perform series of :acc(), :node(), :list(),
+	-- :nl(), :nlindent() and :nldedent() calls), it seems more readable
+	-- to avoid multiplication of such tiny functions.
+	--
+	-- To make sense out of these, you need to know metalua's AST syntax, as
+	-- found in the reference manual or in metalua/doc/ast.txt.
+
+
+	function Do (node)
+		self:acc "do"
+		self:block(node)
+		self:acc "end"
+	end
+
+	function Set (node)
+		match node with
+		| `Set{
+			{ `Index{ lhs, `String{ method } } },
+			{ `Function{ { `Id "self", ... } == params, body } }
+		} if self:is_idx_stack (lhs, true) and self:is_ident (method) ->
+			-- ``function foo:bar(...) ... end'' --
+			self:acc "function "
+			self:visit (lhs)
+			self:acc ":"
+			self:acc (method)
+			self:acc " ("
+			self:list (params, ", ", 2)
+			self:acc ")"
+			self:block(body)
+			self:acc "end"
+		| `Set{ { lhs }, { `Function{ params, body } } } if self:is_idx_stack (lhs, true) ->
+			-- ``function foo(...) ... end'' --
+			self:acc "function "
+			self:visit(lhs)
+			self:acc " ("
+			self:list(params, ", ")
+			self:acc ")"
+			self:block(body)
+			self:acc "end"
+
+		| `Set{ { `Id{ lhs1name } == lhs1, ... } == lhs, rhs } if not self:is_ident (lhs1name) ->
+			-- ``foo, ... = ...'' when foo is *not* a valid identifier.
+			-- In that case, the spliced 1st variable must get parentheses,
+			-- to be distinguished from a statement splice.
+			-- This cannot happen in a plain Lua AST.
+			self:visit(lhs1)
+			if lhs[2] then -- more than one lhs variable
+				self:acc ", "
+				self:list (lhs, ", ", 2)
+			end
+			self:acc " = "
+			self:list (rhs, ", ")
+
+		| `Set{{`Paren{lhs}}, rhs} -> self:Set(`Set{{lhs}, rhs})
+		| `Set{ lhs, rhs } ->
+			-- ``... = ...'', no syntax sugar --
+			self:list(lhs, ", ")
+			self:acc " = "
+			self:list(rhs, ", ")
+		end
+	end
+
+	function While (node, cond, body)
+		self:acc "while "
+		self:visit (cond)
+		self:acc " do"
+		self:block(body)
+		self:acc "end"
+	end
+
+	function Repeat (node, body, cond)
+		self:acc "repeat"
+		self:block(body)
+		self:acc "until "
+		self:visit (cond)
+	end
+
+	function If (node)
+		for i = 1, #node-1, 2 do
+			-- for each ``if/then'' and ``elseif/then'' pair --
+			local cond, body = node[i], node[i+1]
+			self:acc (i==1 and "if " or "elseif ")
+			self:visit (cond)
+			self:acc " then"
+			self:block(body)
+		end
+		-- odd number of children --> last one is an `else' clause --
+		if #node%2 == 1 then
+			self:acc "else"
+			self:block(node[#node])
+		end
+		self:acc "end"
+	end
+
+	function Fornum (node, var, first, last)
+		local body = node[#node]
+		self:acc "for "
+		self:visit (var)
+		self:acc " = "
+		self:visit (first)
+		self:acc ", "
+		self:visit (last)
+		if #node==5 then -- 5 children --> child #4 is a step increment.
+			self:acc ", "
+			self:visit (node[4])
+		end
+		self:acc " do"
+		self:block(body)
+		self:acc "end"
+	end
+
+	function Forin (node, vars, generators, body)
+		self:acc "for "
+		self:list (vars, ", ")
+		self:acc " in "
+		self:list (generators, ", ")
+		self:acc " do"
+		self:block(body)
+		self:acc "end"
+	end
+
+	function Local (node, lhs, rhs)
+		if #lhs > 0 then
+			self:acc "local "
+			self:list (lhs, ", ")
+			if rhs[1] then
+				self:acc  " = "
+				self:list (rhs, ", ")
+			end
+		else -- Can't create a local statement with 0 variables in plain Lua
+			self:acc (pp.tostring (node, {hide_hash = true}))
+		end
+	end
+
+	function Localrec (node, lhs, rhs)
+		match node with
+		| `Localrec{ { `Id{name} }, { `Function{ params, body } } } if self:is_ident (name) ->
+			-- ``local function name() ... end'' --
+			self:acc "local function "
+			self:acc (name)
+			self:acc " ("
+			self:list (params, ", ")
+			self:acc ")"
+			self:block(body)
+			self:acc "end"
+
+		| _ ->
+			-- Other localrec are unprintable ==> splice them --
+			-- This cannot happen in a plain Lua AST. --
+			self:acc "-{ "
+			self:acc (table.tostring (node, 'nohash', 80))
+			self:acc " }"
+		end
+	end
+
+	function Label(node, name)
+		match name with
+		| `Id{n} -> self:Label(node, n)
+		| _ ->
+			if self:is_ident(name) then
+				self:acc "::"
+				self:acc(name)
+				self:acc "::"
+			else -- Unprintable identifier
+				local sanitized_name = self:sanitize_name(name)
+				if self:is_ident(sanitized_name) then
+					self:acc "::"
+					self:acc(sanitized_name)
+					self:acc "::"
+					return nil
+				end
+				self:acc "-{`Id "
+				self:String(node, name)
+				self:acc "}"
+			end
+		end
+	end
+
+	function Goto(node, name)
+		match name with
+		| `Id{n} -> self:Goto(node, n)
+		| _ ->
+			if self:is_ident(name) then
+				self:acc "goto "
+				self:acc(name)
+			else -- Unprintable identifier
+				local sanitized_name = self:sanitize_name(name)
+				if self:is_ident(sanitized_name) then
+					self:acc "goto "
+					self:acc(sanitized_name)
+					return nil
+				end
+				self:acc "-{`Goto "
+				self:String(node, name)
+				self:acc "}"
+			end
+		end
+	end
+
+	function Call (node, f)
+		-- single string or table literal arg ==> no need for parentheses. --
+		local parens
+		match node with
+		| `Call{ _, `String{_} }
+		| `Call{ _, `Table{...}} -> parens = false
+		| _ -> parens = true
+		end
+
+		local wrap = self:should_wrap(f)
+
+		if wrap then self:acc "(" end
+		self:visit (f)
+		if wrap then self:acc ")" end
+
+		self:acc  (parens and "(" or  " ")
+		self:list (node, ", ", 2) -- skip `f'.
+		self:acc  (parens and ")")
+	end
+
+	function Invoke (node, f, method)
+		-- single string or table literal arg ==> no need for parentheses. --
+		local parens
+		match node with
+		| `Invoke{ _, _, `String{_} }
+		| `Invoke{ _, _, `Table{...}} -> parens = false
+		| _ -> parens = true
+		end
+
+		local wrap = self:should_wrap(f)
+
+		if wrap then self:acc "(" end
+		self:visit (f)
+		if wrap then self:acc ")" end
+
+		self:acc ":"
+		self:acc (method[1])
+		self:acc (parens and " (" or  " ")
+		self:list (node, ", ", 3) -- Skip args #1 and #2, object and method name.
+		self:acc (parens and ")")
+	end
+
+	function Return (node)
+		self:acc  "return "
+		self:list (node, ", ")
+	end
+
+	--- Wrap a statement in a function
+	function Stat(node, body, ret)
+		self:acc "(function()"
+		self:nlindent()
+		self:list(body, self.joinStatements)
+		self:nl()
+		self:acc "return "
+		self:visit(ret)
+		self:nldedent()
+		self:acc "end)()"
+	end
+
+	local Break = "break"
+	local Nil	= "nil"
+	local False = "false"
+	local True  = "true"
+	local Dots  = "..."
+
+	-- Expressions
+
+	function Number (node, n)
+		self:acc (tostring (n))
+	end
+
+	function String (node, str)
+		-- format "%q" prints '\n' in an umpractical way IMO,
+		-- so this is fixed with the :gsub( ) call.
+		self:acc (string.format ("%q", str):gsub ("\\\n", "\\n"))
+	end
+
+	function Function (node, params, body)
+		self:acc "function ("
+		self:list (params, ", ")
+		self:acc ")"
+		self:block(body)
+		self:acc "end"
+	end
+
+	function Table (node)
+		if not node[1] then self:acc "{ }" else
+			self:acc "{"
+			if #node > 1 then self:nlindent () else self:acc " " end
+			for i, elem in ipairs (node) do
+				match elem with
+				| `Pair{ `String{ key }, value } if self:is_ident(key) ->
+					-- ``key = value''. --
+					self:acc  (key)
+					self:acc  " = "
+					self:visit (value)
+
+				| `Pair{ key, value } ->
+					-- ``[key] = value''. --
+					self:acc  "["
+					self:visit (key)
+					self:acc  "] = "
+					self:visit (value)
+
+				| _ ->
+					-- ``value''. --
+					self:visit (elem)
+				end
+				if node [i+1] then
+					self:acc ","
+					self:nl  ()
+				end
+			end
+			if #node > 1 then self:nldedent () else self:acc " " end
+			self:acc "}"
+		end
+	end
+
+	function Op (node, op, a, b)
+		-- Transform ``not (a == b)'' into ``a ~= b''. --
+		match node with
+		| `Op{ "not", `Op{ "eq", _a, _b } }
+		| `Op{ "not", `Paren{ `Op{ "eq", _a, _b } } } -> op, a, b = "ne", _a, _b
+		| _ ->
+		end
+
+		if b then -- binary operator.
+			local left_paren, right_paren
+			local op_prec = self.op_prec
+			match a with
+			| `Op{ op_a, ...} if op_prec[op] >= op_prec[op_a] -> left_paren = true
+			| _ -> left_paren = false
+			end
+
+			match b with -- FIXME: might not work with right assoc operators ^ and ..
+			| `Op{ op_b, ...} if op_prec[op] >= op_prec[op_b] -> right_paren = true
+			| _ -> right_paren = false
+			end
+
+			self:acc (left_paren and "(")
+			self:visit (a)
+			self:acc (left_paren and ")")
+
+			self:acc (self.op_symbol [op])
+
+			self:acc (right_paren and "(")
+			self:visit (b)
+			self:acc (right_paren and ")")
+
+		else -- unary operator.
+			local paren
+			match a with
+			| `Op{ op_a, ... } if op_prec[op] >= op_prec[op_a] -> paren = true
+			| _ -> paren = false
+			end
+			self:acc (op_symbol[op])
+			self:acc (paren and "(")
+			self:visit (a)
+			self:acc (paren and ")")
+		end
+	end
+
+	function Paren (node, content)
+		self:acc "("
+		self:visit (content)
+		self:acc ")"
+	end
+
+	function Index (node, table, key)
+		local paren_table
+		-- Check precedence, see if parens are needed around the table --
+		match table with
+		| `Op{ op, ... } if op_prec[op] < op_prec.index -> paren_table = true
+		| _ -> paren_table = self:should_wrap(table)
+		end
+
+		self:acc (paren_table and "(")
+		self:visit (table)
+		self:acc (paren_table and ")")
+
+		match key with
+		| `String{ field } if self:is_ident (field) ->
+			-- ``table.key''. --
+			self:acc "."
+			self:acc (field)
+		| _ ->
+			-- ``table [key]''. --
+			self:acc "["
+			self:visit (key)
+			self:acc "]"
+		end
+	end
+
+	function Id (node, name)
+		if self:is_ident(name) then
+			self:acc (name)
+		else
+			-- Unprintable identifier
+			-- Try to print the custom name
+			local sanitized = self:sanitize_name(name)
+			if self:is_ident(sanitized) then
+				self:acc(sanitized)
+			else
+				self:acc "-{`Id "
+				self:String (node, name)
+				self:acc "}"
+			end
+		end
+	end
+end
+
+return SourceCompiler

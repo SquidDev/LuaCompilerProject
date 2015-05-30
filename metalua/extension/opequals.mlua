@@ -1,0 +1,63 @@
+--- C-style op+assignments
+-- TODO: no protection against side-effects in LHS vars.
+
+-{ extension("match", ...)}
+
+local gg = require 'metalua.compiler.grammar.generator'
+
+return function(M)
+	local function extractBase(node)
+		match node with
+		| `Id {...} -> return node
+		| `Index {`Id { ...}, n} -> return node
+		| `Index {base, node} -> return node, base
+		end
+	end
+	local function op_assign(kw, op)
+		local function f(a,b)
+			if #a ~= #b then gg.parse_error "assymetric operator+assignment" end
+
+			local requireDo = false
+			local external ={}
+			local left = { }
+			for i=1, #a do
+				local node, base = extractBase(a[i])
+				if base ~= nil then
+					requireDo = true
+					local var = gg.gensym(op)
+					table.insert(external, `Set { {var}, {base} })
+					node = `Index { var, node }
+				end
+				left[i] = node
+			end
+
+			local right = { }
+			local r = { tag="Set", left, right }
+			for i=1, #a do
+				right[i] = { tag="Op", op, left[i], b[i] }
+			end
+
+			if requireDo then
+				table.insert(external, r)
+				return external
+			end
+
+			return r
+		end
+
+		M.lexer:add(kw)
+		M.assignments[kw] = f
+	end
+
+	local ops = {
+		add='+=',
+		sub='-=',
+		mul='*=',
+		div='/=',
+		pow='^=',
+		concat='.='
+	}
+	for ast_op_name, keyword in pairs(ops) do
+		op_assign(keyword, ast_op_name)
+	end
+end

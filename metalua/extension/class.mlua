@@ -1,0 +1,102 @@
+--- Adds basic classes
+-- Syntax:
+-- ```
+-- class <name> (extends ...)? has
+-- 	local field  ="foo"
+-- 	function name()
+-- 		return self
+-- 	end
+-- end
+-- ```
+
+-{ extension ("match", ...) }
+
+local gg  = require 'metalua.compiler.grammar.generator'
+local pp = require 'metalua.pprint'
+return function(mlp)
+	local call = +{ function(s, ...) local o = setmetatable({}, {__index = s}) return o.new and o:new(...) or o end }
+
+	local function classBuilder(x)
+		local ancestors, decl = x[1] or `Table{ }, x[2]
+		local prototype = `Table{ }
+		ancestors.tag = "Table"
+
+		local meta = `Table { }
+		table.insert(meta, `Pair { `String "__call", call })
+
+		match #ancestors with
+			| 0 ->
+			| 1 -> table.insert(meta, `Pair { `String "__index", ancestors[1] })
+			| n -> error "This class model doesn't support multiple inheritance"
+		end
+
+		for _, line in ipairs(decl) do
+			match line with
+			| `Field{ lhs, rhs } -> for i = 1, #lhs do
+					if rhs[i] ~= nil then
+						table.insert (prototype, `Pair{ mlp.id2string(lhs[i]), rhs[i] or `Nil })
+					end
+				end
+			| `Method{ name, m } ->
+				table.insert (m[1], 1, `Id "self") -- add self as 1st param
+				table.insert (prototype, `Pair{ name, m })
+			end
+		end
+		return `Call{ `Id "setmetatable", prototype, meta }
+	end
+
+	--------------------------------------------------------------------------------
+	-- Parsers
+	--------------------------------------------------------------------------------
+	local ancestry = gg.onkeyword {
+		name="class ancestors",
+		"extends", gg.list{ mlp.expr, separators="," }
+	}
+
+	local methodParser = gg.sequence {
+		name="in-class method definition",
+		"function", mlp.id, mlp.func_val,
+		builder = |x| `Method{ mlp.id2string(x[1]), x[2] }
+	}
+
+	local fieldParser = gg.sequence {
+		name="in-class instance field declaration",
+		"local", gg.list{ mlp.id, separators="," },
+		gg.onkeyword { "=",
+			gg.list {
+				mlp.expr, separators=",",
+				terminators={ "local", "function", "end" }
+			}
+		},
+		builder = |x| `Field{ x[1], x[2] or { } }
+	}
+
+	local classBody = gg.sequence {
+		name = "class body",
+		ancestry,
+		"has",
+		gg.list {
+			gg.multisequence { methodParser, fieldParser },
+			terminators="end"
+		},
+		"end",
+		builder = classBuilder
+	}
+
+	--------------------------------------------------------------------------------
+	-- Pluging the parsers in the syntax
+	--------------------------------------------------------------------------------
+	mlp.lexer:add { "class", "extends", "has" }
+
+	mlp.stat:add {
+		name = "class declaration",
+		"class", mlp.expr, classBody,
+		builder = |x| `Set{ {x[1]}, {x[2]} }
+	}
+
+	mlp.local_stat_parser:add {
+		name = "class declaration",
+		"class", mlp.expr, classBody,
+		builder = |x| `Local{ {x[1]}, {x[2]} }
+	}
+end

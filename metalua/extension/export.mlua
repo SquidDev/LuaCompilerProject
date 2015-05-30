@@ -1,0 +1,86 @@
+--- Adds an 'export' command to export variables
+-- `export a = "HELLO"` results in `local a = "HELLO", return {a  = a}`
+-- `export function a() end` results in local function a() end return {a = a}`
+
+-{ extension ("match", ...) }
+
+local gg = require 'metalua.compiler.grammar.generator'
+local walk = require 'metalua.treequery.walk'
+
+return function(mlp)
+	local function chunk_transformer (block)
+		local return_types, returns = { }, { }
+		local cfg = { block = {}, stat  = {}  }
+
+		function cfg.stat.down (s)
+			if s.export then
+				local myReturns = returns[#returns]
+				for _, e in pairs(s.export) do
+					table.insert (myReturns, `Pair{ `String { e[1] }, e })
+				end
+				s.export = nil
+			end
+		end
+
+		-------------------------------------------------------------------
+		-- Create/delete scopes as we enter/leave blocks.
+		-------------------------------------------------------------------
+		function cfg.block.down (_, parent)
+			table.insert (returns, `Table { })
+		end
+		function cfg.block.up (block, parent)
+			local myReturns = returns[#returns]
+			table.remove(returns)
+
+			if #myReturns > 0 then
+				local last = returns[#returns]
+				if last and last.tag == "Return" then
+					error("Cannot export, already returning")
+				elseif parent and parent.tag ~= "Function" then
+					error("Cannot export from " .. parent.tag)
+				end
+				table.insert(block, `Return { myReturns })
+			end
+		end
+
+		walk.block(cfg, block)
+	end
+
+	mlp.chunk.transformers:add (chunk_transformer)
+
+	--------------------------------------------------------------------------------
+	-- Pluging the parsers in the syntax
+	--------------------------------------------------------------------------------
+	mlp.lexer:add { "export" }
+
+	-- TODO: Allow exporting expressions
+	mlp.stat:add {
+		name = "export",
+		"export", mlp.local_stat_parser ,
+		builder = function(x)
+			local export = {}
+			match x[1] with
+			| `Local{ lhs, rhs } ->
+				for i = #lhs, 1, -1 do
+					if lhs[i] ~= nil then
+						table.insert (export, lhs[i])
+					end
+					if rhs[i] == nil then
+						table.remove(lhs, i)
+						table.remove(rhs, i)
+					end
+				end
+			| `Localrec { lhs, rhs } ->
+				for i = 1, #lhs do
+					if lhs[i] ~= nil then
+						table.insert (export, lhs[i])
+					end
+				end
+			end
+
+			if #export > 0 then x[1].export = export end
+
+			return x[1]
+		end
+	}
+end

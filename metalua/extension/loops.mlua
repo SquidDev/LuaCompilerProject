@@ -1,0 +1,138 @@
+-------------------------------------------------------------------------------
+-- Copyright (c) 2006-2013 Fabien Fleutot and others.
+--
+-- All rights reserved.
+--
+-- This program and the accompanying materials are made available
+-- under the terms of the Eclipse Public License v1.0 which
+-- accompanies this distribution, and is available at
+-- http://www.eclipse.org/legal/epl-v10.html
+--
+-- This program and the accompanying materials are also made available
+-- under the terms of the MIT public license which accompanies this
+-- distribution, and is available at http://www.lua.org/license.html
+--
+-- Contributors:
+--	 Fabien Fleutot - API and implementation
+--
+-------------------------------------------------------------------------------
+
+--[[--
+This extension implements multiple loop statements in one.
+
+for i = 0, 10 if i % 3 == 0 do
+end
+
+for i = 0, 10 while i ^ 2 < 50 do
+end
+]]
+
+-{ extension ("match", ...) }
+
+local gg = require 'metalua.compiler.grammar.generator'
+local Q = require 'metalua.treequery'
+
+--- Find continue statements in a loop body, change them into goto
+-- end-of-body.
+local function transform_continue_statements(body)
+	local continue_statements = Q(body)
+		:if_unknown() -- tolerate unknown 'Continue' statements
+		:not_under ('Forin', 'Fornum', 'While', 'Repeat')
+		:filter ('Continue')
+		:list()
+	if next(continue_statements) then
+		local continue_label = gg.gensym 'continue' [1]
+		table.insert(body, `Label{ continue_label })
+		for _, statement in ipairs(continue_statements) do
+			statement.tag = 'Goto'
+			statement[1] = continue_label
+		end
+		return true
+	end
+	return false
+end
+
+--- Back-end for loops with a multi-element header
+local function loop_builder(x)
+	local first, elements, body = unpack(x)
+
+	-- Change continue statements into gotos.
+	transform_continue_statements(body)
+
+	-- If it's a regular loop, don't bloat the code
+	if not next(elements) then
+		table.insert(first, body)
+		return first
+	end
+
+	-- There's no reason to treat the first element in a special way
+	table.insert(elements, 1, first)
+
+	--- Change breaks into gotos that escape all loops at once.
+	local exit_label = nil
+	local function break_to_goto(break_node)
+		if not exit_label then exit_label = gg.gensym 'break' [1] end
+		break_node = break_node or { }
+		break_node.tag = 'Goto'
+		break_node[1] = exit_label
+		return break_node
+	end
+	Q(body)
+		:not_under('Function', 'Forin', 'Fornum', 'While', 'Repeat')
+		:filter('Break')
+		:foreach (break_to_goto)
+
+	--- Compile all headers elements, from last to first.
+	-- invariant: `body` is a block (not a statement)
+	local result = body
+	for i = #elements, 1, -1 do
+		local e = elements[i]
+		match e with
+		| `If{ cond }    -> result = { `If{ cond, result } }
+		| `Until{ cond } -> result = +{block: if -{cond} then -{break_to_goto()} else -{result} end }
+		| `While{ cond } ->
+			if i==1 then
+				result = { `While{ cond, result } } -- top-level while
+			else
+				result = +{block: if -{cond} then -{result} else -{break_to_goto()} end }
+			end
+		| `Forin{ ... } | `Fornum{ ... } -> table.insert (e, result); result={e}
+		| _ -> require'metalua.pprint'.printf("Bad loop header element %s", e)
+		end
+	end
+
+	-- If some breaks had to be changed into gotos, insert the label
+	if exit_label then result = { result, `Label{ exit_label } } end
+
+	return result
+end
+
+return function(M)
+	local _M = gg.future(M)
+
+	local original_for_header = M.for_header
+	M.stat:del  'for'
+	M.stat:del  'while'
+
+	M.loop_suffix = gg.multisequence{
+		{ 'while', _M.expr, builder = |x| `Until{ `Op{ 'not', x[1] } } },
+		{ 'until', _M.expr, builder = |x| `Until{ x[1] } },
+		{ 'if',	_M.expr, builder = |x| `If{ x[1] } },
+		{ 'for',   original_for_header, builder = |x| x[1] }
+	}
+
+	M.loop_suffix_list = gg.list{ _M.loop_suffix, terminators='do' }
+
+	M.stat:add {
+		'for', original_for_header, _M.loop_suffix_list, 'do', _M.block, 'end',
+		builder = loop_builder
+	}
+
+	M.stat:add {
+		'while', _M.expr, _M.loop_suffix_list, 'do', _M.block, 'end',
+		builder = |x| loop_builder{ `While{x[1]}, x[2], x[3] }
+	}
+
+	M.lexer:add 'continue'
+	M.stat:add{ 'continue', builder='Continue' }
+end

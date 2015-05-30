@@ -1,0 +1,102 @@
+--- Allows to write "a `f` b" instead of "f(a, b)". Taken from Haskell.
+
+local gg = require 'metalua.compiler.grammar.generator'
+
+return function(M)
+	local types = {}
+	local _M = gg.future(M)
+	local _types = gg.future(types)
+
+	types.basic_type = function(lx)
+		local id = _M.id(lx)
+		id.tag = "Type",
+		return id
+	end
+
+	types.type_def = gg.multisequence {
+		name = "type",
+		gg.sequence {
+			name = "function type definition",
+			"(", gg.list {
+				primary     = _types.type_def,
+				separators  = ",",
+				terminators = ")"
+			}, ")", ":",
+			gg.multisequence {
+				{
+					"[", gg.list {
+						primary     = _types.type_def,
+						separators  = ",",
+						terminators = "]"
+					}, "]"
+				},
+				default = _types.type_def,
+			},
+			builder = function(x)
+				return `ArrayType { unpack(x) }
+			end
+		},
+		gg.sequence {
+			name = "table type definition",
+			"{",
+			_types.type_def,
+			gg.onkeyword {
+				':', _types.type_def,
+			},
+			"}",
+			builder = function(x)
+				return `ArrayType { x[1], x[2] }
+			end
+		},
+		default = _M.id
+	}
+
+	-- Overrides
+	M.declaration.default = gg.sequence {
+		name = "declaration",
+		_M.id, gg.onkeyword {
+			name="type definition",
+			":", _types.type_def
+		},
+		builder = function(x)
+			x[1].type = x[2]
+			return x[1]
+		end
+	}
+
+	M.func_val = gg.sequence {
+		name = "function body",
+		"(", _M.func_params_content, ")", gg.onkeyword {
+			":", _types.return_def
+		},
+		_M.block, "end",
+		builder = function(x)
+			local value = `Function {
+				x[1], x[3]
+			}
+
+			local types = `Function { }
+			for _, params in ipairs(x[1]) do
+				table.insert(types, params.type or `Unknown)
+			end
+			table.insert(types, x[2] or `Unknown)
+
+			value.type = types
+			return value
+		end
+	}
+
+	-- Additional statements
+	M.stat:add {
+		'alias',
+		_M.id_list,
+		'=',
+		gg.list { primary = _types.type, separators = ','},
+		builder = function(x)
+			print(require'metalua.pprint'.tostring(x, {hide_hash = true}))
+			return nil
+		end
+	}
+
+	M.lexer:add { "alias" }
+end

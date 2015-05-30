@@ -1,0 +1,13 @@
+--- Allows to write "a `f` b" instead of "f(a, b)". Taken from Haskell.
+
+local gg = require 'metalua.compiler.grammar.generator'
+
+return function(M)
+	M.expr.infix:add {
+		name = "infix function", prec = 35, assoc="left",
+		"`", |lx| gg.future(M).expr(lx, 35) , "`",
+		builder = function(a, op, b)
+			return {tag="Call", op[1], a, b}
+		end,
+	}
+end

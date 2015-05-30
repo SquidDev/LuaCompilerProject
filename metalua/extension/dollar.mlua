@@ -1,0 +1,31 @@
+-{ extension ('match', ...) }
+
+local M = setmetatable({ register = { } }, {__call = function(self, ...) return self.extend(...) end })
+
+local function dollar_builder(e)
+	match e with
+	| `Call{ `Id{name}, ... } ->
+		local entry = M.register[name] or error ("No macro "..name.." registered")
+		return entry(select(2, unpack(e)))
+	| `Id{name} ->
+		local entry = M.register[name] or error ("No macro "..name.." registered")
+		match type(entry) with
+		| 'function' -> return entry()
+		| 'table'    -> return entry -- constant AST
+		| t          -> error ("Invalid macro type "..t)
+		end
+	| _ -> error "Invalid $macro, '$' must be followed by an identifier or function call"
+	end
+end
+
+function M.extend(mlp)
+	_mlp = require 'metalua.compiler.grammar.generator'.future(mlp)
+	mlp.lexer:add("$")
+
+	mlp.expr.prefix:add { '$', prec = 100, builder = |_, x| dollar_builder(x) }
+	mlp.stat:add{ '$', _mlp.expr, builder = |x| dollar_builder(x[1]) }
+
+	return M
+end
+
+return M
