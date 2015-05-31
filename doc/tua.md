@@ -43,7 +43,7 @@ end
 
 -- Used to represent multiple returns
 local function h(x:number, y:number):[number, number]
-	print(x + y)
+	return x, y
 end
 ```
 
@@ -102,10 +102,28 @@ Functions can be passed about like any other type, following these rules.
 
 ## Extra 'structures'
 ### Interfaces
-Interfaces are based of TypeScript's way of handing them. Instead of explicit inheritance, interfaces say: "You should have these members".
+Interfaces serve a similar purpose to many languages but implement them in a different way. Two interfaces are equivilent if they have the same definition. Interfaces do not have to specify a collection of fields but can act as a type alias.
 
 ```lua
-interface Person has
+interface Operator
+	(number, number):number
+end
+local add:Operator = function(x, y)
+	return x + y
+end
+
+-- All aliases resolve to their equivalents:
+interface BinaryOperator
+	(number, number):number
+end
+
+local different:BinaryOperator = add
+```
+
+You can create an interface which contains a object definition, but Tua provides a shortcut for that:
+
+```lua
+interface Person
 	name:string
 	age:number
 end
@@ -115,7 +133,7 @@ local fred:Person = {
 	age = 20
 } -- We know it has the fields, so we can say it is an instance of Person
 
-interface Genius has -- Or you can do `interface Genius extends Person has`
+interface Genius -- You can also do `interface Genius extends Person`
 	name:string
 	age:number
 	iq:number
@@ -136,37 +154,28 @@ local function say_hello(named:{name:string}):void
 end
 ```
 
-### `alias`
-Aliases simply resolve a more complicated type to a simple to remember name:
+### `strict`
+Strict has a similar syntax to `interface`, but two identical `strict`s do not resolve to each other.
 ```lua
-alias operator:(number, number):number
-local add:operator = function(x, y)
-	return x + y
+strict Operator
+	(number, number):number
 end
-
--- All aliases resolve to their equivilents:
-alias binary_operator:(number, number):number
-local different:binary_operator = add
-```
-
-### `tiny`
-Tiny has a similar syntax to `alias`, but two identical `tiny`s do not resolve to each other.
-```lua
-tiny operator:(number, number):number
-local add:operator = function(x, y)
+local add:Operator = function(x, y)
 	return x + y
 end
 
 -- Choosing a random number isn't the same as a binary operator
-tiny random_between:(number, number):number
+strict RandomBetween
+	(number, number):number
+end
 
 -- So this produces an error
-local different:random_between = add
+local different:RandomBetween = add
 
 -- You can however do this as `tiny` instances resolve to
 -- and from their base type
-local temp:(number, number):number = operator
-different = operator
+local temp:(number, number):number = add
+different = temp
 ```
 
 This is most useful if you want to have two fields which represent different concepts but have the same base data type. For instance you could have `age:number` and `iq:number` `tiny`s and you couldn't pass a `iq` to an `age` field by mistake.
