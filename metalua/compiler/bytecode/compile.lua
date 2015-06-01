@@ -385,7 +385,7 @@ local function parlist (fs, ast_params)
 	local dots = (#ast_params > 0 and ast_params[#ast_params].tag == "Dots")
 	local nparams = dots and #ast_params - 1 or #ast_params
 	for i = 1, nparams do
-		assert (ast_params[i].tag == "Id", "Function parameters must be Ids")
+		assert (ast_params[i].tag == "Id", "Function parameters must be Ids, is " .. tostring(ast_params[i].tag))
 		new_localvar (fs, ast_params[i][1], i-1)
 	end
 	-- from [code_param]:

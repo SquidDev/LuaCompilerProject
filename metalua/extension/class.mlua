@@ -12,9 +12,8 @@
 -{ extension ("match", ...) }
 
 local gg  = require 'metalua.compiler.grammar.generator'
-local pp = require 'metalua.pprint'
 
-local call = +{ function(s, ...) local o = setmetatable({}, { __index = s.prototype}) return o.new and o:new(...) or o end }
+local call = +{ function(s, ...) local o = setmetatable({}, { __index = s.prototype}) o:new(...) return o end }
 
 return function(M)
 	local _M = gg.future(M)
@@ -24,7 +23,11 @@ return function(M)
 		ancestors.tag = "Table"
 
 		local prototypeName = gg.gensym("class")
-		local prototype, class, classMeta, protoMeta = `Table{ }, `Table { }, `Table { }, `Table { }
+		-- Prototype stores the methods, the meta provides a lookup for the parent
+		local prototype, protoMeta = `Table{ }, `Table { }
+
+		-- Class stores static methods, class meta provides the constructor
+		local class, classMeta = `Table { }, ` Table { }
 
 		table.insert(classMeta, `Pair { `String "__call", call })
 		table.insert(class, `Pair { `String "prototype", prototypeName })
@@ -38,20 +41,57 @@ return function(M)
 			| n -> error "This class model doesn't support multiple inheritance"
 		end
 
-		for _, line in ipairs(decl) do
-			match line with
-			| `Field{ lhs, rhs } -> for i = 1, #lhs do
-					if rhs[i] ~= nil then
-						table.insert (prototype, `Pair{ M.id2string(lhs[i]), rhs[i] or `Nil })
+		local constructor = {}
+		local actualConstructor = nil
+		for _, member in ipairs(decl) do
+			match member with
+			| `StaticMember { child } ->
+				match child with
+				| `Local { lhs, rhs }
+				| `Localrec {lhs, rhs } ->
+					for i = 1, #lhs do
+						if rhs[i] ~= nil then
+							table.insert(class, `Pair{ M.id2string(lhs[i]), rhs[i]})
+						end
 					end
 				end
-			| `Method{ name, m } ->
-				table.insert (m[1], 1, `Id "self") -- add self as 1st param
-				table.insert (prototype, `Pair{ name, m })
-			| `StaticMethod { name, m } ->
-				table.insert (class, `Pair{ name, m })
+			| `Member { child} ->
+				match child with
+				| `Local { lhs, rhs }
+				| `Localrec {lhs, rhs } ->
+					for i = 1, #lhs do
+						local right = rhs[i]
+						if right ~= nil then
+							match right with
+							| `Function { _, _ } ->
+								table.insert(right[1], 1, `Id { "self" })
+								if lhs[i][1] == "new" then
+									actualConstructor = right
+								else
+									table.insert(prototype, `Pair{ M.id2string(lhs[i]), right})
+								end
+							| _ ->
+								table.insert(constructor, `Set {
+									{ `Index { `Id { "self" }, M.id2string(lhs[i]) } } , { right }
+								})
+							end
+						end
+					end
+				end
 			end
 		end
+
+		if not actualConstructor then
+			actualConstructor = `Function { { `Id {"self"} }, { } }
+		end
+
+		local constructorBody = actualConstructor[2]
+		for i, stat in ipairs(constructor) do
+			table.insert(constructorBody, i, stat)
+			if i > 100 then error("Whoah") end
+		end
+		table.insert(prototype, `Pair{ `String { "new"}, actualConstructor})
+
 
 		if #protoMeta > 0 then
 			prototype = `Call{ `Id "setmetatable", prototype, protoMeta }
@@ -71,35 +111,23 @@ return function(M)
 		"extends", gg.list{ _M.expr, separators="," }
 	}
 
-	local methodParser = gg.sequence {
+	local memberParser = gg.sequence {
 		name="in-class method definition",
-		"function", _M.id, _M.func_val,
-		builder = |x| `Method{ M.id2string(x[1]), x[2] }
+		_M.local_stat_parser,
+		builder = 'Member',
 	}
 
-	local staticMethodParser = gg.sequence {
+	local staticMemberParser = gg.sequence {
 		name="in-class method definition",
-		"static", "function", _M.id, _M.func_val,
-		builder = |x| `StaticMethod{ M.id2string(x[1]), x[2] }
-	}
-
-	local fieldParser = gg.sequence {
-		name="in-class instance field declaration",
-		"local", gg.list{ _M.id, separators="," },
-		gg.onkeyword { "=",
-			gg.list {
-				M.expr, separators=",",
-				terminators={ "local", "function", "end" }
-			}
-		},
-		builder = |x| `Field{ x[1], x[2] or { } }
+		"static", _M.local_stat_parser,
+		builder = 'StaticMember',
 	}
 
 	local classBody = gg.sequence {
 		name = "class body",
 		ancestry,
 		gg.list {
-			gg.multisequence { methodParser, fieldParser, staticMethodParser },
+			gg.multisequence { memberParser, staticMemberParser },
 			terminators="end"
 		},
 		"end",
@@ -126,6 +154,7 @@ return function(M)
 		name = "class declaration",
 		"class", _M.id, classBody,
 		builder = |x| {
+			`Local{ {x[1]} },
 			-- Class -> Local
 			x[2][1],
 			-- Id, Class -> Call

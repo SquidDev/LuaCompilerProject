@@ -38,10 +38,10 @@ local function create_precedence(tbl)
 	return r
 end
 
-class SourceCompiler
+local class SourceCompiler
 	--- Keywords, which are illegal as identifiers.
 	-- This is shared between instances so should be copied before using
-	local keywords = create_lookup {
+	keywords = create_lookup {
 		"and", "break", "do", "else", "elseif",
 		"end", "false", "for", "function", "if", "in",
 		"local", "nil", "not", "or", "repeat", "return",
@@ -49,7 +49,7 @@ class SourceCompiler
 	}
 
 	--- Operator -> precedences lookup table, in increasing order.
-	local op_prec = create_precedence {
+	op_prec = create_precedence {
 		{ "or", "and" },
 		{ "lt", "le", "eq", "ne" },
 		{ "concat" },
@@ -62,7 +62,7 @@ class SourceCompiler
 
 	--- operator --> source representation.
 	-- This is shared between instances so should be copied before using
-	local op_symbol = {
+	op_symbol = {
 		add = " + ",
 		sub = " - ",
 		mul = " * ",
