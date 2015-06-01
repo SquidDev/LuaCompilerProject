@@ -535,11 +535,11 @@ local class SourceCompiler
 		self:acc "end)()"
 	end
 
-	local Break = "break"
-	local Nil	= "nil"
-	local False = "false"
-	local True  = "true"
-	local Dots  = "..."
+	Break = "break"
+	Nil	= "nil"
+	False = "false"
+	True  = "true"
+	Dots  = "..."
 
 	-- Expressions
 

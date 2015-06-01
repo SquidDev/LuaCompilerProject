@@ -3,60 +3,62 @@
 -- `export function a() end` results in local function a() end return {a = a}`
 
 -{ extension ("match", ...) }
+-{ extension ("class", ...) }
 
 local gg = require 'metalua.compiler.grammar.generator'
-local walk = require 'metalua.treequery.walk'
+local Walker = require 'metalua.treequery.walker'
 
-return function(mlp)
-	local function chunk_transformer (block)
-		local return_types, returns = { }, { }
-		local cfg = { block = {}, stat  = {}  }
+local class ExportWalker extends Walker
+	returns = {}
 
-		function cfg.stat.down (s)
-			if s.export then
-				local myReturns = returns[#returns]
-				for _, e in pairs(s.export) do
-					table.insert (myReturns, `Pair{ `String { e[1] }, e })
+	function traverseStatement(node, parent, ...)
+		self.super.traverseStatement(self, node, parent, ...)
+
+		if node.export then
+			if parent and parent.tag and parent.tag ~= "Function" then
+				self:error("Cannot export from non-function", node)
+			else
+				local returns = self.returns[#self.returns]
+				for _, e in ipairs(node.export) do
+					table.insert(returns, `Pair { `String { e[1]}, e})
 				end
-				s.export = nil
 			end
 		end
-
-		-------------------------------------------------------------------
-		-- Create/delete scopes as we enter/leave blocks.
-		-------------------------------------------------------------------
-		function cfg.block.down (_, parent)
-			table.insert (returns, `Table { })
-		end
-		function cfg.block.up (block, parent)
-			local myReturns = returns[#returns]
-			table.remove(returns)
-
-			if #myReturns > 0 then
-				local last = returns[#returns]
-				if last and last.tag == "Return" then
-					error("Cannot export, already returning")
-				elseif parent and parent.tag ~= "Function" then
-					error("Cannot export from " .. parent.tag)
-				end
-				table.insert(block, `Return { myReturns })
-			end
-		end
-
-		walk.block(cfg, block)
 	end
 
-	mlp.chunk.transformers:add (chunk_transformer)
+	function traverseBlock(node, parent, ...)
+		local returns = `Table {}
+		if not parent or parent.tag == "Function" then
+			table.insert(self.returns, returns)
+		end
 
-	--------------------------------------------------------------------------------
+		self.super.traverseBlock(self, node, parent, ...)
+		if not parent or parent.tag == "Function" then
+			self.returns[#self.returns] = nil
+
+			if #returns > 0 then
+				match node[#node] with
+				| `Return { ... } -> self:error("Cannot return as this method exports", node[#node])
+				| _ ->
+				end
+
+				local ret = `Return { returns }
+				self.super.visit(self, ret, node, parent, ...)
+				table.insert(node, ret)
+			end
+		end
+	end
+end
+
+return function(mlp)
+	mlp.chunk.transformers:add(|x| ExportWalker():guess(x))
+
 	-- Pluging the parsers in the syntax
-	--------------------------------------------------------------------------------
 	mlp.lexer:add { "export" }
 
-	-- TODO: Allow exporting expressions
 	mlp.stat:add {
 		name = "export",
-		"export", mlp.local_stat_parser ,
+		"export", mlp.local_stat_parser,
 		builder = function(x)
 			local export = {}
 			match x[1] with
