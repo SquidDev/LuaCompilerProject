@@ -13,20 +13,28 @@
 
 local gg  = require 'metalua.compiler.grammar.generator'
 local pp = require 'metalua.pprint'
-return function(mlp)
-	local call = +{ function(s, ...) local o = setmetatable({}, {__index = s}) return o.new and o:new(...) or o end }
+
+local call = +{ function(s, ...) local o = setmetatable({}, { __index = s.prototype}) return o.new and o:new(...) or o end }
+
+return function(M)
+	local _M = gg.future(M)
 
 	local function classBuilder(x)
 		local ancestors, decl = x[1] or `Table{ }, x[2]
-		local prototype = `Table{ }
 		ancestors.tag = "Table"
 
-		local meta = `Table { }
-		table.insert(meta, `Pair { `String "__call", call })
+		local prototypeName = gg.gensym("class")
+		local prototype, class, classMeta, protoMeta = `Table{ }, `Table { }, `Table { }, `Table { }
+
+		table.insert(classMeta, `Pair { `String "__call", call })
+		table.insert(class, `Pair { `String "prototype", prototypeName })
 
 		match #ancestors with
 			| 0 ->
-			| 1 -> table.insert(meta, `Pair { `String "__index", ancestors[1] })
+			| 1 ->
+				local parent = `Index { ancestors[1], `String { "prototype" } }
+				table.insert(protoMeta, `Pair { `String "__index", parent })
+				table.insert(prototype, `Pair { `String "super", parent })
 			| n -> error "This class model doesn't support multiple inheritance"
 		end
 
@@ -34,15 +42,25 @@ return function(mlp)
 			match line with
 			| `Field{ lhs, rhs } -> for i = 1, #lhs do
 					if rhs[i] ~= nil then
-						table.insert (prototype, `Pair{ mlp.id2string(lhs[i]), rhs[i] or `Nil })
+						table.insert (prototype, `Pair{ M.id2string(lhs[i]), rhs[i] or `Nil })
 					end
 				end
 			| `Method{ name, m } ->
 				table.insert (m[1], 1, `Id "self") -- add self as 1st param
 				table.insert (prototype, `Pair{ name, m })
+			| `StaticMethod { name, m } ->
+				table.insert (class, `Pair{ name, m })
 			end
 		end
-		return `Call{ `Id "setmetatable", prototype, meta }
+
+		if #protoMeta > 0 then
+			prototype = `Call{ `Id "setmetatable", prototype, protoMeta }
+		end
+
+		return {
+			`Local { { prototypeName}, { prototype } },
+			`Call{ `Id "setmetatable", class, classMeta }
+		}
 	end
 
 	--------------------------------------------------------------------------------
@@ -50,21 +68,27 @@ return function(mlp)
 	--------------------------------------------------------------------------------
 	local ancestry = gg.onkeyword {
 		name="class ancestors",
-		"extends", gg.list{ mlp.expr, separators="," }
+		"extends", gg.list{ _M.expr, separators="," }
 	}
 
 	local methodParser = gg.sequence {
 		name="in-class method definition",
-		"function", mlp.id, mlp.func_val,
-		builder = |x| `Method{ mlp.id2string(x[1]), x[2] }
+		"function", _M.id, _M.func_val,
+		builder = |x| `Method{ M.id2string(x[1]), x[2] }
+	}
+
+	local staticMethodParser = gg.sequence {
+		name="in-class method definition",
+		"static", "function", _M.id, _M.func_val,
+		builder = |x| `StaticMethod{ M.id2string(x[1]), x[2] }
 	}
 
 	local fieldParser = gg.sequence {
 		name="in-class instance field declaration",
-		"local", gg.list{ mlp.id, separators="," },
+		"local", gg.list{ _M.id, separators="," },
 		gg.onkeyword { "=",
 			gg.list {
-				mlp.expr, separators=",",
+				M.expr, separators=",",
 				terminators={ "local", "function", "end" }
 			}
 		},
@@ -74,9 +98,8 @@ return function(mlp)
 	local classBody = gg.sequence {
 		name = "class body",
 		ancestry,
-		"has",
 		gg.list {
-			gg.multisequence { methodParser, fieldParser },
+			gg.multisequence { methodParser, fieldParser, staticMethodParser },
 			terminators="end"
 		},
 		"end",
@@ -86,17 +109,27 @@ return function(mlp)
 	--------------------------------------------------------------------------------
 	-- Pluging the parsers in the syntax
 	--------------------------------------------------------------------------------
-	mlp.lexer:add { "class", "extends", "has" }
+	M.lexer:add { "class", "extends", "static" }
 
-	mlp.stat:add {
+	M.stat:add {
 		name = "class declaration",
-		"class", mlp.expr, classBody,
-		builder = |x| `Set{ {x[1]}, {x[2]} }
+		"class", _M.id, classBody,
+		builder = |x| {
+			-- Class -> Local
+			x[2][1],
+			-- Id, Class -> Call
+			`Set{ {x[1]}, {x[2][2] }}
+		}
 	}
 
-	mlp.local_stat_parser:add {
+	M.local_stat_parser:add {
 		name = "class declaration",
-		"class", mlp.expr, classBody,
-		builder = |x| `Local{ {x[1]}, {x[2]} }
+		"class", _M.id, classBody,
+		builder = |x| {
+			-- Class -> Local
+			x[2][1],
+			-- Id, Class -> Call
+			`Set{ {x[1]}, {x[2][2] }}
+		}
 	}
 end

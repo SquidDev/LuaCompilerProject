@@ -28,5 +28,5 @@ return function(val, expected, name)
 
 	local message = string.format("Expected %s, got %s", expected, t)
 	if name then message = message .. " for argument " .. name end
-	error(message, 2)
+	error(message, 3)
 end

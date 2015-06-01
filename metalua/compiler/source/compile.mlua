@@ -38,7 +38,7 @@ local function create_precedence(tbl)
 	return r
 end
 
-class SourceCompiler has
+class SourceCompiler
 	--- Keywords, which are illegal as identifiers.
 	-- This is shared between instances so should be copied before using
 	local keywords = create_lookup {
@@ -49,7 +49,7 @@ class SourceCompiler has
 	}
 
 	--- Operator -> precedences lookup table, in increasing order.
-	local op_preprec = create_precedence {
+	local op_prec = create_precedence {
 		{ "or", "and" },
 		{ "lt", "le", "eq", "ne" },
 		{ "concat" },
@@ -631,7 +631,7 @@ class SourceCompiler has
 			| `Op{ op_a, ... } if op_prec[op] >= op_prec[op_a] -> paren = true
 			| _ -> paren = false
 			end
-			self:acc (op_symbol[op])
+			self:acc (self.op_symbol[op])
 			self:acc (paren and "(")
 			self:visit (a)
 			self:acc (paren and ")")
