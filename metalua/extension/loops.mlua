@@ -32,6 +32,9 @@ end
 local gg = require 'metalua.compiler.grammar.generator'
 local Q = require 'metalua.treequery'
 
+local Walker = require 'metalua.treequery.walker'
+Walker.addNode("Continue", nil, "stat")
+
 --- Find continue statements in a loop body, change them into goto
 -- end-of-body.
 local function transform_continue_statements(body)
