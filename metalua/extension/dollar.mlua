@@ -1,20 +1,20 @@
--{ extension ('match', ...) }
+-{ extension ('switch', ...) }
 
 local M = setmetatable({ register = { } }, {__call = function(self, ...) return self.extend(...) end })
 
 local function dollar_builder(e)
-	match e with
-	| `Call{ `Id{name}, ... } ->
+	switch e do
+	case `Call{ `Id{name}, ... } then
 		local entry = M.register[name] or error ("No macro "..name.." registered")
 		return entry(select(2, unpack(e)))
-	| `Id{name} ->
+	case `Id{name} then
 		local entry = M.register[name] or error ("No macro "..name.." registered")
-		match type(entry) with
-		| 'function' -> return entry()
-		| 'table'    -> return entry -- constant AST
-		| t          -> error ("Invalid macro type "..t)
+		switch type(entry) do
+		case 'function' then return entry()
+		case 'table'    then return entry -- constant AST
+		case t          then error ("Invalid macro type "..t)
 		end
-	| _ -> error "Invalid $macro, '$' must be followed by an identifier or function call"
+	case _ then error "Invalid $macro, '$' must be followed by an identifier or function call"
 	end
 end
 

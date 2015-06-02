@@ -9,7 +9,7 @@
 -- end
 -- ```
 
--{ extension ("match", ...) }
+-{ extension ("switch", ...) }
 
 local gg  = require 'metalua.compiler.grammar.generator'
 
@@ -32,45 +32,45 @@ return function(M)
 		table.insert(classMeta, `Pair { `String "__call", call })
 		table.insert(class, `Pair { `String "prototype", prototypeName })
 
-		match #ancestors with
-			| 0 ->
-			| 1 ->
+		switch #ancestors do
+			case 0 then
+			case 1 then
 				local parent = `Index { ancestors[1], `String { "prototype" } }
 				table.insert(protoMeta, `Pair { `String "__index", parent })
 				table.insert(prototype, `Pair { `String "super", parent })
-			| n -> error "This class model doesn't support multiple inheritance"
+			case n then error "This class model doesn't support multiple inheritance"
 		end
 
 		local constructor = {}
 		local actualConstructor = nil
 		for _, member in ipairs(decl) do
-			match member with
-			| `StaticMember { child } ->
-				match child with
-				| `Local { lhs, rhs }
-				| `Localrec {lhs, rhs } ->
+			switch member do
+			case `StaticMember { child } then
+				switch child do
+				case `Local { lhs, rhs }
+				case `Localrec {lhs, rhs } then
 					for i = 1, #lhs do
 						if rhs[i] ~= nil then
 							table.insert(class, `Pair{ M.id2string(lhs[i]), rhs[i]})
 						end
 					end
 				end
-			| `Member { child} ->
-				match child with
-				| `Local { lhs, rhs }
-				| `Localrec {lhs, rhs } ->
+			case `Member { child} then
+				switch child do
+				case `Local { lhs, rhs }
+				case `Localrec {lhs, rhs } then
 					for i = 1, #lhs do
 						local right = rhs[i]
 						if right ~= nil then
-							match right with
-							| `Function { _, _ } ->
+							switch right do
+							case `Function { _, _ } then
 								table.insert(right[1], 1, `Id { "self" })
 								if lhs[i][1] == "new" then
 									actualConstructor = right
 								else
 									table.insert(prototype, `Pair{ M.id2string(lhs[i]), right})
 								end
-							| _ ->
+							case _ then
 								table.insert(constructor, `Set {
 									{ `Index { `Id { "self" }, M.id2string(lhs[i]) } } , { right }
 								})

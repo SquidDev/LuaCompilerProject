@@ -1,16 +1,16 @@
 --- C-style op+assignments
 -- TODO: no protection against side-effects in LHS vars.
 
--{ extension("match", ...)}
+-{ extension("switch", ...)}
 
 local gg = require 'metalua.compiler.grammar.generator'
 
 return function(M)
 	local function extractBase(node)
-		match node with
-		| `Id {...} -> return node
-		| `Index {`Id { ...}, n} -> return node
-		| `Index {base, node} -> return node, base
+		switch node do
+		case `Id {...} then return node
+		case `Index {`Id { ...}, n} then return node
+		case `Index {base, node} then return node, base
 		end
 	end
 	local function op_assign(kw, op)

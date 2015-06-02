@@ -30,7 +30,7 @@
 -- * case: pattern_group * guard option * block
 -- * match_statement: tested term_seq * case list
 --
--- Hence a complete match statement is a:
+-- Hence a complete switch statement is a:
 --
 -- { list(expr),	list{ list(list(expr)), expr or false, block } }
 --
@@ -368,31 +368,31 @@ end
 local function extend(M)
 	local _M = gg.future(M)
 
-	M.lexer:add{ "match", "with", "->" }
-	M.block.terminators:add "|"
+	M.lexer:add{ "switch", "case" }
+	M.block.terminators:add "case"
 
 	local match_cases_list_parser = gg.list{
-		name = "match cases list",
-		gg.sequence{ name = "match case",
+		name = "switch cases list",
+		gg.sequence{ name = "switch case",
 			gg.list{
-				name = "match case patterns list",
+				name = "switch case patterns list",
 				primary = _M.expr_list,
-				separators = "|",
-				terminators = { "->", "if" }
+				separators = "case",
+				terminators = { "then", "if" }
 			},
 			gg.onkeyword{ "if", _M.expr, consume = true },
-			"->",
+			"then",
 			_M.block
 		},
-		separators	= "|",
+		separators	= "case",
 		terminators = "end"
 	}
 
 	M.stat:add{
-		name = "match statement",
-		"match",
+		name = "switch statement",
+		"switch",
 		_M.expr_list,
-		"with", gg.optkeyword "|",
+		"do", gg.optkeyword "case",
 		match_cases_list_parser,
 		"end",
 		builder = |x| match_builder{ x[1], x[3] }

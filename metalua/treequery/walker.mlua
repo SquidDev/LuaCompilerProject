@@ -7,7 +7,7 @@
 	 - The main entry point is :visit(node)
 ]]
 
--{ extension("match", ...) }
+-{ extension("switch", ...) }
 -{ extension("class", ...) }
 
 local pp = require 'metalua.pprint'
@@ -39,17 +39,17 @@ local class Walker
 
 	--- Visit a statement - ensuring it is one
 	function traverseStatement(node, ...)
-		match node with
-		| { tag = tag, ...} if Walker.tags.stat[tag] -> self:visit(node, ...)
-		| _ -> self:unexpected(node, ...)
+		switch node do
+		case { tag = tag, ...} if Walker.tags.stat[tag] then self:visit(node, ...)
+		case _ then self:unexpected(node, ...)
 		end
 	end
 
 	--- Visit an expression - ensuring it is one
 	function traverseExpression(node, ...)
-		match node with
-		| { tag = tag, ...} if Walker.tags.expr[tag] -> self:visit(node, ...)
-		| _ -> self:unexpected(node, ...)
+		switch node do
+		case { tag = tag, ...} if Walker.tags.expr[tag] then self:visit(node, ...)
+		case _ then self:unexpected(node, ...)
 		end
 	end
 
@@ -191,9 +191,9 @@ local class Walker
 		self:traverseExpression(b, node, ...)
 
 		local body
-		match node with
-		| `Fornum{ _, _, _, bod }  -> body = bod
-		| `Fornum{ _, _, _, c, bod } -> self:traverseExpression(c, node, ...) body = bod
+		switch node do
+		case `Fornum{ _, _, _, bod }  then body = bod
+		case `Fornum{ _, _, _, c, bod } then self:traverseExpression(c, node, ...) body = bod
 		end
 
 		self:pushScope()
@@ -278,11 +278,11 @@ local class Walker
 
 	function visitTable(node, ...)
 		for _, item in ipairs(node) do
-			match item with
-			| `Pair { k, v } ->
+			switch item do
+			case `Pair { k, v } then
 				self:traverseExpression(k)
 				self:traverseExpression(v)
-			| v -> self:traverseExpression(v)
+			case v then self:traverseExpression(v)
 			end
 		end
 	end

@@ -28,7 +28,7 @@
 --
 -------------------------------------------------------------------------------
 
--{ extension ("match", ...) }
+-{ extension ("switch", ...) }
 
 local gg  = require 'metalua.compiler.grammar.generator'
 
@@ -36,17 +36,17 @@ local function dots_list_suffix_builder (x) return `DotsSuffix{ x } end
 
 local function for_list_suffix_builder (list_element, suffix)
 	local new_header = suffix[1]
-	match list_element with
-	| `Comp{ _, acc } -> table.insert (acc, new_header); return list_element
-	|  _ -> return `Comp{ list_element, { new_header } }
+	switch list_element do
+		case `Comp{ _, acc } then table.insert (acc, new_header); return list_element
+		case  _ then return `Comp{ list_element, { new_header } }
 	end
 end
 
 local function if_list_suffix_builder (list_element, suffix)
 	local new_header = `If{ suffix[1] }
-	match list_element with
-	| `Comp{ _, acc } -> table.insert (acc, new_header); return list_element
-	|  _ -> return `Comp{ list_element, { new_header } }
+	switch list_element do
+		case `Comp{ _, acc } then table.insert (acc, new_header); return list_element
+		case  _ then return `Comp{ list_element, { new_header } }
 	end
 end
 
@@ -66,14 +66,14 @@ local function comp_list_builder(core, list, t, tinsert)
 	local filler
 	-- 1 - Build the loop's core: if it has suffix "...", every elements of the
 	-- multi-return must be inserted, hence the extra [for] loop.
-	match core with
-	| `DotsSuffix{ element } ->
-		local x = gg.gensym()
-		filler = +{stat: for _, -{x} in pairs{ -{element} } do (-{tinsert})(-{t}, -{x}) end }
-	| `Pair{ key, value } ->
-		--filler = +{ -{t}[-{key}] = -{value} }
-		filler = `Set{ { `Index{ t, key } }, { value } }
-	|  _ -> filler = +{ (-{tinsert})(-{t}, -{core}) }
+	switch core do
+		case `DotsSuffix{ element } then
+			local x = gg.gensym()
+			filler = +{stat: for _, -{x} in pairs{ -{element} } do (-{tinsert})(-{t}, -{x}) end }
+		case `Pair{ key, value } then
+			--filler = +{ -{t}[-{key}] = -{value} }
+			filler = `Set{ { `Index{ t, key } }, { value } }
+		case _ then filler = +{ (-{tinsert})(-{t}, -{core}) }
 	end
 
 	-- 2 - Stack the `if` and `for` control structures, from outside to inside.
@@ -98,9 +98,9 @@ local function table_content_builder (list)
 	local filler_block = { +{stat: local -{t}, -{tinsert} = { }, table.insert } }
 	for _, element in ipairs(list) do
 		local filler
-		match element with
-		| `Comp{ core, comp } -> filler = comp_list_builder(core, comp, t, tinsert)
-		| _ -> filler = comp_list_builder(element, { }, t, tinsert)
+		switch element do
+			case `Comp{ core, comp } then filler = comp_list_builder(core, comp, t, tinsert)
+			case _ then filler = comp_list_builder(element, { }, t, tinsert)
 		end
 		table.insert(filler_block, filler)
 	end

@@ -27,7 +27,7 @@ for i = 0, 10 while i ^ 2 < 50 do
 end
 ]]
 
--{ extension ("match", ...) }
+-{ extension ("switch", ...) }
 
 local gg = require 'metalua.compiler.grammar.generator'
 local Q = require 'metalua.treequery'
@@ -90,17 +90,18 @@ local function loop_builder(x)
 	local result = body
 	for i = #elements, 1, -1 do
 		local e = elements[i]
-		match e with
-		| `If{ cond }    -> result = { `If{ cond, result } }
-		| `Until{ cond } -> result = +{block: if -{cond} then -{break_to_goto()} else -{result} end }
-		| `While{ cond } ->
+		switch e do
+		case `If{ cond } then result = { `If{ cond, result } }
+		case `Until{ cond } then result = +{block: if -{cond} then -{break_to_goto()} else -{result} end }
+		case `While{ cond } then
 			if i==1 then
 				result = { `While{ cond, result } } -- top-level while
 			else
 				result = +{block: if -{cond} then -{result} else -{break_to_goto()} end }
 			end
-		| `Forin{ ... } | `Fornum{ ... } -> table.insert (e, result); result={e}
-		| _ -> require'metalua.pprint'.printf("Bad loop header element %s", e)
+		case `Forin{ ... }
+		case `Fornum{ ... } then table.insert (e, result); result={e}
+		case _ then require'metalua.pprint'.printf("Bad loop header element %s", e)
 		end
 	end
 

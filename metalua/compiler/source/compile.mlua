@@ -17,7 +17,7 @@
 --
 -------------------------------------------------------------------------------
 
--{ extension ('match', ...) }
+-{ extension ('switch', ...) }
 -{ extension ('class', ...) }
 
 local pp = require 'metalua.pprint'
@@ -60,7 +60,7 @@ local class SourceCompiler
 		{ "index" }
 	}
 
-	--- operator --> source representation.
+	--- operator -> source representation.
 	-- This is shared between instances so should be copied before using
 	op_symbol = {
 		add = " + ",
@@ -114,29 +114,29 @@ local class SourceCompiler
 	function joinStatements (previous, next)
 		if type(next) == "table"then
 			local semicolon = true
-			match next with
-			| `Invoke { ... }
-			| `Call { ... }
-				-> semicolon = true
-			| _ -> semicolon = false
+			switch next do
+			case `Invoke { ... }
+			case `Call { ... }
+				then semicolon = true
+			case _ then semicolon = false
 			end
 
 			local right = previous
 			if semicolon then
-				match previous with
-				| `Set { lhs, rhs }
-				| `Local { lhs, rhs }
-				| `Localrec { lhs, rhs }
-					-> right = rhs[#rhs]
-				| _ ->
+				switch previous do
+				case `Set { lhs, rhs }
+				case `Local { lhs, rhs }
+				case `Localrec { lhs, rhs }
+					then right = rhs[#rhs]
+				case _ then
 				end
 
-				match right with
-					| `Call { ...}
-					| `Invoke { ...}
-					| `Paren { ...}
-						-> semicolon = true
-					| _ -> semicolon = false
+				switch right do
+					case `Call { ...}
+					case `Invoke { ...}
+					case `Paren { ...}
+						then semicolon = true
+					case _ then semicolon = false
 				end
 			end
 
@@ -161,7 +161,7 @@ local class SourceCompiler
 
 	--- Return true iff string `id' is a legal identifier name.
 	function is_ident (id)
-		return string['match'](id, "^[%a_][%w_]*$") and not self.keywords[id]
+		return id:match("^[%a_][%w_]*$") and not self.keywords[id]
 	end
 
 	--- Sanitize the name of the class
@@ -173,11 +173,11 @@ local class SourceCompiler
 	-- but not in normal lua so we wrap them with ("HELLO").sub(1,1)
 	-- Also applies to table and function literals
 	function should_wrap(node)
-		match node with
-		| `String{...}
-		| `Table{...}
-		| `Function{...} -> return true
-		| _ -> return false
+		switch node do
+		case `String{...}
+		case `Table{...}
+		case `Function{...} then return true
+		case _ then return false
 		end
 	end
 
@@ -186,14 +186,14 @@ local class SourceCompiler
 	-- a series of nested string indexes, with an identifier as
 	-- the innermost node.
 	function is_idx_stack(ast, require_ident)
-		match ast with
-		| `Id{ _ } -> return true
-		| `Index{ left, `String{ str } } ->
+		switch ast do
+		case `Id{ _ } then return true
+		case `Index{ left, `String{ str } } then
 			if require_ident and not self:is_ident(str) then
 				return false
 			end
 			return self:is_idx_stack(left, require_ident)
-		| _ -> return false
+		case _ then return false
 		end
 	end
 
@@ -292,11 +292,11 @@ local class SourceCompiler
 	end
 
 	function Set (node)
-		match node with
-		| `Set{
+		switch node do
+		case `Set{
 			{ `Index{ lhs, `String{ method } } },
 			{ `Function{ { `Id "self", ... } == params, body } }
-		} if self:is_idx_stack (lhs, true) and self:is_ident (method) ->
+		} if self:is_idx_stack (lhs, true) and self:is_ident (method) then
 			-- ``function foo:bar(...) ... end'' --
 			self:acc "function "
 			self:visit (lhs)
@@ -307,7 +307,7 @@ local class SourceCompiler
 			self:acc ")"
 			self:block(body)
 			self:acc "end"
-		| `Set{ { lhs }, { `Function{ params, body } } } if self:is_idx_stack (lhs, true) ->
+		case `Set{ { lhs }, { `Function{ params, body } } } if self:is_idx_stack (lhs, true) then
 			-- ``function foo(...) ... end'' --
 			self:acc "function "
 			self:visit(lhs)
@@ -317,7 +317,7 @@ local class SourceCompiler
 			self:block(body)
 			self:acc "end"
 
-		| `Set{ { `Id{ lhs1name } == lhs1, ... } == lhs, rhs } if not self:is_ident (lhs1name) ->
+		case `Set{ { `Id{ lhs1name } == lhs1, ... } == lhs, rhs } if not self:is_ident (lhs1name) then
 			-- ``foo, ... = ...'' when foo is *not* a valid identifier.
 			-- In that case, the spliced 1st variable must get parentheses,
 			-- to be distinguished from a statement splice.
@@ -330,8 +330,8 @@ local class SourceCompiler
 			self:acc " = "
 			self:list (rhs, ", ")
 
-		| `Set{{`Paren{lhs}}, rhs} -> self:Set(`Set{{lhs}, rhs})
-		| `Set{ lhs, rhs } ->
+		case `Set{{`Paren{lhs}}, rhs} then self:Set(`Set{{lhs}, rhs})
+		case `Set{ lhs, rhs } then
 			-- ``... = ...'', no syntax sugar --
 			self:list(lhs, ", ")
 			self:acc " = "
@@ -363,7 +363,7 @@ local class SourceCompiler
 			self:acc " then"
 			self:block(body)
 		end
-		-- odd number of children --> last one is an `else' clause --
+		-- odd number of children -> last one is an `else' clause --
 		if #node%2 == 1 then
 			self:acc "else"
 			self:block(node[#node])
@@ -379,7 +379,7 @@ local class SourceCompiler
 		self:visit (first)
 		self:acc ", "
 		self:visit (last)
-		if #node==5 then -- 5 children --> child #4 is a step increment.
+		if #node==5 then -- 5 children -> child #4 is a step increment.
 			self:acc ", "
 			self:visit (node[4])
 		end
@@ -412,8 +412,8 @@ local class SourceCompiler
 	end
 
 	function Localrec (node, lhs, rhs)
-		match node with
-		| `Localrec{ { `Id{name} }, { `Function{ params, body } } } if self:is_ident (name) ->
+		switch node do
+		case `Localrec{ { `Id{name} }, { `Function{ params, body } } } if self:is_ident (name) then
 			-- ``local function name() ... end'' --
 			self:acc "local function "
 			self:acc (name)
@@ -423,7 +423,7 @@ local class SourceCompiler
 			self:block(body)
 			self:acc "end"
 
-		| _ ->
+		case _ then
 			-- Other localrec are unprintable ==> splice them --
 			-- This cannot happen in a plain Lua AST. --
 			self:acc "-{ "
@@ -433,9 +433,9 @@ local class SourceCompiler
 	end
 
 	function Label(node, name)
-		match name with
-		| `Id{n} -> self:Label(node, n)
-		| _ ->
+		switch name do
+		case `Id{n} then self:Label(node, n)
+		case _ then
 			if self:is_ident(name) then
 				self:acc "::"
 				self:acc(name)
@@ -456,9 +456,9 @@ local class SourceCompiler
 	end
 
 	function Goto(node, name)
-		match name with
-		| `Id{n} -> self:Goto(node, n)
-		| _ ->
+		switch name do
+		case `Id{n} then self:Goto(node, n)
+		case _ then
 			if self:is_ident(name) then
 				self:acc "goto "
 				self:acc(name)
@@ -479,10 +479,10 @@ local class SourceCompiler
 	function Call (node, f)
 		-- single string or table literal arg ==> no need for parentheses. --
 		local parens
-		match node with
-		| `Call{ _, `String{_} }
-		| `Call{ _, `Table{...}} -> parens = false
-		| _ -> parens = true
+		switch node do
+		case `Call{ _, `String{_} }
+		case `Call{ _, `Table{...}} then parens = false
+		case _ then parens = true
 		end
 
 		local wrap = self:should_wrap(f)
@@ -499,10 +499,10 @@ local class SourceCompiler
 	function Invoke (node, f, method)
 		-- single string or table literal arg ==> no need for parentheses. --
 		local parens
-		match node with
-		| `Invoke{ _, _, `String{_} }
-		| `Invoke{ _, _, `Table{...}} -> parens = false
-		| _ -> parens = true
+		switch node do
+		case `Invoke{ _, _, `String{_} }
+		case `Invoke{ _, _, `Table{...}} then parens = false
+		case _ then parens = true
 		end
 
 		local wrap = self:should_wrap(f)
@@ -566,21 +566,21 @@ local class SourceCompiler
 			self:acc "{"
 			if #node > 1 then self:nlindent () else self:acc " " end
 			for i, elem in ipairs (node) do
-				match elem with
-				| `Pair{ `String{ key }, value } if self:is_ident(key) ->
+				switch elem do
+				case `Pair{ `String{ key }, value } if self:is_ident(key) then
 					-- ``key = value''. --
 					self:acc  (key)
 					self:acc  " = "
 					self:visit (value)
 
-				| `Pair{ key, value } ->
+				case `Pair{ key, value } then
 					-- ``[key] = value''. --
 					self:acc  "["
 					self:visit (key)
 					self:acc  "] = "
 					self:visit (value)
 
-				| _ ->
+				case _ then
 					-- ``value''. --
 					self:visit (elem)
 				end
@@ -596,23 +596,23 @@ local class SourceCompiler
 
 	function Op (node, op, a, b)
 		-- Transform ``not (a == b)'' into ``a ~= b''. --
-		match node with
-		| `Op{ "not", `Op{ "eq", _a, _b } }
-		| `Op{ "not", `Paren{ `Op{ "eq", _a, _b } } } -> op, a, b = "ne", _a, _b
-		| _ ->
+		switch node do
+		case `Op{ "not", `Op{ "eq", _a, _b } }
+		case `Op{ "not", `Paren{ `Op{ "eq", _a, _b } } } then op, a, b = "ne", _a, _b
+		case _ then
 		end
 
 		if b then -- binary operator.
 			local left_paren, right_paren
 			local op_prec = self.op_prec
-			match a with
-			| `Op{ op_a, ...} if op_prec[op] >= op_prec[op_a] -> left_paren = true
-			| _ -> left_paren = false
+			switch a do
+			case `Op{ op_a, ...} if op_prec[op] >= op_prec[op_a] then left_paren = true
+			case _ then left_paren = false
 			end
 
-			match b with -- FIXME: might not work with right assoc operators ^ and ..
-			| `Op{ op_b, ...} if op_prec[op] >= op_prec[op_b] -> right_paren = true
-			| _ -> right_paren = false
+			switch b do -- FIXME: might not work with right assoc operators ^ and ..
+			case `Op{ op_b, ...} if op_prec[op] >= op_prec[op_b] then right_paren = true
+			case _ then right_paren = false
 			end
 
 			self:acc (left_paren and "(")
@@ -627,9 +627,9 @@ local class SourceCompiler
 
 		else -- unary operator.
 			local paren
-			match a with
-			| `Op{ op_a, ... } if op_prec[op] >= op_prec[op_a] -> paren = true
-			| _ -> paren = false
+			switch a do
+			case `Op{ op_a, ... } if op_prec[op] >= op_prec[op_a] then paren = true
+			case _ then paren = false
 			end
 			self:acc (self.op_symbol[op])
 			self:acc (paren and "(")
@@ -647,21 +647,21 @@ local class SourceCompiler
 	function Index (node, table, key)
 		local paren_table
 		-- Check precedence, see if parens are needed around the table --
-		match table with
-		| `Op{ op, ... } if op_prec[op] < op_prec.index -> paren_table = true
-		| _ -> paren_table = self:should_wrap(table)
+		switch table do
+		case `Op{ op, ... } if op_prec[op] < op_prec.index then paren_table = true
+		case _ then paren_table = self:should_wrap(table)
 		end
 
 		self:acc (paren_table and "(")
 		self:visit (table)
 		self:acc (paren_table and ")")
 
-		match key with
-		| `String{ field } if self:is_ident (field) ->
+		switch key do
+		case `String{ field } if self:is_ident (field) then
 			-- ``table.key''. --
 			self:acc "."
 			self:acc (field)
-		| _ ->
+		case _ then
 			-- ``table [key]''. --
 			self:acc "["
 			self:visit (key)
