@@ -7,11 +7,15 @@ return function(M)
 	local _M = gg.future(M)
 	local _types = gg.future(types)
 
-	types.basic_type = function(lx)
-		local id = _M.id(lx)
-		id.tag = "Type",
-		return id
+	local function getMetainfo(node)
+		local metainfo = node.metainfo
+		if not metainfo then
+			metainfo = {}
+			node.metainfo = metainfo
+		end
+		return metainfo
 	end
+
 
 	types.type_def = gg.multisequence {
 		name = "type",
@@ -33,7 +37,7 @@ return function(M)
 				default = _types.type_def,
 			},
 			builder = function(x)
-				return `ArrayType { unpack(x) }
+				return `FunctionType { unpack(x) }
 			end
 		},
 		gg.sequence {
@@ -45,7 +49,11 @@ return function(M)
 			},
 			"}",
 			builder = function(x)
-				return `ArrayType { x[1], x[2] }
+				if #x == 1 then
+					return `ArrayType { x[1] }
+				else
+					return `HashType { x[1], x[2] }
+				end
 			end
 		},
 		default = _M.id
@@ -58,9 +66,9 @@ return function(M)
 			name="type definition",
 			":", _types.type_def
 		},
-		builder = function(x)
-			x[1].type = x[2]
-			return x[1]
+		builder = function(node)
+			getMetainfo(node).type = node[2]
+			return node[1]
 		end
 	}
 
@@ -71,32 +79,16 @@ return function(M)
 		},
 		_M.block, "end",
 		builder = function(x)
-			local value = `Function {
-				x[1], x[3]
-			}
-
-			local types = `Function { }
+			local types = `FunctionType { }
 			for _, params in ipairs(x[1]) do
 				table.insert(types, params.type or `Unknown)
 			end
 			table.insert(types, x[2] or `Unknown)
 
-			value.type = types
-			return value
+			return  `Function {
+				x[1], x[3],
+				metainfo = { type = types }
+			}
 		end
 	}
-
-	-- Additional statements
-	M.stat:add {
-		'alias',
-		_M.id_list,
-		'=',
-		gg.list { primary = _types.type, separators = ','},
-		builder = function(x)
-			print(require'metalua.pprint'.tostring(x, {hide_hash = true}))
-			return nil
-		end
-	}
-
-	M.lexer:add { "alias" }
 end
