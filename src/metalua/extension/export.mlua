@@ -24,6 +24,8 @@ local class ExportWalker extends Walker
 				end
 			end
 		end
+
+		return node
 	end
 
 	function traverseBlock(node, parent, ...)
@@ -47,6 +49,8 @@ local class ExportWalker extends Walker
 				table.insert(node, ret)
 			end
 		end
+
+		return node
 	end
 end
 

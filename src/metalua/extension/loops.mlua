@@ -39,7 +39,6 @@ Walker.addNode("Continue", nil, "stat")
 -- end-of-body.
 local function transform_continue_statements(body)
 	local continue_statements = Q(body)
-		:if_unknown() -- tolerate unknown 'Continue' statements
 		:not_under ('Forin', 'Fornum', 'While', 'Repeat')
 		:filter ('Continue')
 		:list()

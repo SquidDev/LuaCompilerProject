@@ -1,0 +1,33 @@
+-{ extension("class", ...) }
+-{ extension("opequals", ...) }
+
+local Walker = require 'metalua.treequery.walker'
+local Scope = require 'metalua.analysis.Scope'
+
+local class ScopeCreator extends Walker
+	scope = Scope:createFileScope()
+
+	function pushScope()
+		self.scope = Scope(self.scope)
+	end
+
+	function popScope()
+		self.scope = assert(self.scope.parent, "Unexpected call to popScope")
+	end
+
+	function traverseDeclaration(node)
+		if node.tag == "Id" then
+			self.scope:createVariable(node)
+		else
+			self:error("Expected declaration", node)
+		end
+	end
+
+	function visitId(node)
+		local variable = self.scope:getVariable(node)
+		variable.metainfo.references += 1
+		return variable
+	end
+end
+
+return ScopeCreator

@@ -43,53 +43,56 @@ local class Walker
 	--- Visit a statement - ensuring it is one
 	function traverseStatement(node, ...)
 		switch node do
-		case { tag = tag, ...} if Walker.tags.stat[tag] then self:traverse(node, ...)
-		case _ then self:unexpected(node, ...)
+		case { tag = tag, ...} if Walker.tags.stat[tag] then return self:traverse(node, ...)
+		case _ then return self:unexpected(node, ...) or node
 		end
 	end
 
 	--- Visit an expression - ensuring it is one
 	function traverseExpression(node, ...)
 		switch node do
-		case { tag = tag, ...} if Walker.tags.expr[tag] then self:traverse(node, ...)
-		case _ then self:unexpected(node, ...)
+		case { tag = tag, ...} if Walker.tags.expr[tag] then return self:traverse(node, ...)
+		case _ then return self:unexpected(node, ...) or node
 		end
 	end
 
 	function traverseDeclaration(node, ...)
-		self:traverse(node, ...)
+		return self:traverse(node, ...)
 	end
 
 	--- Visit a statement list - ensuring it is not a node
 	function traverseBlock(list, ...)
 		if list.tag then
-			self:malformed(list)
+			return self:malformed(list) or list
 		else
-			for _, y in ipairs(list) do
-				self:traverseStatement(y, list, ...)
+			for i, y in ipairs(list) do
+				list[i] = self:traverseStatement(y, list, ...)
 			end
+			return list
 		end
 	end
 
 	--- Visit a statement list - ensuring it is not a node
 	function traverseExpressionList(list, ...)
 		if list.tag then
-			self:malformed(list)
+			return self:malformed(list) or list
 		else
-			for _, y in ipairs(list) do
-				self:traverseExpression(y, list, ...)
+			for i, y in ipairs(list) do
+				list[i] = self:traverseExpression(y, list, ...)
 			end
+			return list
 		end
 	end
 
 	--- Visit a statement list - ensuring it is not a node
 	function traverseDeclarationList(list, ...)
 		if list.tag then
-			self:malformed(list)
+			return self:malformed(list) or list
 		else
-			for _, y in ipairs(list) do
-				self:traverseDeclaration(y, list, ...)
+			for i, y in ipairs(list) do
+				list[i] = self:traverseDeclaration(y, list, ...)
 			end
+			return list
 		end
 	end
 
@@ -121,14 +124,12 @@ local class Walker
 		elseif node.tag == nil then
 			self:error("Expected node, got nil tag", node, ...)
 		end
+
 		local visitor = self['visit' .. node.tag] or Walker.visitors[node.tag]
 		if visitor then
-			visitor(self, node, ...)
-			if self.child then
-				self:child(node, ...)
-			end
+			return visitor(self, node, ...) or node
 		else
-			self:unknown(node, ...)
+			return self:unknown(node, ...) or node
 		end
 	end
 
@@ -138,110 +139,113 @@ local class Walker
 			self:error("Expected node, got nil", node)
 		end
 		if node.tag then
-			self:traverse(node)
+			return self:traverse(node)
 		else
-			self:traverseBlock(node)
+			return self:traverseBlock(node)
 		end
 	end
 
 	function visitDo(node, ...)
 		self:pushScope()
-		for _, y in ipairs(node) do
-			self:traverseStatement(y, node, ...)
+		for i, y in ipairs(node) do
+			node[i] = self:traverseStatement(y, node, ...)
 		end
 		self:popScope()
 	end
 
 	function visitSet(node, ...)
-		local lhs, rhs = unpack(node)
-		self:traverseExpressionList(lhs, node, ...)
-		self:traverseExpressionList(rhs, node, ...)
+		node[1] = self:traverseExpressionList(node[1], node, ...)
+		node[2] = self:traverseExpressionList(node[2], node, ...)
 	end
 
 	function visitWhile(node, ...)
 		local condition, body = unpack(node)
-		self:traverseExpression(condition, node, ...)
+		node[1] = self:traverseExpression(condition, node, ...)
 		self:pushScope()
-		self:traverseBlock(body, node, ...)
+		node[2] = self:traverseBlock(body, node, ...)
 		self:popScope()
 	end
 
 	function visitRepeat(node, ...)
 		local body, condition = unpack(node)
 		self:pushScope()
-		self:traverseBlock(body, node, ...)
-		self:traverseExpression(condition, node, ...)
+		node[1] = self:traverseBlock(body, node, ...)
+		node[2] = self:traverseExpression(condition, node, ...)
 		self:popScope()
 	end
 
 	function visitLocal(node, ...)
 		local lhs, rhs = unpack(node)
 		if rhs then
-			self:traverseExpressionList(rhs, node, ...)
+			node[2] = self:traverseExpressionList(rhs, node, ...)
 		end
-		self:traverseDeclarationList(lhs, node, ...)
+		node[1] = self:traverseDeclarationList(lhs, node, ...)
 	end
 
 	function visitLocalrec(node, ...)
 		local lhs, rhs = unpack(node)
-		self:traverseDeclarationList(lhs, node, ...)
-		self:traverseExpressionList(rhs, node, ...)
+		node[1] = self:traverseDeclarationList(lhs, node, ...)
+		node[2] = self:traverseExpressionList(rhs, node, ...)
 	end
 
 	function visitFornum(node, ...)
 		local i, a, b = unpack(node)
-		self:traverseExpression(a, node, ...)
-		self:traverseExpression(b, node, ...)
+		node[2] = self:traverseExpression(a, node, ...)
+		node[3] = self:traverseExpression(b, node, ...)
 
-		local body
 		switch node do
-		case `Fornum{ _, _, _, bod }  then body = bod
-		case `Fornum{ _, _, _, c, bod } then self:traverseExpression(c, node, ...) body = bod
-		end
+		case `Fornum{ _, _, _, body }  then
+			self:pushScope()
+			node[1] = self:traverseDeclarationList({i}, node, ...)
+			node[4] = self:traverseBlock(body, node, ...)
+			self:popScope()
+		case `Fornum{ _, _, _, c, body } then
+			node[4] = self:traverseExpression(c, node, ...)
 
-		self:pushScope()
-		self:traverseDeclarationList({i}, node, ...)
-		self:traverseBlock(body, node, ...)
-		self:popScope()
+			self:pushScope()
+			node[1] = self:traverseDeclarationList({i}, node, ...)
+			node[5] = self:traverseBlock(body, node, ...)
+			self:popScope()
+		end
 	end
 
 	function visitForin(node, ...)
 		local i, rhs, body = unpack(node)
-		self:traverseExpression(rhs, node, ...)
+		node[2] = self:traverseExpression(rhs, node, ...)
 		self:pushScope()
-		self:traverseDeclaration(i, node, ...)
-		self:traverseBlock(body, node, ...)
+		node[1] = self:traverseDeclaration(i, node, ...)
+		node[3] = self:traverseBlock(body, node, ...)
 		self:popScope()
 	end
 
 	function visitIf(node, ...)
 		for i = 1, #node - 1, 2 do
-			self:traverseExpression(node[i], node, ...)
+			node[i] = self:traverseExpression(node[i], node, ...)
 			self:pushScope()
-			self:traverseBlock(node[i + 1], node, ...)
+			node[i + 1] = self:traverseBlock(node[i + 1], node, ...)
 			self:popScope()
 		end
 
 		if #node % 2 == 1 then
 			self:pushScope()
-			self:traverseBlock(node[#node], node, ...)
+			node[#node] = self:traverseBlock(node[#node], node, ...)
 			self:popScope()
 		end
 	end
 
 	function visitCall(node,...)
-		for _, y in ipairs(node) do
-			self:traverseExpression(y, node, ...)
+		for i, y in ipairs(node) do
+			node[i] = self:traverseExpression(y, node, ...)
 		end
 	end
 
 	function visitInvoke(node, ...)
-		self:traverseCall(node, ...)
+		return self:traverseCall(node, ...)
 	end
 
 	function visitReturn(node, ...)
-		for _, y in ipairs(node) do
-			self:traverseExpression(y, node, ...)
+		for i, y in ipairs(node) do
+			node[i] = self:traverseExpression(y, node, ...)
 		end
 	end
 
@@ -250,42 +254,42 @@ local class Walker
 	function visitLabel() end
 
 	function visitParen(node, ...)
-		self:traverseExpression(node[1], node, ...)
+		node[1] = self:traverseExpression(node[1], node, ...)
 	end
 
 	function visitIndex(node, ...)
-		self:traverseExpression(node[1], node, ...)
-		self:traverseExpression(node[2], node, ...)
+		node[1] = self:traverseExpression(node[1], node, ...)
+		node[2] = self:traverseExpression(node[2], node, ...)
 	end
 
 	function visitOp(node, ...)
-		self:traverseExpression(node[2], node, ...)
+		node[2] = self:traverseExpression(node[2], node, ...)
 		if #node == 3 then
-			self:traverseExpression(node[3], node, ...)
+			node[3] = self:traverseExpression(node[3], node, ...)
 		end
 	end
 
 	function visitFunction(node, ...)
 		self:pushScope()
-		self:traverseDeclarationList(node[1], node, ...)
-		self:traverseBlock(node[2], node, ...)
+		node[1] = self:traverseDeclarationList(node[1], node, ...)
+		node[2] = self:traverseBlock(node[2], node, ...)
 		self:popScope()
 	end
 
 	function visitStat(node, ...)
 		self:pushScope()
-		self:traverseBlock(node[1], node, ...)
-		self:traverseExpression(node[2], node, ...)
+		node[1] = self:traverseBlock(node[1], node, ...)
+		node[2] = self:traverseExpression(node[2], node, ...)
 		self:popScope()
 	end
 
 	function visitTable(node, ...)
-		for _, item in ipairs(node) do
+		for i, item in ipairs(node) do
 			switch item do
 			case `Pair { k, v } then
-				self:traverseExpression(k)
-				self:traverseExpression(v)
-			case v then self:traverseExpression(v)
+				item[1] = self:traverseExpression(k)
+				item[2] = self:traverseExpression(v)
+			case v then node[i] = self:traverseExpression(v)
 			end
 		end
 	end

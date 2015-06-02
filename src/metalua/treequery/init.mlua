@@ -78,7 +78,7 @@ local class TreeQueryWalker extends Walker
 			if satisfied and self.down_f then self.down_f(...) end
 		end
 
-		self.super.traverse(self, ...)
+		local r = self.super.traverse(self, ...)
 
 		-- Remove predicates which are due before we go up this node
 		local preds = self.until_up[...]
@@ -108,15 +108,8 @@ local class TreeQueryWalker extends Walker
 			end
 			self.from_up[...] = nil
 		end
-	end
 
-	function unknown(...)
-		local unknown = self.query.unknown_handler
-		if unknown then
-			unknown(...)
-		else
-			self.super.unknown(self, ...)
-		end
+		return r
 	end
 end
 
@@ -131,13 +124,6 @@ local class TreeQuery
 		self.up_f  = false
 		self.down_f = false
 		self.filters = { }
-
-		self.unknown_handler = nil
-	end
-
-	function if_unknown(f)
-		self.unknown_handler = f or (||nil)
-		return self
 	end
 
 	--- helper to share the implementations of positional filters

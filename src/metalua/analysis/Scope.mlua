@@ -1,0 +1,98 @@
+-{ extension("class", ...) }
+
+--- Holds the data for one variable
+-- @table Variable
+-- @tfield Scope Scope The parent scope
+-- @tfield string Name The name of the variable
+-- @tfield boolean IsGlobal Is the variable global
+-- @tfield boolean CanRename If the variable can be renamed
+-- @tfield int References Number of references
+
+local function merge(a, b)
+	if not a and not b then return {} end
+	if not a then return b end
+	if not b then return a end
+
+	for k, v in pairs(b) do a[k] = v end
+	return a
+end
+
+--- Variables for one scope
+local class Scope
+	--- @tfield ?|Scope The parent scope
+	parent = nil
+
+	--- @tfield {Variable} A list of local variables
+	-- These are stored in a list rather than a map to allow renaming
+	-- of variables and multiple variables
+	variables = {}
+
+	--- @tfield {Scope} List of child scopes
+	children = {}
+
+	--- Create a new scope
+	-- @tparam ?|Scope parent The parent scope
+	function new(parent)
+		self.parent = parent
+
+		if parent then
+			table.insert(parent.children, self)
+		end
+	end
+
+	--- Create a variable
+	-- @tparam `Id id The name of the variable
+	function makeVariable(id)
+		return `Id {
+			id[1],
+			metainfo = merge({
+				scope = self,
+				references = 0,
+			}, id.metainfo),
+			lineinfo = id.lineinfo,
+		}
+	end
+
+	--- Create a @{Variable} and add it to the scope
+	-- @tparam `Id id The name of the local
+	-- @treturn Variable The created local
+	function createVariable(id)
+		local variable = self:makeVariable(id)
+		table.insert(self.variables, variable)
+		return variable
+	end
+
+	--- Get a variable.
+	-- - If it cannot be found it will search the parent scope
+	-- - If this is the global scope then it will create it.
+	-- the parent scope. If
+	-- @tparam `Id|string id The id representing the local
+	-- @treturn Variable The variable
+	function getVariable(id)
+		if type(id) == "string" then id = `Id { id } end
+
+		local name = id[1]
+		for _, var in ipairs(self.variables) do
+			if var[1] == name then
+				return var
+			end
+		end
+
+		if self.parent then
+			return self.parent:getVariable(id)
+		else -- Global scope
+			return self:createVariable(id)
+		end
+	end
+
+	--- Create two nested scopes - the file scope and the global scope
+	-- @treturn[1] Scope The file scope
+	-- @treturn[2] Scope The global scope
+	static function createFileScope()
+		local global = Scope()
+		return Scope(global), global
+	end
+
+end
+
+return Scope

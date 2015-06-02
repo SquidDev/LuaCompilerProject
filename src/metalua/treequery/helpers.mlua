@@ -55,8 +55,9 @@ local class DeclarationFinder extends Walker
 		if node.tag == "Id" and node[1] == self.target and not self.result then
 			-- TODO: Break the walker
 			self.result = {node, ...}
+			return node
 		else:
-			self.super.traverseDeclaration(self, node, ...)
+			return self.super.traverseDeclaration(self, node, ...)
 		end
 	end
 end
