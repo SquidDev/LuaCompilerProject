@@ -38,7 +38,7 @@ local class TreeQueryWalker extends Walker
 		self.down_f = down
 	end
 
-	function visit(...)
+	function traverse(...)
 		local query = self.query
 		local satisfied = query.unsatisfied == 0
 		for _, x in ipairs(query.predicates) do
@@ -78,7 +78,7 @@ local class TreeQueryWalker extends Walker
 			if satisfied and self.down_f then self.down_f(...) end
 		end
 
-		self.super.visit(self, ...)
+		self.super.traverse(self, ...)
 
 		-- Remove predicates which are due before we go up this node
 		local preds = self.until_up[...]

@@ -402,7 +402,7 @@ local class SourceCompiler
 		if #lhs > 0 then
 			self:acc "local "
 			self:list (lhs, ", ")
-			if rhs[1] then
+			if rhs and rhs[1] then
 				self:acc  " = "
 				self:list (rhs, ", ")
 			end

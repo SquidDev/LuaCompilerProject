@@ -43,7 +43,7 @@ local class ExportWalker extends Walker
 				end
 
 				local ret = `Return { returns }
-				self.super.visit(self, ret, node, parent, ...)
+				self.super.traverse(self, ret, node, parent, ...)
 				table.insert(node, ret)
 			end
 		end

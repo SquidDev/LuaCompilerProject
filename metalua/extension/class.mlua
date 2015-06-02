@@ -83,6 +83,13 @@ return function(M)
 
 		if not actualConstructor then
 			actualConstructor = `Function { { `Id {"self"} }, { } }
+
+			if #ancestors == 1 then
+				table.insert(actualConstructor[2], `Call {
+					`Index { `Index { `Id { "self"}, `String { "super"} }, `String { "new"}  },
+					`Id { "self" }
+				})
+			end
 		end
 
 		local constructorBody = actualConstructor[2]

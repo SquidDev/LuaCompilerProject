@@ -4,7 +4,7 @@
 	 - traverse*List methods ensure that the list passed is not a node
 	 - visit* methods handle a specific node type (Dots, Function, ...)
 	 - pushScope and popScope are called when entering and leaving scopes
-	 - The main entry point is :visit(node)
+	 - The main entry point is :traverse(node)
 ]]
 
 -{ extension("switch", ...) }
@@ -20,14 +20,17 @@ local class Walker
 	--- Standard tags: can be used to guess the type of an AST, or to check
 	-- that the type of an AST is respected.
 	static tags = {
-		stat = table_transpose{
+		stat = table_transpose {
 			'Do', 'Set', 'While', 'Repeat', 'Local', 'Localrec', 'Return',
 			'Fornum', 'Forin', 'If', 'Break', 'Goto', 'Label',
 			'Call', 'Invoke'
 		},
-		expr = table_transpose{
+		expr = table_transpose {
 			'Paren', 'Call', 'Invoke', 'Index', 'Op', 'Function', 'Stat',
 			'Table', 'Nil', 'Dots', 'True', 'False', 'Number', 'String', 'Id'
+		},
+		declaration = table_transpose {
+			'Local', 'Localrec', 'Forin', 'Fornum',
 		}
 	}
 
@@ -40,7 +43,7 @@ local class Walker
 	--- Visit a statement - ensuring it is one
 	function traverseStatement(node, ...)
 		switch node do
-		case { tag = tag, ...} if Walker.tags.stat[tag] then self:visit(node, ...)
+		case { tag = tag, ...} if Walker.tags.stat[tag] then self:traverse(node, ...)
 		case _ then self:unexpected(node, ...)
 		end
 	end
@@ -48,13 +51,13 @@ local class Walker
 	--- Visit an expression - ensuring it is one
 	function traverseExpression(node, ...)
 		switch node do
-		case { tag = tag, ...} if Walker.tags.expr[tag] then self:visit(node, ...)
+		case { tag = tag, ...} if Walker.tags.expr[tag] then self:traverse(node, ...)
 		case _ then self:unexpected(node, ...)
 		end
 	end
 
 	function traverseDeclaration(node, ...)
-		self:visit(node, ...)
+		self:traverse(node, ...)
 	end
 
 	--- Visit a statement list - ensuring it is not a node
@@ -112,7 +115,7 @@ local class Walker
 		error(message .. ' at ' .. tostring(node and node.lineinfo or '?'), 2)
 	end
 
-	function visit(node, ...)
+	function traverse(node, ...)
 		if node == nil then
 			self:error("Expected node, got nil", node, ...)
 		elseif node.tag == nil then
@@ -122,7 +125,7 @@ local class Walker
 		if visitor then
 			visitor(self, node, ...)
 			if self.child then
-				self.child:visit(node, ...)
+				self:child(node, ...)
 			end
 		else
 			self:unknown(node, ...)
@@ -135,7 +138,7 @@ local class Walker
 			self:error("Expected node, got nil", node)
 		end
 		if node.tag then
-			self:visit(node)
+			self:traverse(node)
 		else
 			self:traverseBlock(node)
 		end
@@ -198,7 +201,7 @@ local class Walker
 
 		self:pushScope()
 		self:traverseDeclarationList({i}, node, ...)
-		self:visitBlock(body, node, ...)
+		self:traverseBlock(body, node, ...)
 		self:popScope()
 	end
 
@@ -233,7 +236,7 @@ local class Walker
 	end
 
 	function visitInvoke(node, ...)
-		self:visitCall(node, ...)
+		self:traverseCall(node, ...)
 	end
 
 	function visitReturn(node, ...)
@@ -247,7 +250,7 @@ local class Walker
 	function visitLabel() end
 
 	function visitParen(node, ...)
-		self:visitExpression(node[1], node, ...)
+		self:traverseExpression(node[1], node, ...)
 	end
 
 	function visitIndex(node, ...)
@@ -295,10 +298,12 @@ local class Walker
 	function visitNumber() end
 	function visitString() end
 
-	static function addNode(name, visitor, type)
+	static function addNode(name, visitor, types)
 		Walker.visitors[name] = visitor or ||nil
-		if type == "expr" or type == "both" then Walker.tags.expr[name] = true end
-		if type == "stat" or type == "both" then Walker.tags.stat[name] = true end
+		if type(types) == "string" then types = {types} end
+		for _, v in ipairs(types) do
+			Walker.tags[v][name] = true
+		end
 	end
 end
 

@@ -1,0 +1,172 @@
+-{ extension("export", ...) }
+
+local Walker = require 'metalua.treequery.walker'
+
+--- Predicate to test whether a node represents an expression.
+export function is_expr(node)
+	local node_tag = node.tag
+	return node_tag and Walker.tags.expr[node_tag]
+end
+
+--- Predicate to test whether a node represents a statement.
+--  It is context-aware, i.e. it recognizes `Call and `Invoke nodes
+--  used in a statement context as such.
+export function is_stat(node, list)
+	local node_tag = node.tag
+	if node_tag == "Call" or node_tag == "Invoke" then
+		return list and list.tag == nil
+	end
+	return node_tag and Walker.tags.expr[node_tag]
+end
+
+--- Predicate to test whether a node represents a statements block.
+export function is_block(node) return node.tag==nil end
+
+--- Test whether a node is a declaration. This is local predicate, although it
+--  might need to inspect the parent node. This probably needs some work.
+export function is_declaration(node, list, parent)
+	if node.tag ~= 'Id' or not parent or not Walker.tags.declaration[parent.tag] then
+		return false
+	end
+
+	if parent[1] == node then
+		return true
+	end
+
+	for _, is_declaration in ipairs(parent[1]) do
+		if is_declaration == node then
+			return true
+		end
+	end
+
+	return false
+end
+
+local class DeclarationFinder extends Walker
+	result = {}
+	target
+
+	function new(target)
+		self.super.new(self)
+		self.target = target
+	end
+
+	function traverseDeclaration(node, ...)
+		if node.tag == "Id" and node[1] == self.target and not self.result then
+			-- TODO: Break the walker
+			self.result = {node, ...}
+		else:
+			self.super.traverseDeclaration(self, node, ...)
+		end
+	end
+end
+
+--- Retrieve the declaration associated to an occurrence within root.
+--  @param occurrence an Id node representing an occurrence in `root`.
+--  @param root the tree in which `node` and its declaration occur.
+--  @return the declaration node, and its ancestors up to root if found.
+--  @return nil if node is global (or not an occurrence) in `root`.
+export function declaration(occurrence, root)
+	local finder = DeclarationFinder(occurrence)
+	finder:guess(root)
+	return unpack(finder.result)
+end
+
+--- Predicate to filter occurrences of a given declaration.
+--  Warning: it relies on internal scope book-keeping,
+--  and for this reason, it only works as query method argument.
+--  It won't work outside of a query.
+--  @param declaration the binder whose occurrences must be kept by predicate
+--  @return a predicate
+-- TODO: Fix me
+local function is_occurrence_of(declaration)
+	return function(node, ...)
+		local dec = get_declaration(node)
+		return dec == declaration
+	end
+end
+
+-- TODO: Fix me
+local function get_binder(occurrence, ...)
+	if occurrence.tag ~= 'Id' then return nil end
+	if M.is_binder(occurrence, ...) then return nil end
+	local scope = ACTIVE_SCOPE[occurrence]
+	local binder_hierarchy = scope :get(occurrence[1])
+	return unpack (binder_hierarchy or { })
+end
+
+--- Transform a predicate on a node into a predicate on this node's
+--  parent. For instance if p tests whether a node has property P,
+--  then parent(p) tests whether this node's parent has property P.
+--  The ancestor level is precised with n, with 1 being the node itself,
+--  2 its parent, 3 its grand-parent etc.
+--  @param[optional] n the parent to examine, default=2
+--  @param pred the predicate to transform
+--  @return a predicate
+function parent(n, pred, ...)
+	if type(n) ~= 'number' then n, pred = 2, n end
+	if type(pred) == 'string' then
+		local tag = tag
+		pred = |node| node.tag == tag
+	end
+
+	return function(self, ...)
+		return select(n, ...) and pred(self, select(n, ...))
+	end
+end
+
+--- Transform a predicate on a node into a predicate on this node's n-th child.
+--  @param n the child's index number
+--  @param pred the predicate to transform
+--  @return a predicate
+export function child(n, pred)
+	return function(node, ...)
+		local child = node[n]
+		return child and pred(child, node, ...)
+	end
+end
+
+--- Predicate to test the position of a node in its parent.
+--  The predicate succeeds if the node is the n-th child of its parent,
+--  and a <= n <= b.
+--  nth(a) is equivalent to nth(a, a).
+--  Negative indices are admitted, and count from the last child,
+--  as done for instance by string.sub().
+--
+--  TODO: This is wrong, this tests the table relationship rather than the
+--  AST node relationship.
+--  Must build a getindex helper, based on pattern switching, then build
+--  the predicate around it.
+--
+--  @param a lower bound
+--  @param a upper bound
+--  @return a predicate
+export function is_nth(a, b)
+	b = b or a
+	return function(self, node, parent)
+		if not parent then return false end
+		local nchildren = #parent
+		local a = a <= 0 and (nchildren + a + 1) or a
+		if a > nchildren then return false end
+		local b = b <= 0 and nchildren + b + 1 or b > nchildren and nchildren or b
+		for i = a, b do
+			if parent[i]==node then return true end
+		end
+		return false
+	end
+end
+
+local comment_extractor = |which_side| function (node)
+	local x = node.lineinfo
+	x = x and x[which_side]
+	x = x and x.comments
+	if not x then return nil end
+	local lines = { }
+	for _, record in ipairs(x) do
+		table.insert(lines, record[1])
+	end
+	return table.concat(lines, '\n')
+end
+
+export comment_prefix = comment_extractor 'first'
+export comment_suffix = comment_extractor 'last'
