@@ -71,8 +71,9 @@ local class Scope
 	function getVariable(id)
 		if type(id) == "string" then id = `Id { id } end
 
-		local name = id[1]
-		for _, var in ipairs(self.variables) do
+		local name, variables = id[1], self.variables
+		for i = #variables, 1, -1 do
+			local var = variables[i]
 			if var[1] == name then
 				return var
 			end

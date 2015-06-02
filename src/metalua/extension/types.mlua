@@ -16,47 +16,52 @@ return function(M)
 		return metainfo
 	end
 
+	local returnDef = gg.multisequence {
+		{
+			"[", gg.list {
+				primary     = _types.type_def,
+				separators  = ",",
+				terminators = "]"
+			}, "]"
+		},
+		default = _types.type_def,
+	}
+
+	local functionSignature = gg.sequence {
+		name = "function type definition",
+		"(", gg.list {
+			primary     = _types.type_def,
+			separators  = ",",
+			terminators = ")"
+		}, ")", ":", returnDef,
+		builder = function(x)
+			return `FunctionType { unpack(x) }
+		end
+	}
+
+	local tableSignature = gg.sequence {
+		name = "table type definition",
+		"{",
+		_types.type_def,
+		gg.onkeyword {
+			'=', _types.type_def,
+		},
+		-- TODO: Interface
+		"}",
+		builder = function(x)
+			if x[2] then
+				return `HashType { x[1], x[2] }
+			else
+				return `ArrayType { x[1] }
+			end
+		end
+	}
 
 	types.type_def = gg.multisequence {
 		name = "type",
-		gg.sequence {
-			name = "function type definition",
-			"(", gg.list {
-				primary     = _types.type_def,
-				separators  = ",",
-				terminators = ")"
-			}, ")", ":",
-			gg.multisequence {
-				{
-					"[", gg.list {
-						primary     = _types.type_def,
-						separators  = ",",
-						terminators = "]"
-					}, "]"
-				},
-				default = _types.type_def,
-			},
-			builder = function(x)
-				return `FunctionType { unpack(x) }
-			end
-		},
-		gg.sequence {
-			name = "table type definition",
-			"{",
-			_types.type_def,
-			gg.onkeyword {
-				':', _types.type_def,
-			},
-			"}",
-			builder = function(x)
-				if #x == 1 then
-					return `ArrayType { x[1] }
-				else
-					return `HashType { x[1], x[2] }
-				end
-			end
-		},
-		default = _M.id
+		functionSignature,
+		tableSignature,
+		default = function(lx) return `BasicType { _M.id(lx)[1] } end,
 	}
 
 	-- Overrides
@@ -67,7 +72,9 @@ return function(M)
 			":", _types.type_def
 		},
 		builder = function(node)
-			getMetainfo(node).type = node[2]
+			-- If we specify unknown then we probably will replace it
+			-- with `Any. However it may be that we do want to imply it
+			getMetainfo(node[1]).type = node[2] or `Unknown
 			return node[1]
 		end
 	}
@@ -75,7 +82,7 @@ return function(M)
 	M.func_val = gg.sequence {
 		name = "function body",
 		"(", _M.func_params_content, ")", gg.onkeyword {
-			":", _types.return_def
+			":", returnDef
 		},
 		_M.block, "end",
 		builder = function(x)

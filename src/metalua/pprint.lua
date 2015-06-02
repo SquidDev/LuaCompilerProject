@@ -5,6 +5,7 @@ M.DEFAULT_CFG = {
 	hide_hash   = false; -- Print the non-array part of tables?
 	metalua_tag = true;  -- Use Metalua's backtick syntax sugar?
 	keywords    = { };   -- Set of keywords which must not use Lua's field shortcuts {["foo"]=...} -> {foo=...}
+	blacklist = { };     -- Set of fields to not display
 }
 
 local function validId(x, cfg)
@@ -34,7 +35,7 @@ local function serializeImplicit(object, data)
 
 		local builder = 0
 		for k,v in pairs(object) do
-			if not data.cfg.hide_hash or (type(k) == "number" and k > 0 and k <= objLen and math.fmod(k, 1) == 0) then
+			if (not data.cfg.hide_hash and not data.cfg.blacklist[k]) or (type(k) == "number" and k > 0 and k <= objLen and math.fmod(k, 1) == 0) then
 				if type(k) == "table" or type(v) == "table" then
 					shouldNewLine = true
 					break
@@ -55,7 +56,7 @@ local function serializeImplicit(object, data)
 				if hasTag and k=='tag' then  -- pass the 'tag' field
 				elseif type(k) == "number" and k <= objLen and k > 0 and math.fmod(k,1)==0 then
 					-- pass array-part keys (consecutive ints less than `#adt`)
-				else
+				elseif not data.cfg.blacklist[k] then
 					if first then
 						-- 1st hash-part pair ever found
 						insert(data, ", ")
@@ -117,7 +118,7 @@ function M.tostring(object, cfg)
 	local d = {
 		indent = 0,
 		cfg = cfg,
-		visited = {}
+		visited = {},
 	}
 	serializeImplicit(object, d)
 	return table.concat(d)

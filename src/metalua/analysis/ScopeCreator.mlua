@@ -15,9 +15,9 @@ local class ScopeCreator extends Walker
 		self.scope = assert(self.scope.parent, "Unexpected call to popScope")
 	end
 
-	function traverseDeclaration(node)
+	function traverseDeclaration(node, parent)
 		if node.tag == "Id" then
-			self.scope:createVariable(node)
+			return self.scope:createVariable(node)
 		else
 			self:error("Expected declaration", node)
 		end
