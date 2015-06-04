@@ -1,4 +1,45 @@
 # Types
+## Any
+The Any type (or `any`) is both a superclass and a subclass of all types - any type can be converted to Any, and Any can be in turn converted to all types. By default a value is of the Any type:
+
+```lua
+local a = 1
+a = "Hello"
+a = false
+a = nil
+```
+
+You can explicitly write use the Any type, especially in generics.
+```lua
+-- Explictly allow the Any type on function arguments
+local foo:(number, number):number = function(a:any, b:any)
+    return a + b
+end
+
+local bar:{string=any} -- Allow a map with any value
+```
+
+## Nil
+Nil is a special type. It cannot be explictly defined as a type - the only time it exists is using the `nil` keyword. However `nil` is a superclass of all types. This means `nil` is a valid value of any type.
+
+```lua
+local a:number = nil
+local b:{string=number} = {}
+b["Hello"] = nil
+b = nil
+```
+
+However, there are some special cases. Nil cannot be used as an index.
+
+```lua
+local a:{string=number} = {}
+a["Hello"] = 1 -- Valid
+a[nil] = 1 -- Invalid
+
+local b:string = nil
+a[b] = 1 -- Technically valid. TODO: Error on this
+```
+
 ## Number
 The Number type (or `number`) represents a 64-bit double precision floating point.
 
@@ -166,8 +207,30 @@ interface Foo
 end
 ```
 
-### Methods
-There are two types of Object methods: instance bound and field methods. Bound methods operate on the current object, field methods are simply fields with Function type.
+This syntax allows you to define a mix of array and table style syntax.
+
+```lua
+interface Node
+	startline:number.
+	endline:number,
+end
+
+interface BinaryOperation extends Node
+	1:string,
+	2:Node,
+	3:Node,
+end
+
+local a:BinaryOperation = { startline = 1, endline = 2, "+", left, right }
+local b:Node = ...
+
+print(a[1])
+a[2] = b
+print(a.startline)
+```
+
+### Functions
+Functions can be stored within Objects in two ways. Functions normally operate as normal fields, but you can also create methods. Methods perform an action on the current object and cannot be overridden.
 
 ```lua
 interface Fooable
@@ -183,9 +246,11 @@ local a:Fooable = {
 
 a:fooify() -- Valid
 a.fooify(a) -- Error: Calling instance method without `:` operator
+a.fooify = nil -- Error: Cannot set method 'fooify'
 
 a:bar(2) -- Warning: Calling field as instance method
-a.bar(a, b) -- Valid
+a.bar(a, 2) -- Valid
+a.bar = nil -- Valid: This is a field and so acts like one.
 ```
 
 
@@ -288,7 +353,7 @@ b = a -- Valid: B is not strict
 ```
 
 ### Union
-Represents a type that can be either value.
+Represents a type that can be either value. 
 ```lua
 interface Union<T, U> extends T, U
 end
@@ -296,7 +361,7 @@ end
 local a:string|number = "Hello"    -- Using syntax sugar
 local b:Union<String, Number> = 23 -- Equivilent
 ```
-
+Both component types are valid values for the union, and the union is a valid type for both component types.
 
 ## Interfaces in greater depth
 Interfaces describe a structure. In their simplest form they act as an alias for a type:
@@ -320,7 +385,7 @@ interface Animal
 end
 ```
 
-Though in the case of objects, you can leave out the braces:
+Though in the case of Objects, you can leave out the braces:
 
 ```lua
 interface Animal
