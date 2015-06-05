@@ -1,0 +1,54 @@
+-{ extension("class", ...) }
+-{ extension("switch", ...) }
+
+local TypeWalker = require 'tua.analysis.TypeWalker'
+local TypeScope = require 'tua.analysis.TypeScope'
+local getMetainfo = require 'luacp.analysis.helpers'.getMetainfo
+
+local class TypeScopeCreator extends TypeWalker
+	scope = TypeScope:createFileScope()
+
+	function pushScope()
+		self.scope = TypeScope(self.scope)
+	end
+
+	function popScope()
+		self.scope = assert(self.scope.parent, "Unexpected call to popScope")
+	end
+
+	function traverseType(type, node, ...)
+		switch type do
+			case `NamedType { name } then
+				local t = self.scope:getType(name)
+				if not t then
+					return self:error("Cannot find type " .. name, node)
+				end
+				return t
+		end
+	end
+
+	function visitOp(node, ...)
+		print(require 'metalua.pprint'.tostring(node, {blacklist={lineinfo=true,scope=true}}))
+	end
+
+	function visitNil(node, ...)
+		getMetainfo(node).type = `NamedType "Nil"
+	end
+	function visitDots()
+		getMetainfo(node).type = `NamedType "Dots"
+	end
+	function visitTrue()
+		getMetainfo(node).type = `NamedType "Boolean"
+	end
+	function visitFalse()
+		getMetainfo(node).type = `NamedType "Boolean"
+	end
+	function visitNumber()
+		getMetainfo(node).type = `NamedType "Number"
+	end
+	function visitString()
+		getMetainfo(node).type = `NamedType "String"
+	end
+end
+
+return TypeScopeCreator

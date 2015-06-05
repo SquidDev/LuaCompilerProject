@@ -1,0 +1,62 @@
+-{ extension("class", ...) }
+
+local primitives = require 'tua.types.primitives'
+
+--- Type definitions for one scope
+local class TypeScope
+	--- @tfield ?|TypeScope The parent scope
+	parent = nil
+
+	--- @tfield {String=Type} A map of type names to Types
+	types = {}
+
+	--- @tfield {Scope} List of child scopes
+	children = {}
+
+	--- Create a new scope
+	-- @tparam ?|Scope parent The parent scope
+	function new(parent)
+		self.parent = parent
+
+		if parent then
+			table.insert(parent.children, self)
+		end
+	end
+
+	--- Create a Type and add it to the scope
+	-- @tparam string name The name of the type
+	-- @tparam Type type The type declaration
+	-- @treturn Variable The created type
+	function createType(name, type)
+		if self:getType(name) then
+			error("Cannot override type " .. name, 2)
+		elseif type.name ~= name then
+			type.name = name
+		end
+
+		self.types[name] = type
+		return type
+	end
+
+	--- Get a type definition.
+	-- - If it cannot be found it will search the parent scope
+	-- @tparam string id The name representing the type
+	-- @treturn ?|Type The type or nil if not found
+	function getType(id)
+		return self.types[id] or (self.parent and self.parent:getVariable(id))
+	end
+
+	--- Create two nested scopes - the file scope and the global scope
+	-- @treturn[1] Scope The file scope
+	-- @treturn[2] Scope The global scope
+	static function createFileScope()
+		local global = TypeScope()
+		for k, v in pairs(primitives) do
+			global:createType(k, v)
+		end
+		return TypeScope(global), global
+	end
+
+end
+
+return TypeScope

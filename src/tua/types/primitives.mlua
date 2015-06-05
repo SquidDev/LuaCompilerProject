@@ -1,0 +1,33 @@
+-{ extension("export", ...) }
+
+local union = `NamedType "Union"
+local strict = `NamedType "Strict"
+
+local number = `NamedType "Number"
+local string = `NamedType "String"
+local boolean = `NamedType "Boolean"
+
+export Number = `GenericType {
+	strict,
+	`Type {
+		`MetaMethod { "add", , `GenericType { union, string, number }, number },
+		`MetaMethod { "sub", `GenericType { union, string, number }, `GenericType { union, string, number }, number },
+		`MetaMethod { "mul", `GenericType { union, string, number }, `GenericType { union, string, number }, number },
+		`MetaMethod { "div", `GenericType { union, string, number }, `GenericType { union, string, number }, number },
+		`MetaMethod { "mod", `GenericType { union, string, number }, `GenericType { union, string, number }, number },
+		`MetaMethod { "pow", `GenericType { union, string, number }, `GenericType { union, string, number }, number },
+
+		`MetaMethod { "eq", number, number, boolean },
+		`MetaMethod { "lt", number, number, boolean },
+		`MetaMethod { "le", number, number, boolean },
+
+		`MetaMethod { "unm", number, number },
+	},
+}
+export number = Number
+
+export Boolean = `GenericType { name = "Boolean", strict, `Type }
+export bool, boolean = Boolean, Boolean
+
+export Nil = `GenericType { name = "Nil", strict, `Type }
+export Void = `GenericType { name = "Void", strict, `Type }

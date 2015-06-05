@@ -1,0 +1,38 @@
+-{ extension("class", ...) }
+
+local WarningWalker = require 'luacp.analysis.WarningWalker'
+local getMetainfo = require 'luacp.analysis.helpers'.getMetainfo
+
+local class TypeWalker extends WarningWalker
+	function traverseType(type, node, ...)
+		return type
+	end
+
+	--- Traverse a node with a type definition
+	function traverseTyped(node, ...)
+		local metainfo = helpers.getMetainfo(node)
+		local type = metainfo.type
+		if not type then
+			type = `UnknownType
+			metainfo.type = type
+		end
+
+		metainfo.type = self:traverseType(type, node, ...) or type
+	end
+
+	function traverse(node, ...)
+		local r = self.super.traverse(self, node, ...)
+
+		if getMetainfo(node).type then
+			self:traverseTyped(node, ...)
+		end
+
+		return r
+	end
+
+	function traverseDeclaration(node, ...)
+		self:traverseTyped(node)
+	end
+end
+
+return ScopeCreator

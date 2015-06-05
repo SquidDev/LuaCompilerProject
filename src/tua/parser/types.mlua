@@ -1,0 +1,147 @@
+--- Basic type parser
+-- See doc/types/InternalRepresentation.md for full details
+
+local function getMetainfo(node)
+	local metainfo = node.metainfo
+	if not metainfo then
+		metainfo = {}
+		node.metainfo = metainfo
+	end
+	return metainfo
+end
+
+local gg = require 'metalua.compiler.grammar.generator'
+
+return function(M)
+	local types = {}
+	local _M = gg.future(M)
+	local _types = gg.future(types)
+
+	local returnDef = gg.multisequence {
+		gg.sequence {
+			"[", gg.list {
+				primary     = _types.type_def,
+				separators  = ",",
+				terminators = "]"
+			}, "]",
+			builder = |x| `GenericType { `NamedType "Tuple", unpack(x[1]) }
+		},
+		default = _types.type_def,
+	}
+
+	local functionSignature = gg.sequence {
+		name = "function type definition",
+		"(", gg.list {
+			primary     = _types.type_def,
+			separators  = ",",
+			terminators = ")"
+		}, ")", ":", returnDef,
+		builder = function(x)
+			local val =  `GenericType { `NamedType "Function", unpack(x[1]) }
+			table.insert(val, x[2])
+			return val
+		end
+	}
+
+	local tableSignature = gg.sequence {
+		name = "table type definition",
+		"{",
+		_types.type_def,
+		gg.onkeyword {
+			'=', _types.type_def,
+		},
+		-- TODO: Object
+		"}",
+		builder = function(x)
+			if x[2] then
+				return `GenericType { `NamedType "Map", x[1], x[2] }
+			else
+				return `GenericType { `NamedType "Array", x[1] }
+			end
+		end
+	}
+
+	local genericType = gg.sequence {
+		_M.id,
+		gg.onkeyword {
+			name = "generic type",
+			"<",
+			gg.sequence {
+				gg.list {
+					primary = _types.type_def,
+					separators = ",",
+					terminators = ">",
+				},
+				">",
+			}
+		},
+
+		builder = function(x)
+			if x[1][1] == "auto" and not x[2] then
+				return `InferedType
+			elseif x[2] then
+				return `GenericType { `NamedType { x[1][1] }, x[2][1]}
+			else
+				return `NamedType { x[1][1] }
+			end
+		end,
+	}
+
+	local union = gg.sequence {
+		genericType,
+		gg.onkeyword {
+			name = "union type",
+			"|", genericType,
+		},
+		builder = function(x)
+			local a, b = x[1], x[2]
+			if b then
+				return `GenericType { `NamedType "Union", a, b }
+			else
+				return a
+			end
+		end,
+	}
+
+	types.type_def = gg.multisequence {
+		name = "type",
+		functionSignature,
+		tableSignature,
+		default = union,
+	}
+
+	-- Overrides
+	M.declaration.default = gg.sequence {
+		name = "declaration",
+		_M.id, gg.onkeyword {
+			name="type definition",
+			":", _types.type_def
+		},
+		builder = function(node)
+			-- If none specified then use `Any
+			getMetainfo(node[1]).type = node[2] or `UnknownType
+			return node[1]
+		end
+	}
+
+	M.func_val = gg.sequence {
+		name = "function body",
+		"(", _M.func_params_content, ")", gg.onkeyword {
+			":", returnDef
+		},
+		_M.block, "end",
+		builder = function(x)
+			local types = `GenericType { `NamedType "Function" }
+			for _, params in ipairs(x[1]) do
+				-- The `UnknownType either will infer or set to Any based on context
+				table.insert(types, params.type or `UnknownType)
+			end
+			table.insert(types, x[2] or `UnknownType)
+
+			return  `Function {
+				x[1], x[3],
+				metainfo = { type = types }
+			}
+		end
+	}
+end
