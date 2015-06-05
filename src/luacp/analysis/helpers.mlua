@@ -1,0 +1,11 @@
+-{ extension("export", ...) }
+-{ extension("switch", ...) }
+
+export function getMetainfo(node)
+	local metainfo = node.metainfo
+	if not metainfo then
+		metainfo = {}
+		node.metainfo = metainfo
+	end
+	return metainfo
+end

@@ -69,6 +69,11 @@ describe("Correct output #compiler", function()
 		end
 	end
 
+	local function doubleBack(src)
+		local compiler = require 'metalua.compiler'.new()
+		return loadstring(compiler:ast_to_src(compiler:srcfile_to_ast(src)))
+	end
+
 	assertEquals = assert.are.equals
 	verbose = function() end
 
@@ -76,10 +81,16 @@ describe("Correct output #compiler", function()
 		if file:sub(1, 1) == '!' then
 			pending(file:sub(2), function() end)
 		else
-			it(file, function()
-				local compiler = require 'metalua.compiler'.new()
-				local f = compiler:srcfile_to_function('spec/compiler/' .. file .. '.lua')
-				setfenv(f, getfenv())()
+			describe(file, function()
+				it("#bytecode", function()
+					local compiler = require 'metalua.compiler'.new()
+					local f = compiler:srcfile_to_function('spec/compiler/' .. file .. '.lua')
+					setfenv(f, getfenv())()
+				end)
+
+				it("#source", function()
+					setfenv(doubleBack('spec/compiler/' .. file .. '.lua'), getfenv())()
+				end)
 			end)
 
 			--[[

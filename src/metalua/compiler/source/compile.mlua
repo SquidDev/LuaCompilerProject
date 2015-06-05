@@ -602,9 +602,9 @@ local class SourceCompiler
 		case _ then
 		end
 
+		local op_prec = self.op_prec
 		if b then -- binary operator.
 			local left_paren, right_paren
-			local op_prec = self.op_prec
 			switch a do
 			case `Op{ op_a, ...} if op_prec[op] >= op_prec[op_a] then left_paren = true
 			case _ then left_paren = false

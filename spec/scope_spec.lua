@@ -1,7 +1,7 @@
 require'metalua.loader'
 
 describe("Scopes #scope #analysis", function()
-	local ScopeCreator = require('metalua.analysis.ScopeCreator')
+	local ScopeCreator = require('luacp.analysis.ScopeCreator')
 
 	it("Reference count", function()
 		local creator = ScopeCreator()

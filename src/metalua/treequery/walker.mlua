@@ -101,28 +101,28 @@ local class Walker
 
 	--- Called on an unknown tag, or a tag not expected at that point
 	function unknown(node, ...)
-		self:error("Unknown node tag " .. (node.tag or '[nil]'), node)
+		self:fatal("Unknown node tag " .. (node.tag or '[nil]'), node)
 	end
 
 	--- Called on a tag not expected at that point
 	function unexpected(node, ...)
-		self:error("Unexpected node tag " .. (node.tag or '[nil]'), node)
+		self:fatal("Unexpected node tag " .. (node.tag or '[nil]'), node)
 	end
 
 	--- Called on a malformed tag statement/expression list
 	function malformed(node, ...)
-		self:error("Unknown node of tag " .. (node.tag or '[nil]') .. ':' .. pp.tostring(node), node)
+		self:fatal("Unknown node of tag " .. (node.tag or '[nil]') .. ':' .. pp.tostring(node), node)
 	end
 
-	function error(message, node)
+	function fatal(message, node)
 		error(message .. ' at ' .. tostring(node and node.lineinfo or '?'), 2)
 	end
 
 	function traverse(node, ...)
 		if node == nil then
-			self:error("Expected node, got nil", node, ...)
+			self:fatal("Expected node, got nil", node, ...)
 		elseif node.tag == nil then
-			self:error("Expected node, got nil tag", node, ...)
+			self:fatal("Expected node, got nil tag", node, ...)
 		end
 
 		local visitor = self['visit' .. node.tag] or Walker.visitors[node.tag]
@@ -136,7 +136,7 @@ local class Walker
 	--- Main entry point
 	function guess(node)
 		if node == nil then
-			self:error("Expected node, got nil", node)
+			self:fatal("Expected node, got nil", node)
 		end
 		if node.tag then
 			return self:traverse(node)

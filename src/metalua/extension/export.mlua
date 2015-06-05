@@ -16,7 +16,7 @@ local class ExportWalker extends Walker
 
 		if node.export then
 			if parent and parent.tag and parent.tag ~= "Function" then
-				self:error("Cannot export from non-function", node)
+				self:fatal("Cannot export from non-function", node)
 			else
 				local returns = self.returns[#self.returns]
 				for _, e in ipairs(node.export) do
@@ -40,7 +40,7 @@ local class ExportWalker extends Walker
 
 			if #returns > 0 then
 				switch node[#node] do
-					case `Return { ... } then self:error("Cannot return as this method exports", node[#node])
+					case `Return { ... } then self:fatal("Cannot return as this method exports", node[#node])
 					case _ then
 				end
 

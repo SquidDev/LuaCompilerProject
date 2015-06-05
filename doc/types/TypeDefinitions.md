@@ -13,7 +13,7 @@ You can explicitly write use the Any type, especially in generics.
 ```lua
 -- Explictly allow the Any type on function arguments
 local foo:(number, number):number = function(a:any, b:any)
-    return a + b
+	return a + b
 end
 
 local bar:{string=any} -- Allow a map with any value
@@ -45,18 +45,18 @@ The Number type (or `number`) represents a 64-bit double precision floating poin
 
 ```lua
 strict interface Number
-  static meta function add(lhs:String|Number, rhs:String|Number):Number
-	static meta function sub(lhs:String|Number, rhs:String|Number):Number
-	static meta function mul(lhs:String|Number, rhs:String|Number):Number
-	static meta function div(lhs:String|Number, rhs:String|Number):Number
-	static meta function mod(lhs:String|Number, rhs:String|Number):Number
-	static meta function pow(lhs:String|Number, rhs:String|Number):Number
+	meta function add(lhs:string|number, rhs:string|number):number,
+	meta function sub(lhs:string|number, rhs:string|number):number,
+	meta function mul(lhs:string|number, rhs:string|number):number,
+	meta function div(lhs:string|number, rhs:string|number):number,
+	meta function mod(lhs:string|number, rhs:string|number):number,
+	meta function pow(lhs:string|number, rhs:string|number):number,
 
-	meta function eq(lhs:number, rhs:number):boolean
-	meta function lt(lhs:number, rhs:number):boolean
-	meta function le(lhs:number, rhs:number):boolean
+	meta function eq(lhs:number, rhs:number):boolean,
+	meta function lt(lhs:number, rhs:number):boolean,
+	meta function le(lhs:number, rhs:number):boolean,
 
-	meta function unm(self:number):number
+	meta function unm(self:number):number,
 end
 ```
 
@@ -73,30 +73,30 @@ The String type (or `string`) represents a series of characters - not necessaril
 
 ```lua
 strict interface String
-	function byte(first:Number = 1):String
-	function byte(first:Number, last:Number):[...:String]
-	function find(pattern:String, start:Number = 1, plain:Number = false):[Number, Number]
-	function format(...:any):String
-	function gmatch(pattern:String):():[...:any]
-	function gsub(pattern:String, replace:(...:String):String|String):[String, Number]
-	function gsub(pattern:String, replace:(...:String):String|String, limit:Number):[String, Number]
-	function len():Number
-	function lower():String
-	function match(pattern:String, first:Number = 1):():[...:any]
-	function rep(count:Number):String
-	function reverse():String
-	function sub(first:Number):String
-	function sub(first:Number, last:Number):String
-	function upper():String
+	function byte(first:number = 1):string,
+	function byte(first:number, last:number):[...:string],
+	function find(pattern:string, start:number = 1, plain:number = false):[number, number],
+	function format(...:any):string,
+	function gmatch(pattern:string):():[...:any],
+	function gsub(pattern:string, replace:(...:string):string|string):[string, number],
+	function gsub(pattern:string, replace:(...:string):string|string, limit:number):[string, number],
+	function len():number,
+	function lower():string,
+	function match(pattern:string, first:number = 1):():[...:any],
+	function rep(count:number):string,
+	function reverse():string,
+	function sub(first:number):string,
+	function sub(first:number, last:number):string,
+	function upper():string,
 
-	static meta function concat(lhs:string|number, rhs:string|number):string
+	meta function concat(lhs:string|number, rhs:string|number):string,
 
-	meta function eq(lhs:string, rhs:string):boolean
-	meta function lt(lhs:string, rhs:string):boolean
-	meta function le(lhs:string, rhs:string):boolean
+	meta function eq(lhs:string, rhs:string):boolean,
+	meta function lt(lhs:string, rhs:string):boolean,
+	meta function le(lhs:string, rhs:string):boolean,
 
-	meta function unm(self:number):number
-	meta function len(self:number):number
+	meta function unm(self:number):number,
+	meta function len(self:number):number,
 end
 ```
 
@@ -186,7 +186,7 @@ Objects are the most flexible structure in Tua and are the base for all types. T
 
 ```lua
 interface Foo
-    foo:number, -- Like tables, `,` or `;` must be used to separate fields.
+	foo:number, -- Like tables, `,` or `;` must be used to separate fields.
 		bar:string,
 end
 
@@ -203,7 +203,7 @@ The syntax for declaring fields is not dissimilar to that of Lua tables, though 
 interface Foo
 	foo:number,
 	"bar":string, -- Useful for non-identifiers
-	1:boolean,    -- Mix and match arrays and objects
+	1:boolean,	-- Mix and match arrays and objects
 end
 ```
 
@@ -353,12 +353,12 @@ b = a -- Valid: B is not strict
 ```
 
 ### Union
-Represents a type that can be either value. 
+Represents a type that can be either value.
 ```lua
 interface Union<T, U> extends T, U
 end
 
-local a:string|number = "Hello"    -- Using syntax sugar
+local a:string|number = "Hello"	-- Using syntax sugar
 local b:Union<String, Number> = 23 -- Equivilent
 ```
 Both component types are valid values for the union, and the union is a valid type for both component types.

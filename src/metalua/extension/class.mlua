@@ -86,7 +86,7 @@ return function(M)
 
 			if #ancestors == 1 then
 				table.insert(actualConstructor[2], `Call {
-					`Index { `Index { `Id { "self"}, `String { "super"} }, `String { "new"}  },
+					`Index { `Index { ancestors[1] , `String { "prototype"} }, `String { "new"}  },
 					`Id { "self" }
 				})
 			end
