@@ -34,25 +34,29 @@ local class Walker
 		}
 	}
 
-	static visitors = { }
-
 	function new(child)
 		self.child = child
 	end
 
 	--- Visit a statement - ensuring it is one
 	function traverseStatement(node, ...)
-		switch node do
-		case { tag = tag, ...} if Walker.tags.stat[tag] then return self:traverse(node, ...)
-		case _ then return self:unexpected(node, ...) or node
+		if node.tag then
+			if Walker.tags.stat[node.tag] then
+				return self:traverse(node, ...) or node
+			else
+				return self:unknown(node, ...) or node
+			end
+		else
+			return self:traverseBlock(node, ...) or node
 		end
 	end
 
 	--- Visit an expression - ensuring it is one
 	function traverseExpression(node, ...)
-		switch node do
-		case { tag = tag, ...} if Walker.tags.expr[tag] then return self:traverse(node, ...)
-		case _ then return self:unexpected(node, ...) or node
+		if node.tag and Walker.tags.expr[node.tag] then
+			return self:traverse(node, ...) or node
+		else
+			return self:unexpected(node, ...) or node
 		end
 	end
 
@@ -114,7 +118,7 @@ local class Walker
 		self:fatal("Unknown node of tag " .. (node.tag or '[nil]') .. ':' .. pp.tostring(node), node, ...)
 	end
 
-	function fatal(message, node, parent)
+	function fatal(message, node, ...)
 		error(message .. ' at ' .. tostring(node and node.lineinfo or '?'), 2)
 	end
 
@@ -125,7 +129,7 @@ local class Walker
 			self:fatal("Expected node, got nil tag", node, ...)
 		end
 
-		local visitor = self['visit' .. node.tag] or Walker.visitors[node.tag]
+		local visitor = self['visit' .. node.tag]
 		if visitor then
 			return visitor(self, node, ...) or node
 		else
@@ -240,7 +244,7 @@ local class Walker
 	end
 
 	function visitInvoke(node, ...)
-		return self:traverseCall(node, ...)
+		return self:visitCall(node, ...)
 	end
 
 	function visitReturn(node, ...)
@@ -286,10 +290,10 @@ local class Walker
 	function visitTable(node, ...)
 		for i, item in ipairs(node) do
 			switch item do
-			case `Pair { k, v } then
-				item[1] = self:traverseExpression(k)
-				item[2] = self:traverseExpression(v)
-			case v then node[i] = self:traverseExpression(v)
+				case `Pair { k, v } then
+					item[1] = self:traverseExpression(k, node, ...)
+					item[2] = self:traverseExpression(v, node, ...)
+				case v then node[i] = self:traverseExpression(v, node, ...)
 			end
 		end
 	end
@@ -303,7 +307,7 @@ local class Walker
 	function visitString() end
 
 	static function addNode(name, visitor, types)
-		Walker.visitors[name] = visitor or ||nil
+		Walker.prototype["visit" .. name] = visitor or |x|x
 		if type(types) == "string" then types = {types} end
 		for _, v in ipairs(types) do
 			Walker.tags[v][name] = true

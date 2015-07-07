@@ -1,4 +1,5 @@
 -{ extension("export", ...) }
+-{ extension("class", ...) }
 
 local Walker = require 'metalua.treequery.walker'
 
@@ -47,7 +48,7 @@ local class DeclarationFinder extends Walker
 	target
 
 	function new(target)
-		self.super.new(self)
+		Walker.new(self)
 		self.target = target
 	end
 
@@ -56,7 +57,7 @@ local class DeclarationFinder extends Walker
 			-- TODO: Break the walker
 			self.result = {node, ...}
 			return node
-		else:
+		else
 			return self.super.traverseDeclaration(self, node, ...)
 		end
 	end

@@ -2,7 +2,7 @@
 require 'metalua.loader'
 
 describe("Extensions #compiler #extensions", function()
-	describe("comprehension", function()
+	describe("#comprehension", function()
 		it("nested", function()
 			local f = require 'metalua.compiler'.new():src_to_function([[
 				-{ extension("comprehension", ...) }
@@ -46,12 +46,13 @@ describe("Extensions #compiler #extensions", function()
 		end)
 	end)
 
-	describe("export", function()
+	describe("#export", function()
 		it("locals", function()
 			local f = require 'metalua.compiler'.new():src_to_function([[
 				-{ extension("export", ...) }
 				local a = "value a"
-				export c, a = "value c"
+				export a
+				export c = "value c"
 
 				export b = "value b"
 			]], "export.lua")
@@ -74,7 +75,7 @@ describe("Extensions #compiler #extensions", function()
 		end)
 	end)
 
-	describe("dollar", function()
+	describe("#dollar", function()
 		it("Method", function()
 			local f = require 'metalua.compiler'.new():src_to_function([[
 				-{stat:
@@ -105,7 +106,7 @@ describe("Extensions #compiler #extensions", function()
 		end)
 	end)
 
-	describe("infix", function()
+	describe("#infix", function()
 		it("infix", function()
 			local f = require 'metalua.compiler'.new():src_to_function([[
 				-{ extension("infix", ...) }
@@ -117,7 +118,7 @@ describe("Extensions #compiler #extensions", function()
 		end)
 	end)
 
-	describe("loops", function()
+	describe("#loops", function()
 		it("continue", function()
 			local f = require 'metalua.compiler'.new():src_to_function([[
 				-{ extension("loops", ...) }
@@ -162,7 +163,7 @@ describe("Extensions #compiler #extensions", function()
 		end)
 	end)
 
-	describe("opequals", function()
+	describe("#opequals", function()
 		it("basic", function()
 			local f = require 'metalua.compiler'.new():src_to_function([[
 				-{ extension("opequals", ...) }

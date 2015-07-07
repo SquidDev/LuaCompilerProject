@@ -106,7 +106,7 @@ return function(M)
 
 		return {
 			`Local { { prototypeName}, { prototype } },
-			`Call{ `Id "setmetatable", class, classMeta }
+			`Call { `Id "setmetatable", class, classMeta }
 		}
 	end
 

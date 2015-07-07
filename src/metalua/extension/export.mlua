@@ -11,21 +11,19 @@ local Walker = require 'metalua.treequery.walker'
 local class ExportWalker extends Walker
 	returns = {}
 
-	function traverseStatement(node, parent, ...)
-		self.super.traverseStatement(self, node, parent, ...)
+	function visitExport(node, parent, ...)
+		Walker.prototype.visitExport(self, node, parent, ...)
 
-		if node.export then
-			if parent and parent.tag and parent.tag ~= "Function" then
-				self:fatal("Cannot export from non-function", node)
-			else
-				local returns = self.returns[#self.returns]
-				for _, e in ipairs(node.export) do
-					table.insert(returns, `Pair { `String { e[1]}, e})
-				end
+		if parent and parent.tag and parent.tag ~= "Function" then
+			self:fatal("Cannot export from non-function " .. parent.tag, node)
+		else
+			local returns = self.returns[#self.returns]
+			for _, e in ipairs(node[1][1]) do
+				table.insert(returns, `Pair { `String { e[1]}, e})
 			end
 		end
 
-		return node
+		return node[1]
 	end
 
 	function traverseBlock(node, parent, ...)
@@ -34,7 +32,7 @@ local class ExportWalker extends Walker
 			table.insert(self.returns, returns)
 		end
 
-		self.super.traverseBlock(self, node, parent, ...)
+		Walker.prototype.traverseBlock(self, node, parent, ...)
 		if not parent or parent.tag == "Function" then
 			self.returns[#self.returns] = nil
 
@@ -45,7 +43,7 @@ local class ExportWalker extends Walker
 				end
 
 				local ret = `Return { returns }
-				self.super.traverse(self, ret, node, parent, ...)
+				self:traverse(ret, node, parent, ...)
 				table.insert(node, ret)
 			end
 		end
@@ -54,8 +52,17 @@ local class ExportWalker extends Walker
 	end
 end
 
+Walker.addNode("Export", function(self, node, ...)
+	self:traverseStatement(node[1], node, ...)
+	return node
+end, {"stat", "declaration"})
+
 return function(mlp)
-	mlp.chunk.transformers:add(|x| ExportWalker():guess(x))
+	mlp.chunk.transformers:add(function(x)
+		local r = ExportWalker():guess(x)
+		print("After: " .. require'metalua.pprint'.tostring(r, {hide_hash = true}))
+		return r
+	end)
 
 	-- Pluging the parsers in the syntax
 	mlp.lexer:add { "export" }
@@ -63,30 +70,6 @@ return function(mlp)
 	mlp.stat:add {
 		name = "export",
 		"export", mlp.local_stat_parser,
-		builder = function(x)
-			local export = {}
-			switch x[1] do
-			case `Local{ lhs, rhs } then
-				for i = #lhs, 1, -1 do
-					if lhs[i] ~= nil then
-						table.insert (export, lhs[i])
-					end
-					if rhs[i] == nil then
-						table.remove(lhs, i)
-						table.remove(rhs, i)
-					end
-				end
-			case `Localrec { lhs, rhs } then
-				for i = 1, #lhs do
-					if lhs[i] ~= nil then
-						table.insert (export, lhs[i])
-					end
-				end
-			end
-
-			if #export > 0 then x[1].export = export end
-
-			return x[1]
-		end
+		builder = "Export",
 	}
 end

@@ -48,9 +48,9 @@ return function(M)
 		terminators = M.block_terminators,
 		primary     = function (lx)
 			-- FIXME use gg.optkeyword()
-			local x = M.stat (lx)
+			local x = {M.stat (lx)}
 			if lx:is_keyword (lx:peek(), ";") then lx:next() end
-			return x
+			return unpack(x)
 		end
 	}
 

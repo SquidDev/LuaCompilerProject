@@ -532,8 +532,9 @@ function M.list(p)
 		local is_empty_list = self.terminators and(peek_is_in(self.terminators) or lx:peek().tag=="Eof")
 		if not is_empty_list then
 			repeat
-				local item = self.primary(lx)
-				table.insert(x, item) -- read one element
+				for _, item in pairs({self.primary(lx)}) do
+					table.insert(x, item) -- read one element
+				end
 			until
 				-- There's a separator list specified, and next token isn't in it.
 				-- Otherwise, consume it with [lx:next()]

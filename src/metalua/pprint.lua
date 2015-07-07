@@ -6,6 +6,7 @@ M.DEFAULT_CFG = {
 	metalua_tag = true;  -- Use Metalua's backtick syntax sugar?
 	keywords    = { };   -- Set of keywords which must not use Lua's field shortcuts {["foo"]=...} -> {foo=...}
 	blacklist = { };     -- Set of fields to not display
+	max_depth = -1;      -- Max depth to traverse
 }
 
 local function validId(x, cfg)
@@ -16,6 +17,11 @@ local function validId(x, cfg)
 end
 
 local function serializeImplicit(object, data)
+	if data.cfg.max_depth > -1 and data.indent > data.cfg.max_depth then
+		insert(data, "...")
+		return
+	end
+
 	local t = type(object)
 	if t == "string" then
 		insert(data, (string.format("%q", object):gsub("\\\n", "\\n")))

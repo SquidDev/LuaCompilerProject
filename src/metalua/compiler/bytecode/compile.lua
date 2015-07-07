@@ -534,7 +534,7 @@ function stat.stat (fs, ast)
 	if not ast.tag then chunk (fs, ast) else
 		local parser = stat [ast.tag]
 		if not parser then
-			error ("A statement cannot have tag `"..ast.tag)
+			error ("A statement cannot have tag `"..ast.tag .. " @ " .. (ast.lineinfo and tostring(ast.lineinfo) or "unknown") .. ": " .. pp.tostring(ast, {hide_hash = true, max_depth = 3}))
 		end
 		parser (fs, ast)
 	end

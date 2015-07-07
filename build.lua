@@ -1,4 +1,5 @@
 #!/usr/bin/env lua
+package.path = './src/?.lua;./src/?/?.lua;./src/?/init.lua;' .. package.path
 require'lfs'
 
 local listPackages
@@ -30,6 +31,7 @@ do
 		filter['.'] = true
 		filter['..'] = true
 		filter['.git'] = true
+		filter['tua'] = true
 
 		return coroutine.wrap(function() yieldtree(dir, extensions, filter) end)
 	end
@@ -72,46 +74,44 @@ local mlc = require 'metalua.compiler'
 local code = { source = 'metalua.lua' }
 do
 	print("Packaging")
-	for _, package, path in listPackages(lfs.currentdir()) do
-		if package ~= "meta" and package ~= "build" and package~="metalua.argparse" then
-			print("", package)
+	for _, package, path in listPackages(lfs.currentdir() .. '/src') do
+		print("", package)
 
-			local compiler = mlc.new()
-			local ast = compiler:srcfile_to_ast(path)
+		local compiler = mlc.new()
+		local ast = compiler:srcfile_to_ast(path)
 
-			if args.individual then
-				local result = "build/" .. package:gsub("%.", "/") .. ".lua"
-				local dir = result:gsub("(.+)/[^.]+.lua", "%1")
-				lfs.mkdir(dir)
-				local file, err_msg = io.open(result, 'w')
-				if file then
-					file:write(compiler:ast_to_src(ast))
-					file:close()
-				else
-					print("can't save source file: ".. result .. ' ' .. err_msg)
-				end
-			end
-
-			ast = { tag = "Function", { {tag = 'Dots'} }, ast }
-
-			if package == "metalua" then
-				table.insert(code, { tag = "Return", { tag = "Call", ast, { tag = "Dots" } } } )
+		if args.individual then
+			local result = "build/" .. package:gsub("%.", "/") .. ".lua"
+			local dir = result:gsub("(.+)/[^.]+.lua", "%1")
+			lfs.mkdir(dir)
+			local file, err_msg = io.open(result, 'w')
+			if file then
+				file:write(compiler:ast_to_src(ast))
+				file:close()
 			else
-				table.insert(code, { tag = "Set",
-					{
-						{ tag = "Index",
-							{ tag = "Index",
-								{tag = "Id", "package"},
-								{tag = "String", "preload"}
-							},
-							{ tag = "String", package }
-						}
-					},
-					{
-						ast
-					}
-				})
+				print("can't save source file: ".. result .. ' ' .. err_msg)
 			end
+		end
+
+		ast = { tag = "Function", { {tag = 'Dots'} }, ast }
+
+		if package == "metalua" then
+			table.insert(code, { tag = "Return", { tag = "Call", ast, { tag = "Dots" } } } )
+		else
+			table.insert(code, { tag = "Set",
+				{
+					{ tag = "Index",
+						{ tag = "Index",
+							{tag = "Id", "package"},
+							{tag = "String", "preload"}
+						},
+						{ tag = "String", package }
+					}
+				},
+				{
+					ast
+				}
+			})
 		end
 	end
 end
