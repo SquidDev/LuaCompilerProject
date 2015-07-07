@@ -392,10 +392,10 @@ local function extend(M)
 		name = "switch statement",
 		"switch",
 		_M.expr_list,
-		"do", gg.optkeyword "case",
+		"do", "case",
 		match_cases_list_parser,
 		"end",
-		builder = |x| match_builder{ x[1], x[3] }
+		builder = |x| match_builder{ x[1], x[2] }
 	}
 end
 

@@ -1,0 +1,20 @@
+-{ extension("class", ...) }
+
+local class Logger
+	function error(message, node)
+		print("[ERROR] " .. message .. ' at ' .. tostring(node and node.lineinfo or '?'))
+		return node
+	end
+
+	function warning(message, node)
+		print("[WARNING] " .. message .. ' at ' .. tostring(node and node.lineinfo or '?'))
+		return node
+	end
+
+	function info(message, node)
+		print("[INFO] " .. message .. ' at ' .. tostring(node and node.lineinfo or '?'))
+		return node
+	end
+end
+
+return Logger

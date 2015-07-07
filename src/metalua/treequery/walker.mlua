@@ -101,20 +101,20 @@ local class Walker
 
 	--- Called on an unknown tag, or a tag not expected at that point
 	function unknown(node, ...)
-		self:fatal("Unknown node tag " .. (node.tag or '[nil]'), node)
+		self:fatal("Unknown node tag " .. (node.tag or '[nil]'), node, ...)
 	end
 
 	--- Called on a tag not expected at that point
 	function unexpected(node, ...)
-		self:fatal("Unexpected node tag " .. (node.tag or '[nil]'), node)
+		self:fatal("Unexpected node tag " .. (node.tag or '[nil]'), node, ...)
 	end
 
 	--- Called on a malformed tag statement/expression list
 	function malformed(node, ...)
-		self:fatal("Unknown node of tag " .. (node.tag or '[nil]') .. ':' .. pp.tostring(node), node)
+		self:fatal("Unknown node of tag " .. (node.tag or '[nil]') .. ':' .. pp.tostring(node), node, ...)
 	end
 
-	function fatal(message, node)
+	function fatal(message, node, parent)
 		error(message .. ' at ' .. tostring(node and node.lineinfo or '?'), 2)
 	end
 
@@ -211,9 +211,9 @@ local class Walker
 
 	function visitForin(node, ...)
 		local i, rhs, body = unpack(node)
-		node[2] = self:traverseExpression(rhs, node, ...)
+		node[2] = self:traverseExpressionList(rhs, node, ...)
 		self:pushScope()
-		node[1] = self:traverseDeclaration(i, node, ...)
+		node[1] = self:traverseDeclarationList(i, node, ...)
 		node[3] = self:traverseBlock(body, node, ...)
 		self:popScope()
 	end

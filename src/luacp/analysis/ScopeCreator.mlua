@@ -1,10 +1,10 @@
 -{ extension("class", ...) }
 -{ extension("opequals", ...) }
 
-local WarningWalker = require 'luacp.analysis.WarningWalker'
+local LoggingWalker = require 'luacp.analysis.LoggingWalker'
 local Scope = require 'luacp.analysis.Scope'
 
-local class ScopeCreator extends WarningWalker
+local class ScopeCreator extends LoggingWalker
 	scope = Scope:createFileScope()
 
 	function pushScope()

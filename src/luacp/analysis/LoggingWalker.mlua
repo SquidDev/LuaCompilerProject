@@ -1,0 +1,34 @@
+-{ extension("class", ...) }
+
+local Walker = require 'metalua.treequery.walker'
+local Logger = require 'luacp.analysis.Logger'
+
+local class LoggingWalker extends Walker
+	logger
+
+	function new(logger)
+		Walker.prototype.new(self)
+
+		if not logger then logger = Logger() end
+		self.logger = logger
+	end
+
+	function fatal(message, node)
+		self:error(message, node)
+		return self.super.fatal(self, message, node)
+	end
+
+	function error(message, node)
+		return self.logger:error(message, node)
+	end
+
+	function warning(message, node)
+		return self.logger:warning(message, node)
+	end
+
+	function info(message, node)
+		return self.logger:info(message, node)
+	end
+end
+
+return LoggingWalker
