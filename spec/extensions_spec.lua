@@ -44,6 +44,24 @@ describe("Extensions #compiler #extensions", function()
 				{4, 3}
 			}, f())
 		end)
+
+		it("varinclude", function()
+			local f = require 'metalua.compiler'.new():src_to_function([[
+				-{ extension("comprehension", ...) }
+				local function x() return "bar", "baz" end
+				return { "foo", x()..., "qux", x() }
+			]], "comprehension.lua")
+			assert.are.same({ "foo", "bar", "baz", "qux", "bar", "baz" }, f())
+		end)
+
+		it("customaccess", function()
+			local f = require 'metalua.compiler'.new():src_to_function([[
+				-{ extension("comprehension", ...) }
+				local vars = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+				return vars[1 ... 4, 6, 8 ... 10]
+			]], "comprehension.lua")
+			assert.are.same({ 1, 2, 3, 4, 6, 8, 9, 10 }, f())
+		end)
 	end)
 
 	describe("#export", function()

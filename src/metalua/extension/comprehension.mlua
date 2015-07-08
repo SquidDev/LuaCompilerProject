@@ -110,6 +110,36 @@ end
 -- Improved "[...]" index operator:
 --  * support for multi-indexes ("foo[bar, gnat]")
 --  * support for ranges ("foo[bar ... gnat]")
+--------------------------------------------------------------------------------
+-- Back-end for improved index operator.
+local function index_builder(a, suffix)
+	switch suffix[1] do
+		-- Single index, no range: keep the native semantics
+		case { { e, false } } then return `Index{ a, e }
+		-- Either a range, or multiple indexes, or both
+		case ranges then
+			local t, tinsert, toriginal = gg.gensym 'table', gg.gensym 'table_insert', gg.gensym 'table_original'
+			local start, finish = gg.gensym 'start', gg.gensym 'finish'
+
+			local filler_block = { +{stat: local -{t}, -{tinsert}, -{toriginal}, -{start}, -{finish} = { }, table.insert, -{a} } }
+			for _, seq in ipairs (ranges) do
+				switch seq do
+					case { e, false } then table.insert(filler_block, `Call { tinsert, t, `Index { toriginal, e} })
+					case { e, f } then
+						table.insert(filler_block, `Set {
+							{ start, finish },
+							{  e, f }
+						})
+						table.insert(filler_block, +{stat:
+							for i= -{start}, -{finish}, -{start} <= -{finish} and 1 or -1 do (-{tinsert})(-{t}, -{toriginal}[i]) end
+						})
+				end
+				table.insert(filler_block, filler)
+			end
+			return `Stat { filler_block, t }
+	end
+end
+
 return function(M)
 	local _M = gg.future(M)
 
@@ -124,4 +154,12 @@ return function(M)
 		}
 	}
 	M.table.content.builder = table_content_builder
+
+	-- Support for ranges and multiple indices in bracket suffixes
+	M.expr.suffix:del '['
+	M.expr.suffix:add { name="table index/range",
+		"[", gg.list{
+			gg.sequence { _M.expr, gg.onkeyword{ "...", _M.expr } },
+			separators = { ",", ";" }
+		}, "]", builder = index_builder }
 end
