@@ -376,7 +376,9 @@ local function singlevar(fs, varname, var)
 end
 
 local function new_localvar (fs, name, n)
-	assert (type (name) == "string")
+	if type(name) ~= "string" then
+		error("Expected string, got " .. pp.tostring(name))
+	end
 	if fs.nactvar + n > M.MAXVARS then error ("too many local vars") end
 	fs.actvar[fs.nactvar + n] = registerlocalvar (fs, name)
 end

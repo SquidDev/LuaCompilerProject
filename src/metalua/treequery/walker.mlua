@@ -200,7 +200,7 @@ local class Walker
 		switch node do
 		case `Fornum{ _, _, _, body }  then
 			self:pushScope()
-			node[1] = self:traverseDeclarationList({i}, node, ...)
+			node[1] = self:traverseDeclaration(i, node, ...)
 			node[4] = self:traverseBlock(body, node, ...)
 			self:popScope()
 		case `Fornum{ _, _, _, c, body } then

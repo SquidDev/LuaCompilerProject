@@ -1,24 +1,59 @@
-#!/usr/bin/env lua
+#!/usr/bin/env lua5.1
 package.path = './src/?.lua;./src/?/?.lua;./src/?/init.lua;' .. package.path
-require'lfs'
 
 local listPackages
 do
-	local function yieldtree(dir, extensions, filter)
-		for entry in lfs.dir(dir) do
-			if not filter[entry] then
-				entry = dir .. "/" .. entry
-				local attr = lfs.attributes(entry)
-				if attr.mode == "directory" then
-					yieldtree(entry, extensions, filter)
-				elseif attr.mode == 'file' then
+	local yieldTree
+	if pcall(require, 'lfs') then
+		yieldTree = function(dir, extensions, filter)
+			for entry in lfs.dir(dir) do
+				if not filter[entry] then
+					entry = dir .. "/" .. entry
+					local attr = lfs.attributes(entry)
+					if attr.mode == "directory" then
+						yieldTree(entry, extensions, filter)
+					elseif attr.mode == 'file' then
+						local ext = entry:match("%.([^.]+)$")
+						if not extensions or extensions[ext] then
+							coroutine.yield(entry)
+						end
+					end
+				end
+			end
+		end
+	else
+		yieldTree = function(dir, extensions, filter)
+			local handle = io.popen('find "'..dir..'" -type f')
+			for entry in handle:lines() do
+				local continue = true
+				for flt, _ in pairs(filter) do
+					if entry:find('/' .. flt .. '/', 1, true) then
+						continue = false
+						break
+					end
+				end
+
+				if continue then
 					local ext = entry:match("%.([^.]+)$")
 					if not extensions or extensions[ext] then
 						coroutine.yield(entry)
 					end
 				end
 			end
+			handle:close()
 		end
+
+		lfs = {
+			currentdir = function()
+				local handle = io.popen('cd')
+				local data = handle:read("*l")
+				handle:close()
+				return data
+			end,
+			mkdir = function(directory)
+				io.popen('mkdir -p "' .. directory .. '"'):close()
+			end,
+		}
 	end
 
 	local function list(dir, extensions, filter)
@@ -32,8 +67,9 @@ do
 		filter['..'] = true
 		filter['.git'] = true
 		filter['tua'] = true
+		filter['luacp'] = true
 
-		return coroutine.wrap(function() yieldtree(dir, extensions, filter) end)
+		return coroutine.wrap(function() yieldTree(dir, extensions, filter) end)
 	end
 
 	listPackages = function(dir)
@@ -44,7 +80,7 @@ do
 		local packages, names = {}, {}
 
 		for file in list(dir, {lua = true, mlua = true}, {doc = true, build = true, spec = true}) do
-			local name = file:sub(#dir + 2):gsub('%.[^.]+$', ''):gsub('/', '.')
+			local name = file:sub(#dir + 2):gsub('%.[^.]+$', ''):gsub('/', '.'):gsub("%.init", "")
 			packages[name] = file
 			table.insert(names, name)
 		end
@@ -114,8 +150,19 @@ do
 			})
 		end
 	end
+
+	table.insert(code, {tag = "Call",
+		{ tag = "Index",
+			{tag = "Index",
+				{ tag = "Id", "package" },
+				{ tag = "String", "preload" }
+			},
+			{ tag = "String", "metalua.bin.metalua" }
+		}
+	})
 end
 
+lfs.mkdir("build")
 local bytecode, source = 'build/meta.luac', 'build/meta.lua'
 local compiler = mlc.new()
 

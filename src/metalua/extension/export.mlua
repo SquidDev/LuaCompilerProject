@@ -60,7 +60,7 @@ end, {"stat", "declaration"})
 return function(mlp)
 	mlp.chunk.transformers:add(function(x)
 		local r = ExportWalker():guess(x)
-		print("After: " .. require'metalua.pprint'.tostring(r, {hide_hash = true}))
+		-- print("After: " .. require'metalua.pprint'.tostring(r, {hide_hash = true}))
 		return r
 	end)
 

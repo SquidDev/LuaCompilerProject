@@ -25,7 +25,7 @@ bar[nil] = "something" -- Cannot index with nil
 
 ## Strict
 
-Represents a type that structuarly identical variables cannot be converted to. The `strict` modifier on interfaces is the easiest way to achieve this.
+Represents a type that structurally identical variables cannot be converted to. The `strict` modifier on interfaces is the easiest way to achieve this.
 ```lua
 interface Strict<T> extends T
 end

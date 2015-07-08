@@ -69,7 +69,7 @@ function CONV:srcfile_to_src(x, name)
 	expect(name, '?string', 'name')
 	name = name or '@'..x
 	local f, msg = io.open (x, 'rb')
-	if not f then error(msg) end
+	if not f then error(x .. ': ' .. msg) end
 	local r, msg = f :read '*a'
 	if not r then error("Cannot read file '"..x.."': "..msg) end
 	f :close()

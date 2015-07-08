@@ -66,7 +66,7 @@ options:option "--library"     "-l" :description "Require this library" :count "
 options:option "--literal"     "-e" :description "Compile this literal" :count "*"
 options:option "--source"      "-s" :description "Save the source to this file"
 options:option "--bytecode"    "-b" :description "Save the bytecode to this file"
-options:option   "--shebang"        :description "Add a shebang and chmod the output files" :default "/usr/bin/env lua"  :defmode "arg"
+options:option   "--shebang"        :description "Add a shebang and chmod the output files" :default "/usr/bin/env lua5.1"  :defmode "arg"
 options:option "--interactive" "-i" :description "Launch the REPL"
 options:option "--arg"              :description "Arg to parse when running" :count "*"
 
