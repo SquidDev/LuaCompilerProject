@@ -1,10 +1,13 @@
 # Internal representation of types
 There are several type definitions used internally. There are three 'intermittant ones':
 
-- `` `NamedType { "<name>" }`` This is used for type identifiers such as `number`, `String`.
-- `` `GenericType { `NamedType, [type arguments] }`` This is created from generics such as `Array<Number>`.
+- `` `NamedType { "<name>", [type arguments] }`` This is used for type identifiers such as `number`, `String` and generics such as `Array<Number>`.
 - `` `InferedType`` Used in the case of `auto`.
 - `` `UnknownType`` Used when no type is specified. This is generally replaced with `any` but in some cases may vary
+- `` `Union { a, b, ...}`` A union of types (`a|b|...`)
+- `` `FunctionType { [args], return}`` A function of the type (`(args)return`)
+- `` `Var { type }`` A variable number of variables, (`...:<type>`).
+- `` `Tuple { a, ... }`` A sequence of return variables.
 
 `` `Type { [properties]... }``. is resolved from a reference of `` `NamedType``. It is also directly created from Objects.
 
@@ -38,9 +41,9 @@ Functions also have several additional types as covered more widely in TypeDefin
 ```lua
 local a:(...:string):[string, ...:number]
 --[[
-`NamedType { "Function",
+`FunctionType {
 	`Var { `NamedType "String" },
-	`Tuple { `NamedType "String", `Dots { `NamedType "String" } }.
+	`Tuple { `NamedType "String", `Var { `NamedType "String" } }.
 }
 ]]
 ```

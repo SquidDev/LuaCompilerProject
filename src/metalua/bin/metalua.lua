@@ -57,7 +57,7 @@ flags are absent, metalua tries to adopt a "Do What I Mean" approach:
 
 options:flag "--print-lineinfo" "-A" :description "Print the resulting AST and associated lineinfo"
 options:flag "--print-ast"      "-a" :description "Print the resulting AST"
-options:flag "--print-src"      "-S" :description "Print the resulting AST"
+options:flag "--print-src"      "-S" :description "Print the resulting source"
 options:flag "--verbose"        "-v" :description "Print verbose output"
 options:flag "--run"            "-x" :description "Run the result"
 

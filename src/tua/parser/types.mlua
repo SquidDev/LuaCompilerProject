@@ -17,27 +17,34 @@ return function(M)
 	local _M = gg.future(M)
 	local _types = gg.future(types)
 
-	local returnDef = gg.multisequence {
+	types.argument = gg.multisequence {
+		name = "function argument definition",
+		{"...", ":", _types.type, builder = |x| `Var { x[1] } },
+		default = _types.type
+	}
+
+	types.returnDef = gg.multisequence {
+		name = "function type return definition",
 		gg.sequence {
 			"[", gg.list {
-				primary     = _types.type_def,
+				primary     = _types.argument,
 				separators  = ",",
 				terminators = "]"
 			}, "]",
-			builder = |x| `GenericType { `NamedType "Tuple", unpack(x[1]) }
+			builder = |x| `Tuple { unpack(x[1]) }
 		},
-		default = _types.type_def,
+		default = _types.type,
 	}
 
 	local functionSignature = gg.sequence {
 		name = "function type definition",
 		"(", gg.list {
-			primary     = _types.type_def,
+			primary = _types.argument,
 			separators  = ",",
 			terminators = ")"
-		}, ")", ":", returnDef,
+		}, ")", ":", _types.returnDef,
 		builder = function(x)
-			local val =  `GenericType { `NamedType "Function", unpack(x[1]) }
+			local val =  `FunctionType { unpack(x[1]) }
 			table.insert(val, x[2])
 			return val
 		end
@@ -46,29 +53,29 @@ return function(M)
 	local tableSignature = gg.sequence {
 		name = "table type definition",
 		"{",
-		_types.type_def,
+		_types.type,
 		gg.onkeyword {
-			'=', _types.type_def,
+			'=', _types.type,
 		},
 		-- TODO: Object
 		"}",
 		builder = function(x)
 			if x[2] then
-				return `GenericType { `NamedType "Map", x[1], x[2] }
+				return `NamedType { "Map", x[1], x[2] }
 			else
-				return `GenericType { `NamedType "Array", x[1] }
+				return `NamedType { "Array", x[1] }
 			end
 		end
 	}
 
-	local genericType = gg.sequence {
+	types.generic = gg.sequence {
 		_M.id,
 		gg.onkeyword {
 			name = "generic type",
 			"<",
 			gg.sequence {
 				gg.list {
-					primary = _types.type_def,
+					primary = _types.type,
 					separators = ",",
 					terminators = ">",
 				},
@@ -87,27 +94,31 @@ return function(M)
 		end,
 	}
 
-	local union = gg.sequence {
-		genericType,
+	types.union = gg.sequence {
+		_types.generic,
 		gg.onkeyword {
 			name = "union type",
-			"|", genericType,
+			"|", _types.type,
 		},
 		builder = function(x)
 			local a, b = x[1], x[2]
 			if b then
-				return `GenericType { `NamedType "Union", a, b }
+				if b.tag == "Union" then
+					return `Union { a, unpack(b) }
+				else
+					return `Union { a, b }
+				end
 			else
 				return a
 			end
 		end,
 	}
 
-	types.type_def = gg.multisequence {
+	types.type = gg.multisequence {
 		name = "type",
 		functionSignature,
 		tableSignature,
-		default = union,
+		default = types.union,
 	}
 
 	-- Overrides
@@ -115,10 +126,10 @@ return function(M)
 		name = "declaration",
 		_M.id, gg.onkeyword {
 			name="type definition",
-			":", _types.type_def
+			":", _types.type
 		},
 		builder = function(node)
-			-- If none specified then use `Any
+			-- If none specified then use `UnknownType
 			getMetainfo(node[1]).type = node[2] or `UnknownType
 			return node[1]
 		end
@@ -127,11 +138,11 @@ return function(M)
 	M.func_val = gg.sequence {
 		name = "function body",
 		"(", _M.func_params_content, ")", gg.onkeyword {
-			":", returnDef
+			":", _types.returnDef
 		},
 		_M.block, "end",
 		builder = function(x)
-			local types = `GenericType { `NamedType "Function" }
+			local types = `FunctionType
 			for _, params in ipairs(x[1]) do
 				-- The `UnknownType either will infer or set to Any based on context
 				table.insert(types, params.type or `UnknownType)

@@ -61,19 +61,19 @@ Function compatibility is complicated.
 ### Argument types
 If every argument in the target is assignable to the original then the function can be converted.
 ```lua
-local a:(a:string|number):string
+local a:(string|number):string
 
-local b:(a:string):string = a
-local c:(a:number):string = a
+local b:(string):string = a
+local c:(number):string = a
 
-local d:(a:boolean):string = a -- Error: boolean is not assignable to string|number
+local d:(boolean):string = a -- Error: boolean is not assignable to string|number
 ```
 
 With a variable number of arguments, things get more complicated. If the functions are compatible but probably invalid then a warning is issued.
 ```lua
-local a:(a:string, ...:string):string
-local b:(a:string, b:string, ...:string) = a -- This issues a warning but is compatible
-local c:(...:string):string = a -- Error: (a:string, ...:string) is not assignable to (...:string).
+local a:(string, ...:string):string
+local b:(string, string, ...:string) = a -- This issues a warning but is compatible
+local c:(...:string):string = a -- Error: (string, ...:string) is not assignable to (...:string).
 -- This is because you can technically call c with 0 arguments, but shouldn't be able to call a with 0 arguments.
 ```
 

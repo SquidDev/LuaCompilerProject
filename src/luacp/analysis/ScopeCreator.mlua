@@ -15,11 +15,11 @@ local class ScopeCreator extends LoggingWalker
 		self.scope = assert(self.scope.parent, "Unexpected call to popScope")
 	end
 
-	function traverseDeclaration(node, parent)
+	function traverseDeclaration(node, ...)
 		if node.tag == "Id" then
 			return self.scope:createVariable(node)
 		else
-			self:error("Expected declaration", node)
+			self:unexpected("Expected declaration", node, ...)
 		end
 	end
 
