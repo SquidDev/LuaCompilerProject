@@ -80,7 +80,7 @@ return function(M)
 			if x[1][1] == "auto" and not x[2] then
 				return `InferedType
 			elseif x[2] then
-				return `GenericType { `NamedType { x[1][1] }, x[2][1]}
+				return `NamedType { x[1][1], unpack(x[2][1]) }
 			else
 				return `NamedType { x[1][1] }
 			end

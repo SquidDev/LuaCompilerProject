@@ -20,17 +20,17 @@ local d:(number):number = function(a) return a end
 
 ## Generics
 ```lua
-local a:{number}        -- `GenericType { `NamedType "Array", `NamedType "number" }
-local b:{string=number} -- `GenericType { `NamedType "Map", `NamedType "string", `NamedType "number" }
-local c:string|number   -- `GenericType { `NamedType "Union", `NamedType "string", `NamedType "number" }
-local d:Strict<Number>  -- `GenericType { `NamedType "Strict", `NamedType "Number" }
+local a:{number}        -- `NamedType { "Array"  `NamedType "number" }
+local b:{string=number} -- `NamedType { "Map", `NamedType "string", `NamedType "number" }
+local c:string|number   -- `Union { `NamedType "string", `NamedType "number" }
+local d:Strict<Number>  -- `Strict { `NamedType "Number" }
 ```
 
 ## Functions
 Functions are represented as generics, all but the last type arguments are the argument, the last being the return value.
 
 ```lua
-local a:(string):number -- `GenericType { `NamedType "Function", `NamedType "string", `NamedType "number" }
+local a:(string):number -- `FunctionType { `NamedType "string", `NamedType "number" }
 ```
 
 Functions also have several additional types as covered more widely in TypeDefinitions
@@ -39,8 +39,8 @@ Functions also have several additional types as covered more widely in TypeDefin
 local a:(...:string):[string, ...:number]
 --[[
 `NamedType { "Function",
-	`GenericType { `NamedType "Dots", `NamedType "String" },
-	`GenericType { `NamedType "Tuple", `NamedType "String", `GenericType { `NamedType "Dots", `NamedType "String" } }.
+	`Var { `NamedType "String" },
+	`Tuple { `NamedType "String", `Dots { `NamedType "String" } }.
 }
 ]]
 ```
@@ -70,7 +70,7 @@ local a:Person
 ```
 
 ### Metamethods
-Methods and Metamethods  are represented by the `` `Method { "<name> ", [function arguments]... }`` and `` `MetaMethod { "<name> ", [function arguments]... }`` respectively.
+Methods and Metamethods  are represented by the `` `Method { "<name> ", [function] }`` and `` `MetaMethod { "<name> ", [function] }`` respectively.
 
 ```lua
 interface Person
@@ -83,8 +83,8 @@ end
 	`Type { name = "Person",
 		`Property { `String "name", `NamedType "string" },
 		`Property { `String "age", `NamedType "number" },
-		`Method { "sayHello", `NamedType "void" },
-		`MetaMethod { "add", `NamedType "Person", `NamedType "Person", `NamedType "Person" },
+		`Method { "sayHello", `FunctionType { `NamedType "void" } },
+		`MetaMethod { "add", `FunctionType { `NamedType "Person", `NamedType "Person", `NamedType "Person" } },
 	}
 ]]
 ```

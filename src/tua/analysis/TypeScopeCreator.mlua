@@ -8,6 +8,10 @@ local getMetainfo = require 'luacp.analysis.helpers'.getMetainfo
 local class TypeScopeCreator extends TypeWalker
 	scope = TypeScope:createFileScope()
 
+	function new(logger)
+		TypeWalker.prototype.new(self, logger)
+	end
+
 	function pushScope()
 		self.scope = TypeScope(self.scope)
 	end
@@ -16,35 +20,42 @@ local class TypeScopeCreator extends TypeWalker
 		self.scope = assert(self.scope.parent, "Unexpected call to popScope")
 	end
 
-	function traverseType(type, node, ...)
-		switch type do
-			case `NamedType { name } then
-				local t = self.scope:getType(name)
-				if not t then
-					return self:error("Cannot find type " .. name, node)
-				end
-				return t
-		end
+	function traverseType(nodeType)
+		return self.scope:fixType(nodeType)
 	end
 
 	function visitOp(node, ...)
-		print(require 'metalua.pprint'.tostring(node, {blacklist={lineinfo=true,scope=true}}))
+		self.super.visitOp(self, node, ...)
+
+		local operator, operand, rhs = node[1], getMetainfo(node[2]).type, node[3]
+		local signature = `MetaMethod { operator, operand }
+		if rhs then
+			signature[2] = getMetainfo(rhs).type
+		end
+
+		-- local method, level = helpers.filterMethods(operand, signature)
+		if method then
+			getMetainfo(node).type = method[#method]
+			return node
+		else
+			return self:error("Cannot find operator for " .. operator .. " on " .. operand.name, node)
+		end
 	end
 
-	function visitNil(node, ...)
-		getMetainfo(node).type = self.scope.getType("Nil")
+	function visitNil(node)
+		getMetainfo(node).type = self.scope:getType("Nil")
 	end
-	function visitTrue()
-		getMetainfo(node).type = self.scope.getType("Boolean")
+	function visitTrue(node)
+		getMetainfo(node).type = self.scope:getType("Boolean")
 	end
-	function visitFalse()
-		getMetainfo(node).type = self.scope.getType("Boolean")
+	function visitFalse(node)
+		getMetainfo(node).type = self.scope:getType("Boolean")
 	end
-	function visitNumber()
-		getMetainfo(node).type = self.scope.getType("Number")
+	function visitNumber(node)
+		getMetainfo(node).type = self.scope:getType("Number")
 	end
-	function visitString()
-		getMetainfo(node).type = self.scope.getType("String")
+	function visitString(node)
+		getMetainfo(node).type = self.scope:getType("String")
 	end
 end
 

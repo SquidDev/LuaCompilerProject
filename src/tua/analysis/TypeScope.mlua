@@ -1,9 +1,14 @@
 -{ extension("class", ...) }
+-{ extension("switch", ...) }
 
 local primitives = require 'tua.types.primitives'
+local Logger = require 'luacp.analysis.Logger'
 
 --- Type definitions for one scope
 local class TypeScope
+	--- @tfield Logger The logger to use
+	logger = nil
+
 	--- @tfield ?|TypeScope The parent scope
 	parent = nil
 
@@ -16,10 +21,51 @@ local class TypeScope
 	--- Create a new scope
 	-- @tparam ?|Scope parent The parent scope
 	function new(parent)
+		if not logger then logger = Logger() end
+		self.logger = logger
+
 		self.parent = parent
 
 		if parent then
 			table.insert(parent.children, self)
+		end
+	end
+
+	--- Replace a type with its resolved item
+	function fixType(nodeType)
+		switch nodeType do
+			case `NamedType { name } then
+				local t = self:getType(name)
+				if not t then
+					return self.logger:error("Cannot find type " .. name, node)
+				end
+				if nodeType.name then
+					t.name = nodeType.name
+				end
+				return t
+			case `Type { ... }
+			case `Extends { ... }
+			case `GenericType { ...} then
+				for i, v in ipairs(nodeType) do
+					nodeType[i] = self:fixType(v)
+				end
+			case `Method { ... }
+			case `MetaMethod { ... } then
+				for i = 2, #nodeType do
+					nodeType[i] = self:fixType(nodeType[i])
+				end
+			case `Generic { ... } then
+				-- TODO: Subtypes for generic things
+			case { tag = tag, ...} then self.logger:error("Unknown type " .. tag, node)
+			case _ then self.logger:error("No type " .. tostring(tag), node)
+		end
+
+		return nodeType
+	end
+
+	function fixTypes()
+		for k, v in pairs(self.types) do
+			self.types[k] = self:fixType(v)
 		end
 	end
 
@@ -29,21 +75,23 @@ local class TypeScope
 	-- @treturn Variable The created type
 	function createType(name, type)
 		if self:getType(name) then
-			error("Cannot override type " .. name, 2)
-		elseif type.name ~= name then
-			type.name = name
-		end
+			self.logger:error("Cannot override type " .. name)
+		else
+			if type.name ~= name then
+				type.name = name
+			end
 
-		self.types[name] = type
-		return type
+			self.types[name] = type
+			return type
+		end
 	end
 
 	--- Get a type definition.
 	-- - If it cannot be found it will search the parent scope
-	-- @tparam string id The name representing the type
+	-- @tparam string name The name representing the type
 	-- @treturn ?|Type The type or nil if not found
-	function getType(id)
-		return self.types[id] or (self.parent and self.parent:getVariable(id))
+	function getType(name)
+		return self.types[name] or (self.parent and self.parent:getType(name))
 	end
 
 	--- Create two nested scopes - the file scope and the global scope
@@ -54,6 +102,7 @@ local class TypeScope
 		for k, v in pairs(primitives) do
 			global:createType(k, v)
 		end
+		global:fixTypes()
 		return TypeScope(global), global
 	end
 

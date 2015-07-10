@@ -1,31 +1,52 @@
 -{ extension("export", ...) }
 
-local number = `NamedType "Number"
-local string = `NamedType "String"
-local boolean = `NamedType "Boolean"
+local _number = `NamedType "Number"
+local _string = `NamedType "String"
+local _boolean = `NamedType "Boolean"
+local _void = `NamedType "Void"
 
-export Number = `NamedType {
-	name = "Number"
-	"strict",
+export Number = `Strict {
 	`Type {
-		`MetaMethod { "add", `NamedType { "union", string, number }, number },
-		`MetaMethod { "sub", `NamedType { "union", string, number }, `NamedType { "union", string, number }, number },
-		`MetaMethod { "mul", `NamedType { "union", string, number }, `NamedType { "union", string, number }, number },
-		`MetaMethod { "div", `NamedType { "union", string, number }, `NamedType { "union", string, number }, number },
-		`MetaMethod { "mod", `NamedType { "union", string, number }, `NamedType { "union", string, number }, number },
-		`MetaMethod { "pow", `NamedType { "union", string, number }, `NamedType { "union", string, number }, number },
+		`MetaMethod { "add", `Function { `Union {_string, _number }, _number } },
+		`MetaMethod { "sub", `Function { `Union {_string, _number }, `Union {_string, _number }, _number } },
+		`MetaMethod { "mul", `Function { `Union {_string, _number }, `Union {_string, _number }, _number } },
+		`MetaMethod { "div", `Function { `Union {_string, _number }, `Union {_string, _number }, _number } },
+		`MetaMethod { "mod", `Function { `Union {_string, _number }, `Union {_string, _number }, _number } },
+		`MetaMethod { "pow", `Function { `Union {_string, _number }, `Union {_string, _number }, _number } },
 
-		`MetaMethod { "eq", number, number, boolean },
-		`MetaMethod { "lt", number, number, boolean },
-		`MetaMethod { "le", number, number, boolean },
+		`MetaMethod { "eq", `Function { _number, _number, _boolean } },
+		`MetaMethod { "lt", `Function { _number, _number, _boolean } },
+		`MetaMethod { "le", `Function { _number, _number, _boolean } },
 
-		`MetaMethod { "unm", number, number },
-	},
+		`MetaMethod { "unm", `Function { _number, _number } },
+	}
 }
 export number = Number
 
-export Boolean = `NamedType { name = "Boolean", "strict", `Type }
+export String = `Strict { `Type }
+export string = String
+
+export Boolean = `Strict { `Type }
 export bool, boolean = Boolean, Boolean
 
-export Nil = `NamedType { name = "Nil", "strict", `Type }
-export Void = `NamedType { name = "Void", "strict", `Type }
+export Nil = `Strict { `Type }
+export Void = `Strict { `Type }
+export void = Void
+
+export Array = `Strict {
+	`Type {
+		`Generic "T",
+		`MetaMethod { "index", `FunctionType {_number, `NamedType "T" } },
+		`MetaMethod { "newindex", `FunctionType {_number, `NamedType "T" } },
+		`MetaMethod { "len", `FunctionType { _number } },
+	}
+}
+
+export Map = `Strict {
+	`Type {
+		`Generic "TKey",
+		`Generic "TValue",
+		`MetaMethod { "index", `FunctionType { `NamedType "TKey", `NamedType "TValue" } },
+		`MetaMethod { "newindex", `FunctionType { `NamedType "TKey", `NamedType "TValue", _void } },
+	}
+}

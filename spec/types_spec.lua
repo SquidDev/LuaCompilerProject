@@ -2,6 +2,7 @@ require'metalua.loader'
 
 describe("Types #types #analysis", function()
 	local ScopeCreator = require('luacp.analysis.ScopeCreator')
+	local TypeScopeCreator = require('tua.analysis.TypeScopeCreator')
 
 	describe("infering", function()
 		it("Hiding", function()
@@ -16,14 +17,13 @@ describe("Types #types #analysis", function()
 				local f:(number):void
 				local f:Strict<Number>
 
-				print(b + c[1])
+				print(2 + 2)
 			]], "scope.lua")
 
-			local creator = ScopeCreator(node)
-			creator:guess(node)
+			ScopeCreator():guess(node)
+			TypeScopeCreator():guess(node)
 
-			print(require 'metalua.pprint'.tostring(node, {blacklist={lineinfo=true,scope=true}}))
+			print(require 'metalua.pprint'.tostring(node, {blacklist={lineinfo=true,scope=true}, with_name = true}))
 		end)
 	end)
-
 end)

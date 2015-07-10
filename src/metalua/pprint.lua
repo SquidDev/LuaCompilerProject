@@ -7,6 +7,7 @@ M.DEFAULT_CFG = {
 	keywords    = { };   -- Set of keywords which must not use Lua's field shortcuts {["foo"]=...} -> {foo=...}
 	blacklist = { };     -- Set of fields to not display
 	max_depth = -1;      -- Max depth to traverse
+	with_name = false;   -- If the field 'name' exists, print that instead.
 }
 
 local function validId(x, cfg)
@@ -26,6 +27,11 @@ local function serializeImplicit(object, data)
 	if t == "string" then
 		insert(data, (string.format("%q", object):gsub("\\\n", "\\n")))
 	elseif t == "table" and not data.visited[object] then
+		if data.cfg.with_name and type(object.name) == "string" and object.name ~= "" then
+			insert(data, '[' .. object.name .. ']')
+			return
+		end
+
 		data.visited[object] = true
 		data.indent = data.indent + 1
 
