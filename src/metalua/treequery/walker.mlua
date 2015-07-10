@@ -307,7 +307,7 @@ local class Walker
 	function visitString() end
 
 	static function addNode(name, visitor, types)
-		Walker.prototype["visit" .. name] = visitor or |x|x
+		Walker.prototype["visit" .. name] = visitor or |self,x|x
 		if type(types) == "string" then types = {types} end
 		for _, v in ipairs(types) do
 			Walker.tags[v][name] = true

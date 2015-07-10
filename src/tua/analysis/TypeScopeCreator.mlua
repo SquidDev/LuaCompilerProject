@@ -32,22 +32,19 @@ local class TypeScopeCreator extends TypeWalker
 	end
 
 	function visitNil(node, ...)
-		getMetainfo(node).type = `NamedType "Nil"
-	end
-	function visitDots()
-		getMetainfo(node).type = `NamedType "Dots"
+		getMetainfo(node).type = self.scope.getType("Nil")
 	end
 	function visitTrue()
-		getMetainfo(node).type = `NamedType "Boolean"
+		getMetainfo(node).type = self.scope.getType("Boolean")
 	end
 	function visitFalse()
-		getMetainfo(node).type = `NamedType "Boolean"
+		getMetainfo(node).type = self.scope.getType("Boolean")
 	end
 	function visitNumber()
-		getMetainfo(node).type = `NamedType "Number"
+		getMetainfo(node).type = self.scope.getType("Number")
 	end
 	function visitString()
-		getMetainfo(node).type = `NamedType "String"
+		getMetainfo(node).type = self.scope.getType("String")
 	end
 end
 

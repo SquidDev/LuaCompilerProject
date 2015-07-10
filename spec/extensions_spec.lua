@@ -138,6 +138,7 @@ describe("Extensions #compiler #extensions", function()
 
 	describe("#loops", function()
 		it("continue", function()
+			local mlp = require 'metalua.compiler'.new()
 			local f = require 'metalua.compiler'.new():src_to_function([[
 				-{ extension("loops", ...) }
 				local accum = 0

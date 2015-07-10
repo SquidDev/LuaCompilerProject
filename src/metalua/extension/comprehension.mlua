@@ -68,12 +68,12 @@ local function comp_list_builder(core, list, t, tinsert)
 	-- multi-return must be inserted, hence the extra [for] loop.
 	switch core do
 		case `DotsSuffix{ element } then
-			local x = gg.gensym()
+			local x = gg.gensym("dots_index")
 			filler = +{stat: for _, -{x} in pairs{ -{element} } do (-{tinsert})(-{t}, -{x}) end }
 		case `Pair{ key, value } then
 			--filler = +{ -{t}[-{key}] = -{value} }
 			filler = `Set{ { `Index{ t, key } }, { value } }
-		case _ then filler = +{ (-{tinsert})(-{t}, -{core}) }
+		case _ then filler = +{ (-{tinsert})(-{t}, (-{core})) }
 	end
 
 	-- 2 - Stack the `if` and `for` control structures, from outside to inside.
@@ -96,10 +96,13 @@ local function table_content_builder (list)
 
 	local t, tinsert = gg.gensym 'table', gg.gensym 'table_insert'
 	local filler_block = { +{stat: local -{t}, -{tinsert} = { }, table.insert } }
-	for _, element in ipairs(list) do
+
+	local last = #list
+	for index, element in ipairs(list) do
 		local filler
 		switch element do
 			case `Comp{ core, comp } then filler = comp_list_builder(core, comp, t, tinsert)
+			case `Call { ... } if index == last then filler = comp_list_builder(`DotsSuffix { element }, { }, t, tinsert)
 			case _ then filler = comp_list_builder(element, { }, t, tinsert)
 		end
 		table.insert(filler_block, filler)

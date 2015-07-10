@@ -78,7 +78,7 @@ local class TreeQueryWalker extends Walker
 			if satisfied and self.down_f then self.down_f(...) end
 		end
 
-		local r = self.super.traverse(self, ...)
+		local r = Walker.prototype.traverse(self, ...)
 
 		-- Remove predicates which are due before we go up this node
 		local preds = self.until_up[...]
