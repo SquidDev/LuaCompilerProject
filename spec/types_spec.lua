@@ -14,14 +14,15 @@ describe("Types #types #analysis", function()
 				local c:{number}
 				local d:{string=number}
 				local e:string|number
-				local f:(number):void
-				local f:Strict<Number>
+				local f:(number)->void
+				local g:Strict<Number>
+				local h:number?
 
 				print(2 + 2)
 			]], "scope.lua")
 
-			ScopeCreator():guess(node)
-			TypeScopeCreator():guess(node)
+			-- ScopeCreator():guess(node)
+			-- TypeScopeCreator():guess(node)
 
 			print(require 'metalua.pprint'.tostring(node, {blacklist={lineinfo=true,scope=true}, with_name = true}))
 		end)

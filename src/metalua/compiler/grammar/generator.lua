@@ -200,10 +200,10 @@ function M.sequence(p)
 	if p.name then
 	-- don't touch existing name
 	elseif type(p[1])=="string" then -- find name based on 1st keyword
-	if #p==1 then p.name=p[1]
-	elseif type(p[#p])=="string" then
-		p.name = p[1] .. " ... " .. p[#p]
-	else p.name = p[1] .. " ..." end
+		if #p==1 then p.name=p[1]
+		elseif type(p[#p])=="string" then
+			p.name = p[1] .. " ... " .. p[#p]
+		else p.name = p[1] .. " ..." end
 	else -- can't find a decent name
 		p.name = "unnamed_sequence"
 	end

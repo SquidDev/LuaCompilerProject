@@ -1,6 +1,8 @@
 --- Basic type parser
 -- See doc/types/InternalRepresentation.md for full details
 
+-{extension("switch",...)}
+
 local function getMetainfo(node)
 	local metainfo = node.metainfo
 	if not metainfo then
@@ -16,38 +18,31 @@ return function(M)
 	local types = {}
 	local _M = gg.future(M)
 	local _types = gg.future(types)
+	M.lexer:add("->")
 
 	types.argument = gg.multisequence {
 		name = "function argument definition",
-		{"...", ":", _types.type, builder = |x| `Var { x[1] } },
+		{"...", ":", _types.type, builder = |x| `TVar { x[1] } },
 		default = _types.type
 	}
 
+	local tuple_content = gg.list {
+			primary     = _types.argument,
+			separators  = ",",
+			terminators = "]",
+			builder = |x| `TTuple { unpack(x[1]) }
+		}
+
 	types.returnDef = gg.multisequence {
 		name = "function type return definition",
-		gg.sequence {
-			"[", gg.list {
-				primary     = _types.argument,
-				separators  = ",",
-				terminators = "]"
-			}, "]",
-			builder = |x| `Tuple { unpack(x[1]) }
-		},
+		{"(", tuple_content, ")"},
 		default = _types.type,
 	}
 
 	local functionSignature = gg.sequence {
 		name = "function type definition",
-		"(", gg.list {
-			primary = _types.argument,
-			separators  = ",",
-			terminators = ")"
-		}, ")", ":", _types.returnDef,
-		builder = function(x)
-			local val =  `FunctionType { unpack(x[1]) }
-			table.insert(val, x[2])
-			return val
-		end
+		"(", tuple_content, ")", "->", _types.returnDef,
+		builder = |x| `TFunction { x[1], x[2] }
 	}
 
 	local tableSignature = gg.sequence {
@@ -66,6 +61,24 @@ return function(M)
 				return `NamedType { "Array", x[1] }
 			end
 		end
+	}
+
+	types.base = gg.multisequence {
+		{ "false", builder = |x| `TLiteral { true } },
+		{ "true", builder = |x| `TLiteral { true } },
+		default = { _M.id_or_literal, builder = function(x)
+			switch x[1] do
+				case `String { value }
+				case `Number { value } then
+					return `TLiteral { value }
+				case `Id { name } then
+					if name == "string" or name == "number" or name == "boolean" then
+						return `TBase { name }
+					else
+						return `TNamed { name }
+					end
+			end
+		end},
 	}
 
 	types.generic = gg.sequence {
@@ -95,7 +108,7 @@ return function(M)
 	}
 
 	types.union = gg.sequence {
-		_types.generic,
+		_types.primary,
 		gg.onkeyword {
 			name = "union type",
 			"|", _types.type,
@@ -114,11 +127,19 @@ return function(M)
 		end,
 	}
 
-	types.type = gg.multisequence {
+	types.primary = gg.multisequence {
 		name = "type",
 		functionSignature,
 		tableSignature,
-		default = types.union,
+		default = types.generic,
+	}
+
+	types.type = gg.sequence {
+		_types.union,
+		gg.optkeyword { '?' },
+		builder = function(x)
+			if x[2] then return `TUnion { `TNil, x[1]} else return x[1] end
+		end
 	}
 
 	-- Overrides
