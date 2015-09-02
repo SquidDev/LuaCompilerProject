@@ -1,0 +1,46 @@
+-{extension("switch", ...)}
+
+local dollar = require('metalua.extension.dollar').register
+local pprint = require 'metalua.pprint'
+local config = { blacklist = { lineinfo = true } }
+
+local insert = table.insert
+local temp = require('metalua.compiler.grammar.generator').gensym "smartAssert"
+
+local function convert(expr)
+	switch expr do
+		case `Table { `Op { name, left, right }, message} then
+			if name ~= "eq" and name ~= "lt" and name ~= "le" then
+				error("Unknown operator " .. name)
+			end
+			return {
+				`Set { { temp }, { left } },
+				`If {
+					`Op { "not", `Op { name, temp, right } },
+					+{block: error(-{message}:format(-{temp}), 2)}
+				}
+			}
+		case `Table { expr, message } then
+			return +{stat:
+				if not (+{expr}) then
+					error(-{message}, 2)
+				end
+			}
+		case _ then error("Unexpected " .. pprint.tostring(expr, config))
+	end
+end
+
+local function handle(...)
+	local values = {...}
+
+	local builder = { `Local { { temp } } }
+	for _, v in ipairs(values) do
+		insert(builder, convert(v))
+	end
+
+	return builder
+end
+
+
+dollar['assert'] = handle
+return function(...) return extension("dollar", ...) end

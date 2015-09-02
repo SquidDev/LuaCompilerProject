@@ -6,7 +6,7 @@ local function dollar_builder(e)
 	switch e do
 	case `Call{ `Id{name}, ... } then
 		local entry = M.register[name] or error ("No macro "..name.." registered")
-		return entry(select(2, unpack(e)))
+		return entry(...)
 	case `Id{name} then
 		local entry = M.register[name] or error ("No macro "..name.." registered")
 		switch type(entry) do
