@@ -1,5 +1,5 @@
 # Lua Compiler Project
-The Lua Compiler Project (LuaCP) is an attempt to create a language agnostic approach to processing Lua code. 
+The Lua Compiler Project (LuaCP) is an attempt to create a language agnostic approach to processing Lua code.
 
 Wait: language agnostic? LuaCP aims to allow writing in Lua, Moonscript and Tua - a series of extensions of the basic Lua syntax. There will also be an API to add custom language frontends.
 
