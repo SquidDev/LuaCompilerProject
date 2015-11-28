@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{9E0538BF-B68A-463F-8067-4621AEB2363E}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>LuaCP.Core</RootNamespace>
+    <AssemblyName>LuaCP.Core</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug</OutputPath>
+    <DefineConstants>DEBUG;</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <ConsolePause>false</ConsolePause>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>full</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <ConsolePause>false</ConsolePause>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="IR\Constant.cs" />
+    <Compile Include="IR\IValue.cs" />
+    <Compile Include="IR\Literal.cs" />
+    <Compile Include="IR\Components\Argument.cs" />
+    <Compile Include="IR\Components\Block.Collection.cs" />
+    <Compile Include="IR\Components\Block.Graph.cs" />
+    <Compile Include="IR\Components\Block.cs" />
+    <Compile Include="IR\Components\ConstantPool.cs" />
+    <Compile Include="IR\Components\Function.cs" />
+    <Compile Include="IR\Components\Module.cs" />
+    <Compile Include="IR\Components\Phi.cs" />
+    <Compile Include="IR\Components\Upvalue.cs" />
+    <Compile Include="IR\Components\ValueState.cs" />
+    <Compile Include="IR\Instructions\BinaryOp.cs" />
+    <Compile Include="IR\Instructions\Branch.cs" />
+    <Compile Include="IR\Instructions\Call.cs" />
+    <Compile Include="IR\Instructions\Instruction.cs" />
+    <Compile Include="IR\Instructions\InstructionExtensions.cs" />
+    <Compile Include="IR\Instructions\Opcodes.cs" />
+    <Compile Include="IR\Instructions\Reference.cs" />
+    <Compile Include="IR\Instructions\Table.cs" />
+    <Compile Include="IR\Instructions\Tuple.cs" />
+    <Compile Include="IR\Instructions\UnaryOp.cs" />
+    <Compile Include="IR\User\User.cs" />
+    <Compile Include="IR\User\UsingDictionary.cs" />
+    <Compile Include="IR\User\UsingList.cs" />
+    <Compile Include="Graph\DominanceGraph.cs" />
+    <Compile Include="Graph\Dominator.cs" />
+    <Compile Include="Graph\IGraphNode.cs" />
+    <Compile Include="Graph\Successors.cs" />
+    <Compile Include="Graph\Traversal.cs" />
+    <Compile Include="Reporting\IReporter.cs" />
+    <Compile Include="Reporting\Position.cs" />
+    <Compile Include="Reporting\Range.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <ItemGroup>
+    <ProjectReference Include="..\LuaCP.Shared\LuaCP.Shared.csproj">
+      <Project>{BADF7F48-117E-4BE8-BC24-B5B6656939F4}</Project>
+      <Name>LuaCP.Shared</Name>
+    </ProjectReference>
+  </ItemGroup>
+</Project>
