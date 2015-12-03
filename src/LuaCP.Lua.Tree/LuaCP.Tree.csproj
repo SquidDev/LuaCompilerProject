@@ -1,0 +1,72 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{4A2E8F61-88B2-4DE5-A4B9-E0B929CEEEFA}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>LuaCP.Tree</RootNamespace>
+    <AssemblyName>LuaCP.Lua.Tree</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug</OutputPath>
+    <DefineConstants>DEBUG;</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <ConsolePause>false</ConsolePause>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>full</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <ConsolePause>false</ConsolePause>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="FunctionBuilder.cs" />
+    <Compile Include="LabelScope.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Expression\CallNode.cs" />
+    <Compile Include="Expression\ConditionNode.cs" />
+    <Compile Include="Expression\FunctionNode.cs" />
+    <Compile Include="Expression\IndexNode.cs" />
+    <Compile Include="Expression\Operators.cs" />
+    <Compile Include="Expression\ParenthesisNode.cs" />
+    <Compile Include="Expression\TableNode.cs" />
+    <Compile Include="Statement\AssignNode.cs" />
+    <Compile Include="Statement\BlockNode.cs" />
+    <Compile Include="Statement\BreakNode.cs" />
+    <Compile Include="Statement\DoNode.cs" />
+    <Compile Include="Statement\GoToNode.cs" />
+    <Compile Include="Statement\IfNode.cs" />
+    <Compile Include="Statement\LocalNode.cs" />
+    <Compile Include="Statement\ReturnNode.cs" />
+    <Compile Include="Statement\WhileNode.cs" />
+    <Compile Include="BlockBuilder.cs" />
+    <Compile Include="IdentifierNode.cs" />
+    <Compile Include="INode.cs" />
+    <Compile Include="Statement\RepeatNode.cs" />
+    <Compile Include="Statement\ForNumNode.cs" />
+    <Compile Include="Statement\ForInNode.cs" />
+    <Compile Include="VariableScope.cs" />
+    <Compile Include="Expression\BasicNodes.cs" />
+    <Compile Include="Node.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <ItemGroup>
+    <ProjectReference Include="..\LuaCP.Core\LuaCP.Core.csproj">
+      <Project>{5CFD2FB4-903C-4BF1-BBFC-F5ECDCD9C1CB}</Project>
+      <Name>LuaCP</Name>
+    </ProjectReference>
+  </ItemGroup>
+</Project>
