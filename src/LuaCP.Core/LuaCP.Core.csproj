@@ -66,6 +66,10 @@
     <Compile Include="Reporting\IReporter.cs" />
     <Compile Include="Reporting\Position.cs" />
     <Compile Include="Reporting\Range.cs" />
+    <Compile Include="Debug\DotExporter.cs" />
+    <Compile Include="Debug\Exporter.cs" />
+    <Compile Include="Debug\Formatter.cs" />
+    <Compile Include="Debug\NodeNumberer.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -73,5 +77,8 @@
       <Project>{BADF7F48-117E-4BE8-BC24-B5B6656939F4}</Project>
       <Name>LuaCP.Shared</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Debug\" />
   </ItemGroup>
 </Project>

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{6FB5CD12-7D50-4C94-806C-6A2881C194F2}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>LuaCP.Lua.CodeGen</RootNamespace>
+    <AssemblyName>LuaCP.Lua.CodeGen</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug</OutputPath>
+    <DefineConstants>DEBUG;</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <ConsolePause>false</ConsolePause>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>full</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <ConsolePause>false</ConsolePause>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="FunctionCodegen.cs" />
+    <Compile Include="NameAllocator.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <ItemGroup>
+    <ProjectReference Include="..\LuaCP.Core\LuaCP.Core.csproj">
+      <Project>{9E0538BF-B68A-463F-8067-4621AEB2363E}</Project>
+      <Name>LuaCP.Core</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\LuaCP.Shared\LuaCP.Shared.csproj">
+      <Project>{BADF7F48-117E-4BE8-BC24-B5B6656939F4}</Project>
+      <Name>LuaCP.Shared</Name>
+    </ProjectReference>
+  </ItemGroup>
+</Project>

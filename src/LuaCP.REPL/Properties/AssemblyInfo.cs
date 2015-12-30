@@ -1,11 +1,11 @@
 using System.Reflection;
 
-[assembly: AssemblyTitle("LuaCP.Lua.Tree")]
-[assembly: AssemblyDescription("AST implementation and IR generator for Lua")]
+[assembly: AssemblyTitle("LuaCP.REPL")]
+[assembly: AssemblyDescription("REPL for Lua")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("SquidDev")]
 [assembly: AssemblyProduct("LuaCP")]
-[assembly: AssemblyCopyright("SquidDev")]
+[assembly: AssemblyCopyright("bonzo")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{5B70C395-1E99-431D-BAC2-9655D1A78B2F}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>LuaCP.Parser.Console</RootNamespace>
+    <AssemblyName>LuaCP.Parser.Console</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug</OutputPath>
+    <DefineConstants>DEBUG;</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Externalconsole>true</Externalconsole>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>full</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Externalconsole>true</Externalconsole>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="FSharp.Core" />
+    <Reference Include="FParsec">
+      <HintPath>..\..\packages\FParsec.1.0.2\lib\net40-client\FParsec.dll</HintPath>
+    </Reference>
+    <Reference Include="FParsecCS">
+      <HintPath>..\..\packages\FParsec.1.0.2\lib\net40-client\FParsecCS.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <ItemGroup>
+    <ProjectReference Include="..\LuaCP.Parser.Extensions\LuaCP.Parser.Extensions.csproj">
+      <Project>{A56ABC74-157D-4BDA-A447-DDA1EEDAEA25}</Project>
+      <Name>LuaCP.Parser.Extensions</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\LuaCP.Core\LuaCP.Core.csproj">
+      <Project>{9E0538BF-B68A-463F-8067-4621AEB2363E}</Project>
+      <Name>LuaCP.Core</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\LuaCP.Lua.Parser\LuaCP.Lua.Parser.fsproj">
+      <Project>{BB059E0A-6FF0-482C-BDC6-3970A56916C9}</Project>
+      <Name>LuaCP.Lua.Parser</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\LuaCP.Lua.Tree\LuaCP.Lua.Tree.csproj">
+      <Project>{4A2E8F61-88B2-4DE5-A4B9-E0B929CEEEFA}</Project>
+      <Name>LuaCP.Lua.Tree</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\LuaCP.Passes\LuaCP.Passes.csproj">
+      <Project>{5A4CAA6B-3586-45F6-A8EC-0F8DBADC6267}</Project>
+      <Name>LuaCP.Passes</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\LuaCP.Shared\LuaCP.Shared.csproj">
+      <Project>{BADF7F48-117E-4BE8-BC24-B5B6656939F4}</Project>
+      <Name>LuaCP.Shared</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\LuaCP.Lua.CodeGen\LuaCP.Lua.CodeGen.csproj">
+      <Project>{6FB5CD12-7D50-4C94-806C-6A2881C194F2}</Project>
+      <Name>LuaCP.Lua.CodeGen</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+</Project>
