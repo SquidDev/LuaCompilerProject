@@ -1,0 +1,73 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{BB059E0A-6FF0-482C-BDC6-3970A56916C9}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>LuaCP.Lua.Parser</RootNamespace>
+    <AssemblyName>LuaCP.Lua.Parser</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>..\bin\Debug</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <ConsolePause>false</ConsolePause>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <OutputPath>..\bin\Release</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <ConsolePause>false</ConsolePause>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="mscorlib" />
+    <Reference Include="FSharp.Core" />
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Numerics" />
+    <Reference Include="FParsec">
+      <HintPath>..\..\packages\FParsec.1.0.2\lib\net40-client\FParsec.dll</HintPath>
+    </Reference>
+    <Reference Include="FParsecCS">
+      <HintPath>..\..\packages\FParsec.1.0.2\lib\net40-client\FParsecCS.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="Nodes.fs" />
+    <Compile Include="Pattern.fs" />
+    <Compile Include="Utils.fs" />
+    <Compile Include="Operators.fs" />
+    <Compile Include="Parsers.fs" />
+    <Compile Include="Primitives.fs" />
+    <Compile Include="Language.fs" />
+    <Compile Include="Literal.fs" />
+    <Compile Include="Function.fs" />
+    <Compile Include="Expression.fs" />
+    <Compile Include="Statement.fs" />
+    <Compile Include="Extensions\Basics.fs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.1\Framework\v4.0\Microsoft.FSharp.Targets" />
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\LuaCP.Core\LuaCP.Core.csproj">
+      <Project>{9E0538BF-B68A-463F-8067-4621AEB2363E}</Project>
+      <Name>LuaCP.Core</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\LuaCP.Shared\LuaCP.Shared.csproj">
+      <Project>{BADF7F48-117E-4BE8-BC24-B5B6656939F4}</Project>
+      <Name>LuaCP.Shared</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\LuaCP.Lua.Tree\LuaCP.Lua.Tree.csproj">
+      <Project>{4A2E8F61-88B2-4DE5-A4B9-E0B929CEEEFA}</Project>
+      <Name>LuaCP.Lua.Tree</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\LuaCP.Parser.Extensions\LuaCP.Parser.Extensions.csproj">
+      <Project>{A56ABC74-157D-4BDA-A447-DDA1EEDAEA25}</Project>
+      <Name>LuaCP.Parser.Extensions</Name>
+    </ProjectReference>
+  </ItemGroup>
+</Project>

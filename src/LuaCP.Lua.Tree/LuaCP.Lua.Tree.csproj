@@ -3,11 +3,9 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProductVersion>8.0.30703</ProductVersion>
-    <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{4A2E8F61-88B2-4DE5-A4B9-E0B929CEEEFA}</ProjectGuid>
     <OutputType>Library</OutputType>
-    <RootNamespace>LuaCP.Tree</RootNamespace>
+    <RootNamespace>LuaCP.Lua.Tree</RootNamespace>
     <AssemblyName>LuaCP.Lua.Tree</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
   </PropertyGroup>
@@ -65,8 +63,12 @@
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
     <ProjectReference Include="..\LuaCP.Core\LuaCP.Core.csproj">
-      <Project>{5CFD2FB4-903C-4BF1-BBFC-F5ECDCD9C1CB}</Project>
-      <Name>LuaCP</Name>
+      <Project>{9E0538BF-B68A-463F-8067-4621AEB2363E}</Project>
+      <Name>LuaCP.Core</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\LuaCP.Shared\LuaCP.Shared.csproj">
+      <Project>{BADF7F48-117E-4BE8-BC24-B5B6656939F4}</Project>
+      <Name>LuaCP.Shared</Name>
     </ProjectReference>
   </ItemGroup>
 </Project>
