@@ -36,10 +36,7 @@ namespace LuaCP.IR.Components
 
 		public Constant this[double value]
 		{
-			get
-			{ 
-				return this[value % 1 == 0 ? (Literal)new Literal.Integer((int)value) : new Literal.Number(value)];
-			} 
+			get { return this[new Literal.Number(value)]; } 
 		}
 
 		public Constant this[int value]

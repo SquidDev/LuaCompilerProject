@@ -33,9 +33,8 @@
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="NameAllocator.cs" />
-    <Compile Include="Lua\FunctionCodegen.cs" />
-    <Compile Include="Lua\FunctionState.cs" />
     <Compile Include="Lua\BlockCodegen.cs" />
+    <Compile Include="Lua\FunctionCodeGen.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

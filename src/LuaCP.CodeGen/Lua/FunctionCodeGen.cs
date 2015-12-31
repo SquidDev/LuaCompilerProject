@@ -4,10 +4,15 @@ using System.Collections.Generic;
 using LuaCP.IR;
 using LuaCP.IR.Instructions;
 using System.Linq;
+using System.CodeDom.Compiler;
+using LuaCP.Graph;
 
 namespace LuaCP.CodeGen.Lua
 {
-	public sealed class FunctionState
+	/// <summary>
+	/// Non reusable class for writing to a stream
+	/// </summary>
+	public sealed class FunctionCodegen
 	{
 		public readonly Function Function;
 		public readonly IReadOnlyDictionary<Upvalue, String> Upvalues;
@@ -17,12 +22,16 @@ namespace LuaCP.CodeGen.Lua
 		public readonly NameAllocator<IValue> Refs;
 		public readonly NameAllocator<Block> Blocks;
 		public readonly NameAllocator<Function> FuncAllocator;
+		public readonly IndentedTextWriter Writer;
 
-		public FunctionState(Function function, IReadOnlyDictionary<Upvalue, String> upvalues, NameAllocator<Function> funcAllocator)
+		private readonly HashSet<Block> visited = new HashSet<Block>();
+
+		public FunctionCodegen(Function function, IndentedTextWriter writer, IReadOnlyDictionary<Upvalue, String> upvalues, NameAllocator<Function> funcAllocator)
 		{
 			Upvalues = upvalues;
 			Function = function;
 			FuncAllocator = funcAllocator;
+			Writer = writer;
 
 			string prefix = funcAllocator[function];
 			Phis = new NameAllocator<Phi>(prefix + "phi_{0}");
@@ -33,10 +42,12 @@ namespace LuaCP.CodeGen.Lua
 			foreach (Argument argument in function.Arguments) Temps[argument] = argument.Name == "..." ? "..." : prefix + argument.Name;
 		}
 
-		public FunctionState(Function function)
-			: this(function, new Dictionary<Upvalue, String>(), new NameAllocator<Function>("f{0}_"))
+		public FunctionCodegen(Function function, IndentedTextWriter writer)
+			: this(function, writer, new Dictionary<Upvalue, String>(), new NameAllocator<Function>("f{0}_"))
 		{
 		}
+
+		#region Format
 
 		public string Format(IValue value)
 		{
@@ -79,6 +90,58 @@ namespace LuaCP.CodeGen.Lua
 
 			return "[" + Format(value) + "]";
 		}
+
+		#endregion
+
+		#region Block writing
+
+		public void WriteBlock(Block block)
+		{
+			if (visited.Add(block))
+			{
+				new BlockCodegen(block, this, Writer).Write();
+			}
+			else
+			{
+				throw new ArgumentException("Already written block");
+			}
+		}
+
+		private void WriteBlocks()
+		{
+			foreach (Block block in Function.EntryPoint.ReachableLazy())
+			{
+				if (!visited.Contains(block)) WriteBlock(block);
+			}
+		}
+
+		public void Write()
+		{
+			Writer.Write("function(");
+			bool first = true;
+			foreach (Argument argument in Function.Arguments)
+			{
+				if (!first)
+				{
+					Writer.Write(", ");
+				}
+				else
+				{
+					first = true;
+				}
+
+				Writer.Write(Temps[argument]);
+			}
+			Writer.WriteLine(")");
+
+			Writer.Indent++;
+			WriteBlocks();
+			Writer.Indent--;
+
+			Writer.WriteLine("end");
+		}
+
+		#endregion
 	}
 }
 

@@ -255,7 +255,7 @@ namespace LuaCP.IR
 
 		public static implicit operator Literal(double literal)
 		{
-			return literal % 1 == 0 ? (Literal)new Literal.Integer((int)literal) : new Literal.Number(literal);
+			return new Literal.Number(literal);
 		}
 
 		public static implicit operator Literal(bool literal)

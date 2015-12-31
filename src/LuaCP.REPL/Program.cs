@@ -86,7 +86,7 @@ namespace LuaCP.REPL
 							DotExporter.Write(module);
 							break;
 						case "code":
-							new FunctionCodegen(module.EntryPoint).Write(new IndentedTextWriter(Con.Out));
+							new FunctionCodegen(module.EntryPoint, new IndentedTextWriter(Con.Out)).Write();
 							break;
 						default:
 							Console.WriteLine("Unknown command " + line);

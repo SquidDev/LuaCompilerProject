@@ -28,10 +28,10 @@ namespace LuaCP.CodeGen.Lua
 		private readonly ISet<ValueInstruction> values = new HashSet<ValueInstruction>();
 
 		private readonly Block block;
-		private readonly FunctionState state;
+		private readonly FunctionCodegen state;
 		private readonly IndentedTextWriter writer;
 
-		public  BlockCodegen(Block block, FunctionState state, IndentedTextWriter writer)
+		public  BlockCodegen(Block block, FunctionCodegen state, IndentedTextWriter writer)
 		{
 			this.block = block;
 			this.state = state;
@@ -58,12 +58,21 @@ namespace LuaCP.CodeGen.Lua
 			{
 				return PopUntil(insn);
 			}
-                
+
 			if (value.IsNil()) return require ? "nil" : "";
 			if (value.Kind != ValueKind.Tuple) return Format(value);
 
 			TupleNew tuple = value as TupleNew;
-			if (tuple != null && tuple.Remaining.IsNil()) return String.Join(", ", tuple.Values.Select(Format));
+			if (tuple != null && tuple.Remaining.IsNil())
+			{
+				string[] results = new string[tuple.Values.Count];
+				for (int i = tuple.Values.Count - 1; i >= 0; i--)
+				{
+					results[i] = Format(tuple.Values[i]);
+				}
+
+				return String.Join(", ", results);
+			}
 
 			return state.Temps[value] + " --[[Probably incorrect tuple]]";
 		}
@@ -235,7 +244,7 @@ namespace LuaCP.CodeGen.Lua
 							{
 								lookup.Add(open.Item2, Format(open.Item1));
 							}
-							new FunctionCodegen(new FunctionState(closNew.Function, lookup, state.FuncAllocator)).Write(writer);
+							new FunctionCodegen(closNew.Function, writer, lookup, state.FuncAllocator).Write();
 							return name;
 						}
 					default:
@@ -246,7 +255,7 @@ namespace LuaCP.CodeGen.Lua
 
 		public void Write()
 		{
-			if (!block.Previous.IsEmpty()) writer.WriteLine("::{0}::", state.Blocks[block]);
+			if (block.Previous.Count() > 1) writer.WriteLine("::{0}::", state.Blocks[block]);
 
 			foreach (Phi phi in block.DominatorTreeChildren.SelectMany(x => x.PhiNodes))
 			{
@@ -292,10 +301,12 @@ namespace LuaCP.CodeGen.Lua
 						case Opcode.BranchCondition:
 							{
 								BranchCondition branchCond = (BranchCondition)insn;
+
 								writer.WriteLine("if {0} then", Format(branchCond.Test));
 
 								writer.Indent++;
 								WriteJump(branchCond.Success);
+
 								writer.Indent--;
 
 								writer.WriteLine("else");
@@ -341,7 +352,14 @@ namespace LuaCP.CodeGen.Lua
 				writer.WriteLine("{0} = {1}", state.Phis[phi], Format(phi.Source[block]));
 			}
 
-			writer.WriteLine("goto {0}", state.Blocks[target]);
+			if (target.Previous.Count() == 1)
+			{
+				state.WriteBlock(target);
+			}
+			else
+			{
+				writer.WriteLine("goto {0}", state.Blocks[target]);
+			}
 		}
 	}
 }
