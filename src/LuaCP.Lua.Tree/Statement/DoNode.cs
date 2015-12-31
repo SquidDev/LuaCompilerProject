@@ -16,7 +16,9 @@ namespace LuaCP.Tree.Statement
 			BlockBuilder next = builder.Continue();
 
 			builder = Body.Build(builder.MakeScope());
-			builder.Block.AddLast(new Branch(next.Block));
+
+			Instruction last = builder.Block.Last;
+			if (last == null || !last.Opcode.IsTerminator()) builder.Block.AddLast(new Branch(next.Block));
 
 			return next;
 		}

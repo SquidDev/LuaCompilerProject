@@ -5,24 +5,23 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{5B70C395-1E99-431D-BAC2-9655D1A78B2F}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <RootNamespace>LuaCP.Parser.Console</RootNamespace>
-    <AssemblyName>LuaCP.Parser.Console</AssemblyName>
+    <RootNamespace>LuaCP.REPL</RootNamespace>
+    <AssemblyName>LuaCP.REPL</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>bin\Debug</OutputPath>
+    <OutputPath>..\bin\Debug</OutputPath>
     <DefineConstants>DEBUG;</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Externalconsole>true</Externalconsole>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>full</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>bin\Release</OutputPath>
+    <OutputPath>..\bin\Release</OutputPath>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Externalconsole>true</Externalconsole>
@@ -67,7 +66,7 @@
       <Project>{BADF7F48-117E-4BE8-BC24-B5B6656939F4}</Project>
       <Name>LuaCP.Shared</Name>
     </ProjectReference>
-    <ProjectReference Include="..\LuaCP.Lua.CodeGen\LuaCP.CodeGen.csproj">
+    <ProjectReference Include="..\LuaCP.CodeGen\LuaCP.CodeGen.csproj">
       <Project>{6FB5CD12-7D50-4C94-806C-6A2881C194F2}</Project>
       <Name>LuaCP.CodeGen</Name>
     </ProjectReference>

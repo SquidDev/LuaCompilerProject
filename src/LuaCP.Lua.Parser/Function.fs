@@ -13,8 +13,8 @@ type FunctionDef(lang : Language) =
     
     let arguments = 
         let args = 
-            lang.DeclarationList1 .>>. (Symbol "," >>. expr.Dots |> bOpt) 
-            <|> (bOpt expr.Dots |>> (fun x -> List.empty, x))
+            (expr.Dots |>> (fun x -> List.empty, true)) 
+            <|> (lang.DeclarationList1 .>>. (Symbol "," >>. expr.Dots |> bOpt))
         refL "function args" args
     
     let header = refL "function header" (betweenL (Symbol "(") (Symbol ")") arguments.AsParser "function header")
