@@ -99,7 +99,9 @@ namespace LuaCP.REPL
                     if (source == null) continue;
 
                     module = new Module();
+
                     new FunctionBuilder(module, new GlobalEnvironment()).Accept(source);
+                    new Exporter(Con.Out).ModuleLong(module);
 
                     PassExtensions.Default(module);
 
