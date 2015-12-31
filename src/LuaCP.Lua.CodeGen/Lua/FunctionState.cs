@@ -30,7 +30,7 @@ namespace LuaCP.CodeGen.Lua
             Refs = new NameAllocator<IValue>(prefix + "var_{0}");
             Blocks = new NameAllocator<Block>(prefix + "lbl_{0}");
 
-            foreach (Argument argument in function.Arguments) Temps[argument] = prefix + argument.Name;
+            foreach (Argument argument in function.Arguments) Temps[argument] = argument.Name == "..." ? "..." : prefix + argument.Name;
         }
 
         public FunctionState(Function function)
@@ -46,6 +46,7 @@ namespace LuaCP.CodeGen.Lua
                 return constant.Literal == Literal.Nil ? "nil" : constant.ToString();
             }
 
+            if (value is GlobalEnvironment) return "_ENV";
             if (value is Upvalue) return Upvalues[(Upvalue)value];
             if (value is Phi) return Phis[(Phi)value];
             if (value.Kind == ValueKind.Reference) return Refs[value];

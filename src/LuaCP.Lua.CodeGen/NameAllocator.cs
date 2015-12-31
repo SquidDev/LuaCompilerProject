@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using LuaCP.Debug;
 
 namespace LuaCP.CodeGen
 {
@@ -46,6 +47,8 @@ namespace LuaCP.CodeGen
                 lookup.Add(key, value);
             }
         }
+
+        public IReadOnlyDictionary<T, String> Lookup { get { return lookup; } }
     }
 }
 

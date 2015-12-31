@@ -70,6 +70,7 @@
     <Compile Include="Debug\Exporter.cs" />
     <Compile Include="Debug\Formatter.cs" />
     <Compile Include="Debug\NodeNumberer.cs" />
+    <Compile Include="IR\GlobalEnvironment.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 using System.Collections.Generic;
 using LuaCP.IR;
 using LuaCP.IR.Components;
@@ -7,7 +6,6 @@ using System.Linq;
 using LuaCP.IR.Instructions;
 using System.Text;
 using LuaCP.IR.User;
-using LuaCP.Debug;
 using System.CodeDom.Compiler;
 
 namespace LuaCP.CodeGen.Lua
@@ -60,8 +58,14 @@ namespace LuaCP.CodeGen.Lua
             {
                 return PopUntil(insn);
             }
+                
+            if (value.IsNil()) return require ? "nil" : "";
+            if (value.Kind != ValueKind.Tuple) return Format(value);
 
-            return state.FormatTuple(value, require);
+            TupleNew tuple = value as TupleNew;
+            if (tuple != null && tuple.Remaining.IsNil()) return String.Join(", ", tuple.Values.Select(Format));
+
+            return state.Temps[value] + " --[[Probably incorrect tuple]]";
         }
 
         private string FormatKey(IValue value)
@@ -183,7 +187,7 @@ namespace LuaCP.CodeGen.Lua
                     case Opcode.TupleNew:
                         {
                             TupleNew tupNew = (TupleNew)insn;
-                            return String.Format("--[[NYI: New tuple {0}]] nil", state.Temps[tupNew]);
+                            return FormatTuple(tupNew);
                         }
                     case Opcode.TupleGet:
                         {
@@ -195,7 +199,7 @@ namespace LuaCP.CodeGen.Lua
                             else
                             {
                                 string name = state.Temps[getter];
-                                writer.WriteLine("local {2}, {0} = ({1})", name, FormatTuple(getter.Tuple, true), String.Concat(Enumerable.Repeat("_, ", getter.Offset)));
+                                writer.WriteLine("local {2} {0} = ({1})", name, FormatTuple(getter.Tuple, true), String.Concat(Enumerable.Repeat("_, ", getter.Offset)));
                                 return name;
                             }
                         }

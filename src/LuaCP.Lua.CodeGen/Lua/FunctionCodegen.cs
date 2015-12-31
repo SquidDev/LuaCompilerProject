@@ -1,5 +1,4 @@
 ﻿using LuaCP.IR.Components;
-using System.IO;
 using LuaCP.Graph;
 using System.CodeDom.Compiler;
 

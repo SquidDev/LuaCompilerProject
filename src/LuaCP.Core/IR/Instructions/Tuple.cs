@@ -14,7 +14,7 @@ namespace LuaCP.IR.Instructions
 		public IValue Remaining { get { return remaining; } set { remaining = UserExtensions.Replace(this, remaining, value); } }
 
 		public TupleNew(IEnumerable<IValue> values, IValue remaining)
-			: base(Opcode.TupleNew, ValueKind.Value)
+			: base(Opcode.TupleNew, ValueKind.Tuple)
 		{
 			this.values = new UsingList<IValue>(this, values);
 			Remaining = remaining;

@@ -8,6 +8,7 @@ using Con = System.Console;
 using LuaCP.CodeGen.Lua;
 using LuaCP.Parser;
 using System.CodeDom.Compiler;
+using LuaCP.IR;
 
 namespace LuaCP.REPL
 {
@@ -98,7 +99,7 @@ namespace LuaCP.REPL
                     if (source == null) continue;
 
                     module = new Module();
-                    new FunctionBuilder(module, module.Constants[VariableScope.GlobalTable]).Accept(source);
+                    new FunctionBuilder(module, new GlobalEnvironment()).Accept(source);
 
                     PassExtensions.Default(module);
 
