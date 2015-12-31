@@ -41,8 +41,7 @@ namespace LuaCP.Debug
 			else if (value is Instruction)
 			{
 				Instruction insn = (Instruction)value;
-				if (insn.Block == null)
-					Console.WriteLine("Block is null for " + insn.Opcode);
+				if (insn.Block == null) Console.WriteLine("Block is null for " + insn.Opcode);
 				writer.Write(numberer.PrettyGetInstruction(insn));
 			}
 			else if (value is GlobalEnvironment)

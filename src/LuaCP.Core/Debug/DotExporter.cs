@@ -168,8 +168,7 @@ namespace LuaCP.Debug
 			viewer.Exited += (sender, e) =>
 			{
 				File.Delete(tempName);
-				if (File.Exists(tempWhole))
-					File.Delete(tempWhole);
+				if (File.Exists(tempWhole)) File.Delete(tempWhole);
 			};
 			viewer.Start();
 		}

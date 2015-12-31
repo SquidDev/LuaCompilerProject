@@ -78,7 +78,7 @@ namespace LuaCP.IR.Instructions
 		public override void ForceDestroy()
 		{
 			reference.Users.Decrement(this);
-            val.Users.Decrement(this);
+			val.Users.Decrement(this);
 			reference = null;
 		}
 	}

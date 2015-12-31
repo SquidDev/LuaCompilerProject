@@ -13,10 +13,10 @@ namespace LuaCP
 	{
 		public static readonly Pass<Module> Default = new Pass<Module>[]
 		{
-            UnreachableCode.ForModule,
+			UnreachableCode.ForModule,
 			new Pass<Function>[]
 			{
-                UnreachableCode.ForFunction,
+				UnreachableCode.ForFunction,
 				DeadCode.Runner.AsFunction(),
 				ReferenceToValue.Runner,
 				ConstantFolding.Runner.AsFunction(),
