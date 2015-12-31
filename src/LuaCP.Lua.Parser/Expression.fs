@@ -29,12 +29,13 @@ type Expression(lang : Language) =
                          lang.Identifier |>> fun x -> upcast x ] 
             "primary expression"
     
+    let singleton x = [x]
     let arguments, argumentsRef = 
         longestChoiceL [ betweenL (Symbol "(") (Symbol ")") lang.ExprList 
                              "arguments"
-                         literal.String |>> List.singleton
-                         literal.Table |>> List.singleton
-                         literal.Boolean |>> List.singleton ] "arguments"
+                         literal.String |>> singleton
+                         literal.Table |>> singleton
+                         literal.Boolean |>> singleton ] "arguments"
     
     let suffixes, suffix, suffixRef = 
         let index = 

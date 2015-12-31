@@ -60,7 +60,7 @@ type Statement(lang : Language) =
         
         let func = 
             pipe2 (Keyword "function" >>. lang.Declaration) func.Body 
-                (fun dec body -> Nodes.LocalRec (List.singleton dec) (List.singleton body))
+                (fun dec body -> Nodes.LocalRec [dec] [body])
         let localChoice, localChoiceRef = longestChoiceL [ func; nameList ] "local statement"
         Keyword "local" >>. localChoice <?> "local statement", localChoiceRef
     
@@ -68,12 +68,12 @@ type Statement(lang : Language) =
         let parser = 
             pipe2 (Keyword "function" >>. func.Name) func.Body (fun name func -> 
                 match name with
-                | (expr, false) -> Nodes.Assign (List.singleton (expr :?> IAssignable)) (List.singleton func)
+                | (expr, false) -> Nodes.Assign [expr :?> IAssignable] [func]
                 | (expr, true) -> 
                     match func with
                     | :? Tree.Expression.FunctionNode as func -> 
-                        Nodes.Assign (List.singleton (expr :?> IAssignable)) 
-                            (List.singleton (Nodes.Function ("self" :: Seq.toList func.Arguments) func.Dots func.Body))
+                        Nodes.Assign [expr :?> IAssignable]
+                            [Nodes.Function ("self" :: Seq.toList func.Arguments) func.Dots func.Body]
                     | _ -> raise (ArgumentException "Expected function"))
         refL "function statement" parser
     
