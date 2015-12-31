@@ -67,9 +67,9 @@
       <Project>{BADF7F48-117E-4BE8-BC24-B5B6656939F4}</Project>
       <Name>LuaCP.Shared</Name>
     </ProjectReference>
-    <ProjectReference Include="..\LuaCP.Lua.CodeGen\LuaCP.Lua.CodeGen.csproj">
+    <ProjectReference Include="..\LuaCP.Lua.CodeGen\LuaCP.CodeGen.csproj">
       <Project>{6FB5CD12-7D50-4C94-806C-6A2881C194F2}</Project>
-      <Name>LuaCP.Lua.CodeGen</Name>
+      <Name>LuaCP.CodeGen</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

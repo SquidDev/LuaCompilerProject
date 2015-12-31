@@ -1,21 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace LuaCP.Lua.CodeGen
+namespace LuaCP.CodeGen
 {
     public class NameAllocator
     {
         private int counter = -1;
-        private readonly string prefix;
+        private readonly string format;
 
-        public NameAllocator(string prefix)
+        public NameAllocator(string format)
         {
-            this.prefix = prefix;
+            this.format = format;
         }
 
         public string Next()
         {
-            return prefix+ ++counter;
+            return String.Format(format, ++counter);
         }
     }
 
@@ -24,9 +24,9 @@ namespace LuaCP.Lua.CodeGen
         private readonly Dictionary<T, String> lookup = new Dictionary<T, String>();
         private readonly NameAllocator allocator;
 
-        public NameAllocator(string prefix)
+        public NameAllocator(string format)
         {
-            allocator = new NameAllocator(prefix);
+            allocator = new NameAllocator(format);
         }
 
         public string this [T key]

@@ -5,15 +5,15 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{6FB5CD12-7D50-4C94-806C-6A2881C194F2}</ProjectGuid>
     <OutputType>Library</OutputType>
-    <RootNamespace>LuaCP.Lua.CodeGen</RootNamespace>
-    <AssemblyName>LuaCP.Lua.CodeGen</AssemblyName>
+    <RootNamespace>LuaCP.CodeGen</RootNamespace>
+    <AssemblyName>LuaCP.CodeGen</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>bin\Debug</OutputPath>
+    <OutputPath>..\bin\Debug</OutputPath>
     <DefineConstants>DEBUG;</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -22,7 +22,7 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>full</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>bin\Release</OutputPath>
+    <OutputPath>..\bin\Release</OutputPath>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
@@ -32,8 +32,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="FunctionCodegen.cs" />
     <Compile Include="NameAllocator.cs" />
+    <Compile Include="Lua\FunctionCodegen.cs" />
+    <Compile Include="Lua\FunctionState.cs" />
+    <Compile Include="Lua\BlockCodegen.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -45,5 +47,8 @@
       <Project>{BADF7F48-117E-4BE8-BC24-B5B6656939F4}</Project>
       <Name>LuaCP.Shared</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Lua\" />
   </ItemGroup>
 </Project>

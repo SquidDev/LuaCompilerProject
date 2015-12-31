@@ -2,11 +2,12 @@ using System;
 using FParsec;
 using LuaCP.Debug;
 using LuaCP.IR.Components;
-using LuaCP.Parser;
 using LuaCP.Tree;
 using Microsoft.FSharp.Core;
 using Con = System.Console;
-using LuaCP.Lua.CodeGen;
+using LuaCP.CodeGen.Lua;
+using LuaCP.Parser;
+using System.CodeDom.Compiler;
 
 namespace LuaCP.REPL
 {
@@ -84,7 +85,7 @@ namespace LuaCP.REPL
                             DotExporter.Write(module);
                             break;
                         case "code":
-                            new FunctionCodegen(module.EntryPoint).Write(Con.Out);
+                            new FunctionCodegen(module.EntryPoint).Write(new IndentedTextWriter(Con.Out));
                             break;
                         default:
                             Console.WriteLine("Unknown command " + line);
