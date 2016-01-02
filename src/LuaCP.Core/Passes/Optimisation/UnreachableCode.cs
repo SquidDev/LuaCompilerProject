@@ -4,7 +4,7 @@ using LuaCP.Graph;
 using LuaCP.IR.Components;
 using LuaCP.IR.Instructions;
 
-namespace LuaCP.Optimisation
+namespace LuaCP.Passes.Optimisation
 {
 	/// <summary>
 	/// Removes blocks that are unreachable

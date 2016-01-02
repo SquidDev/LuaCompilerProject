@@ -1,4 +1,5 @@
 using System.IO;
+using LuaCP.Collections;
 using LuaCP.IR.Components;
 using LuaCP.IR.Instructions;
 

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace LuaCP
+namespace LuaCP.Collections
 {
 	public static class CollectionExtensions
 	{

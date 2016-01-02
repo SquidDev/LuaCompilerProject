@@ -4,6 +4,7 @@ using System.IO;
 using System.Text;
 using LuaCP.IR.Components;
 using LuaCP.IR.Instructions;
+using LuaCP.Collections;
 
 namespace LuaCP.Debug
 {

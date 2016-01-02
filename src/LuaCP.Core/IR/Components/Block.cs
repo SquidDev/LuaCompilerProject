@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using LuaCP.Graph;
 using LuaCP.IR.Instructions;
 using LuaCP.IR.User;
+using LuaCP.Collections;
 
 namespace LuaCP.IR.Components
 {

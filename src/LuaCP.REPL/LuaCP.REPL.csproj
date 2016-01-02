@@ -58,14 +58,6 @@
       <Project>{4A2E8F61-88B2-4DE5-A4B9-E0B929CEEEFA}</Project>
       <Name>LuaCP.Lua.Tree</Name>
     </ProjectReference>
-    <ProjectReference Include="..\LuaCP.Passes\LuaCP.Passes.csproj">
-      <Project>{5A4CAA6B-3586-45F6-A8EC-0F8DBADC6267}</Project>
-      <Name>LuaCP.Passes</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\LuaCP.Shared\LuaCP.Shared.csproj">
-      <Project>{BADF7F48-117E-4BE8-BC24-B5B6656939F4}</Project>
-      <Name>LuaCP.Shared</Name>
-    </ProjectReference>
     <ProjectReference Include="..\LuaCP.CodeGen\LuaCP.CodeGen.csproj">
       <Project>{6FB5CD12-7D50-4C94-806C-6A2881C194F2}</Project>
       <Name>LuaCP.CodeGen</Name>

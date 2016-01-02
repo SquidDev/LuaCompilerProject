@@ -1,11 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LuaCP.Shared", "src\LuaCP.Shared\LuaCP.Shared.csproj", "{BADF7F48-117E-4BE8-BC24-B5B6656939F4}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LuaCP.Core", "src\LuaCP.Core\LuaCP.Core.csproj", "{9E0538BF-B68A-463F-8067-4621AEB2363E}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LuaCP.Passes", "src\LuaCP.Passes\LuaCP.Passes.csproj", "{5A4CAA6B-3586-45F6-A8EC-0F8DBADC6267}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LuaCP.Parser.Extensions", "src\LuaCP.Parser.Extensions\LuaCP.Parser.Extensions.csproj", "{A56ABC74-157D-4BDA-A447-DDA1EEDAEA25}"
 EndProject
@@ -29,10 +25,6 @@ Global
 		{4A2E8F61-88B2-4DE5-A4B9-E0B929CEEEFA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4A2E8F61-88B2-4DE5-A4B9-E0B929CEEEFA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4A2E8F61-88B2-4DE5-A4B9-E0B929CEEEFA}.Release|Any CPU.Build.0 = Release|Any CPU
-		{5A4CAA6B-3586-45F6-A8EC-0F8DBADC6267}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{5A4CAA6B-3586-45F6-A8EC-0F8DBADC6267}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{5A4CAA6B-3586-45F6-A8EC-0F8DBADC6267}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{5A4CAA6B-3586-45F6-A8EC-0F8DBADC6267}.Release|Any CPU.Build.0 = Release|Any CPU
 		{5B70C395-1E99-431D-BAC2-9655D1A78B2F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{5B70C395-1E99-431D-BAC2-9655D1A78B2F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5B70C395-1E99-431D-BAC2-9655D1A78B2F}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -49,10 +41,6 @@ Global
 		{A56ABC74-157D-4BDA-A447-DDA1EEDAEA25}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A56ABC74-157D-4BDA-A447-DDA1EEDAEA25}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A56ABC74-157D-4BDA-A447-DDA1EEDAEA25}.Release|Any CPU.Build.0 = Release|Any CPU
-		{BADF7F48-117E-4BE8-BC24-B5B6656939F4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{BADF7F48-117E-4BE8-BC24-B5B6656939F4}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{BADF7F48-117E-4BE8-BC24-B5B6656939F4}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{BADF7F48-117E-4BE8-BC24-B5B6656939F4}.Release|Any CPU.Build.0 = Release|Any CPU
 		{BB059E0A-6FF0-482C-BDC6-3970A56916C9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{BB059E0A-6FF0-482C-BDC6-3970A56916C9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BB059E0A-6FF0-482C-BDC6-3970A56916C9}.Release|Any CPU.ActiveCfg = Release|Any CPU

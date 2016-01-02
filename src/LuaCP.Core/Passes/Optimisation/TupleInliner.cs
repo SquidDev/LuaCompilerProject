@@ -1,6 +1,6 @@
 using LuaCP.IR.Instructions;
 
-namespace LuaCP.Optimisation
+namespace LuaCP.Passes.Optimisation
 {
 	/// <summary>
 	/// Inlines access and creation of tuples

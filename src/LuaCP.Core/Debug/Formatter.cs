@@ -4,6 +4,7 @@ using System.IO;
 using LuaCP.IR.Components;
 using LuaCP.IR.Instructions;
 using LuaCP.IR;
+using LuaCP.Collections;
 
 namespace LuaCP.Debug
 {
@@ -50,7 +51,7 @@ namespace LuaCP.Debug
 			}
 			else if (value is Constant)
 			{
-				writer.Write(value.ToString());
+				writer.Write(value);
 			}
 			else if (value is Phi)
 			{

@@ -57,10 +57,6 @@
       <Project>{9E0538BF-B68A-463F-8067-4621AEB2363E}</Project>
       <Name>LuaCP.Core</Name>
     </ProjectReference>
-    <ProjectReference Include="..\LuaCP.Shared\LuaCP.Shared.csproj">
-      <Project>{BADF7F48-117E-4BE8-BC24-B5B6656939F4}</Project>
-      <Name>LuaCP.Shared</Name>
-    </ProjectReference>
     <ProjectReference Include="..\LuaCP.Lua.Tree\LuaCP.Lua.Tree.csproj">
       <Project>{4A2E8F61-88B2-4DE5-A4B9-E0B929CEEEFA}</Project>
       <Name>LuaCP.Lua.Tree</Name>

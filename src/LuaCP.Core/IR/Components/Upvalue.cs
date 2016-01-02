@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using LuaCP.IR.Instructions;
 using LuaCP.IR.User;
+using LuaCP.Collections;
 
 namespace LuaCP.IR.Components
 {

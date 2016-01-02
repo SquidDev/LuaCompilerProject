@@ -4,8 +4,9 @@ using LuaCP.IR;
 using LuaCP.IR.Components;
 using LuaCP.IR.Instructions;
 using LuaCP.IR.User;
+using LuaCP.Collections;
 
-namespace LuaCP.Optimisation
+namespace LuaCP.Passes.Optimisation
 {
 	/// <summary>
 	/// Removes useless constructs including: 
@@ -43,7 +44,7 @@ namespace LuaCP.Optimisation
 				}
 				else if (phi.Source.Values.Where(x => x != phi).AllEqual())
 				{
-					IValue value = phi.Source.Values.Where(x => x != phi).First();
+					IValue value = phi.Source.Values.First(x => x != phi);
 					phi.ReplaceWith(value);
 				
 					phi.Source.Clear();

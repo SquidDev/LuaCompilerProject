@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace LuaCP
+namespace LuaCP.Collections
 {
 	public sealed class TypeDictionary<T>
 	{

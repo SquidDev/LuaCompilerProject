@@ -2,6 +2,7 @@
 
 open System
 open LuaCP
+open LuaCP.Collections
 open LuaCP.Parser
 open LuaCP.Parser.Parsers
 open LuaCP.Parser.Primitives

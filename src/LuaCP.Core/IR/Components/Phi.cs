@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using LuaCP.IR.User;
+using LuaCP.Collections;
 
 namespace LuaCP.IR.Components
 {

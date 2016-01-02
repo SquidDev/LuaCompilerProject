@@ -66,9 +66,5 @@
       <Project>{9E0538BF-B68A-463F-8067-4621AEB2363E}</Project>
       <Name>LuaCP.Core</Name>
     </ProjectReference>
-    <ProjectReference Include="..\LuaCP.Shared\LuaCP.Shared.csproj">
-      <Project>{BADF7F48-117E-4BE8-BC24-B5B6656939F4}</Project>
-      <Name>LuaCP.Shared</Name>
-    </ProjectReference>
   </ItemGroup>
 </Project>

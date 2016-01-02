@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using LuaCP.IR.Components;
 using LuaCP.IR.Instructions;
 using System.Linq;
-using LuaCP.Optimisation;
+using LuaCP.Passes.Optimisation;
 
-namespace LuaCP
+namespace LuaCP.Passes
 {
 	public delegate bool Pass<T>(T item);
 

@@ -2,7 +2,7 @@ using System;
 using LuaCP.IR;
 using LuaCP.IR.Instructions;
 
-namespace LuaCP.Optimisation
+namespace LuaCP.Passes.Optimisation
 {
 	public static class ConstantFolding
 	{

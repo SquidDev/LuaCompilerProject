@@ -1,7 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
-namespace LuaCP
+namespace LuaCP.Collections
 {
 	public class Multimap<TKey, TValue> : IDictionary<TKey, ISet<TValue>>
 	{

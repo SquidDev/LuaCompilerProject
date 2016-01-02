@@ -71,15 +71,25 @@
     <Compile Include="Debug\Formatter.cs" />
     <Compile Include="Debug\NodeNumberer.cs" />
     <Compile Include="IR\GlobalEnvironment.cs" />
+    <Compile Include="Valid.cs" />
+    <Compile Include="Collections\CollectionExtensions.cs" />
+    <Compile Include="Collections\CountingSet.cs" />
+    <Compile Include="Collections\Multimap.cs" />
+    <Compile Include="Collections\TypeDictionary.cs" />
+    <Compile Include="Passes\Pass.cs" />
+    <Compile Include="Passes\Optimisation\ConstantFolding.cs" />
+    <Compile Include="Passes\Optimisation\DeadCode.cs" />
+    <Compile Include="Passes\Optimisation\FunctionInliner.cs" />
+    <Compile Include="Passes\Optimisation\InstructionCloner.cs" />
+    <Compile Include="Passes\Optimisation\ReferenceToValue.cs" />
+    <Compile Include="Passes\Optimisation\ReturnCloner.cs" />
+    <Compile Include="Passes\Optimisation\TupleInliner.cs" />
+    <Compile Include="Passes\Optimisation\UnreachableCode.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
-    <ProjectReference Include="..\LuaCP.Shared\LuaCP.Shared.csproj">
-      <Project>{BADF7F48-117E-4BE8-BC24-B5B6656939F4}</Project>
-      <Name>LuaCP.Shared</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <Folder Include="Debug\" />
+    <Folder Include="Collections\" />
+    <Folder Include="Passes\" />
   </ItemGroup>
 </Project>

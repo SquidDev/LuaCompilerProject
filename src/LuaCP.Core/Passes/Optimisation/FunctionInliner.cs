@@ -5,7 +5,7 @@ using LuaCP.IR.Components;
 using LuaCP.IR.Instructions;
 using LuaCP.IR.User;
 
-namespace LuaCP.Optimisation
+namespace LuaCP.Passes.Optimisation
 {
 	/// <summary>
 	/// Attempt to inline functions
