@@ -208,7 +208,7 @@ namespace LuaCP.CodeGen.Lua
 							else
 							{
 								string name = state.Temps[getter];
-								writer.WriteLine("local {2} {0} = ({1})", name, FormatTuple(getter.Tuple, true), String.Concat(Enumerable.Repeat("_, ", getter.Offset)));
+								writer.WriteLine("local {2} {0} = {1}", name, FormatTuple(getter.Tuple, true), String.Concat(Enumerable.Repeat("_, ", getter.Offset)));
 								return name;
 							}
 						}
