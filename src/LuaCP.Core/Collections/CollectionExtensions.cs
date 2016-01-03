@@ -46,7 +46,17 @@ namespace LuaCP.Collections
 			value = creator();
 			dict.Add(key, value);
 			return value;
+		}
 
+		public static TVal GetOrAddDefault<TKey, TVal>(this IDictionary<TKey, TVal> dict, TKey key)
+			where TVal : new()
+		{
+			TVal value;
+			if (dict.TryGetValue(key, out value)) return value;
+
+			value = new TVal();
+			dict.Add(key, value);
+			return value;
 		}
 
 		public static T Last<T>(this IReadOnlyList<T> list)

@@ -7,7 +7,7 @@ using LuaCP.IR;
 using LuaCP.IR.Components;
 using LuaCP.IR.Instructions;
 
-namespace LuaCP.Passes.Optimisation
+namespace LuaCP.Passes
 {
 	/// <summary>
 	/// SSA construction: Converts references to values
@@ -75,6 +75,7 @@ namespace LuaCP.Passes.Optimisation
 					continue;
 				}
                 
+				// If we only override and never read, then just ignore it
 				if (users.All(x => x is ReferenceSet))
 				{
 					foreach (Instruction user in users) user.Remove();

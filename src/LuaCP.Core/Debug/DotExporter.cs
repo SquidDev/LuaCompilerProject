@@ -103,7 +103,17 @@ namespace LuaCP.Debug
 				normalWriter.Write("<br />Doms: ");
 				foreach (Block f in block.DominanceFrontier)
 				{
-					Block(block, writer, numberer);
+					Block(f, writer, numberer);
+					normalWriter.Write(", ");
+				}
+			}
+
+			if (block.DominatorTreeChildren.Count > 0)
+			{
+				normalWriter.Write("<br />Children: ");
+				foreach (Block f in block.DominatorTreeChildren)
+				{
+					Block(f, writer, numberer);
 					normalWriter.Write(", ");
 				}
 			}

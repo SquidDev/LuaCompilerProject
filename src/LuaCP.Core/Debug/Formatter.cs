@@ -45,10 +45,6 @@ namespace LuaCP.Debug
 				if (insn.Block == null) Console.WriteLine("Block is null for " + insn.Opcode);
 				writer.Write(numberer.PrettyGetInstruction(insn));
 			}
-			else if (value is GlobalEnvironment)
-			{
-				writer.Write("_ENV");
-			}
 			else if (value is Constant)
 			{
 				writer.Write(value);

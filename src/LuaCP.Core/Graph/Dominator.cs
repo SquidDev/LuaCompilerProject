@@ -18,7 +18,7 @@ namespace LuaCP.Graph
 
 			// Basic setup, clear, etc...
 			// We use the eager method as we are going to use it many times
-			IEnumerable<T> nodes = root.ReachableEager();
+			HashSet<T> nodes = root.ReachableEager();
 			foreach (T node in nodes)
 			{
 				node.ImmediateDominator = default(T);

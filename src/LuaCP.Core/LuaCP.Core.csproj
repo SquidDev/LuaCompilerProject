@@ -70,7 +70,6 @@
     <Compile Include="Debug\Exporter.cs" />
     <Compile Include="Debug\Formatter.cs" />
     <Compile Include="Debug\NodeNumberer.cs" />
-    <Compile Include="IR\GlobalEnvironment.cs" />
     <Compile Include="Valid.cs" />
     <Compile Include="Collections\CollectionExtensions.cs" />
     <Compile Include="Collections\CountingSet.cs" />
@@ -81,10 +80,11 @@
     <Compile Include="Passes\Optimisation\DeadCode.cs" />
     <Compile Include="Passes\Optimisation\FunctionInliner.cs" />
     <Compile Include="Passes\Optimisation\InstructionCloner.cs" />
-    <Compile Include="Passes\Optimisation\ReferenceToValue.cs" />
     <Compile Include="Passes\Optimisation\ReturnCloner.cs" />
     <Compile Include="Passes\Optimisation\TupleInliner.cs" />
-    <Compile Include="Passes\Optimisation\UnreachableCode.cs" />
+    <Compile Include="Collections\Allocator.cs" />
+    <Compile Include="Passes\ReferenceToValue.cs" />
+    <Compile Include="Passes\UnreachableCode.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

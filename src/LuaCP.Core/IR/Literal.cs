@@ -198,7 +198,7 @@ namespace LuaCP.IR
 
 		public override string ToString()
 		{
-			return Kind.ToString();
+			return Kind.ToString().ToLowerInvariant();
 		}
 
 		public bool IsTruthy()

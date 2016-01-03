@@ -15,12 +15,18 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LuaCP.Lua.Tree", "src\LuaCP
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LuaCP.CodeGen", "src\LuaCP.CodeGen\LuaCP.CodeGen.csproj", "{6FB5CD12-7D50-4C94-806C-6A2881C194F2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LuaCP.Test", "src\LuaCP.Test\LuaCP.Test.csproj", "{1FB41277-ECB6-45EF-B8C9-70B6BD844473}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1FB41277-ECB6-45EF-B8C9-70B6BD844473}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1FB41277-ECB6-45EF-B8C9-70B6BD844473}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1FB41277-ECB6-45EF-B8C9-70B6BD844473}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1FB41277-ECB6-45EF-B8C9-70B6BD844473}.Release|Any CPU.Build.0 = Release|Any CPU
 		{4A2E8F61-88B2-4DE5-A4B9-E0B929CEEEFA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{4A2E8F61-88B2-4DE5-A4B9-E0B929CEEEFA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4A2E8F61-88B2-4DE5-A4B9-E0B929CEEEFA}.Release|Any CPU.ActiveCfg = Release|Any CPU

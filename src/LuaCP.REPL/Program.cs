@@ -10,6 +10,9 @@ using LuaCP.Passes;
 using LuaCP.Tree;
 using Microsoft.FSharp.Core;
 using Con = System.Console;
+using LuaCP.CodeGen.Bytecode;
+using System.Text;
+using LuaCP.Passes.Optimisation;
 
 namespace LuaCP.REPL
 {
@@ -89,6 +92,16 @@ namespace LuaCP.REPL
 						case "code":
 							new FunctionCodegen(module.EntryPoint, new IndentedTextWriter(Con.Out)).Write();
 							break;
+						case "lasm":
+							{
+								StringBuilder builder = new StringBuilder();
+								using (var x = new LasmBytecodeWriter(builder, VarargType.Exists))
+								{
+									new BytecodeCodegen(x, module.EntryPoint).Write();
+								}
+								Console.WriteLine(builder);
+								break;
+							}
 						default:
 							Console.WriteLine("Unknown command " + line);
 							goto case "help";
@@ -100,9 +113,7 @@ namespace LuaCP.REPL
 					if (source == null) continue;
 
 					module = new Module();
-
-					new FunctionBuilder(module, new GlobalEnvironment()).Accept(source);
-					new Exporter(Con.Out).ModuleLong(module);
+					new FunctionBuilder(module).Accept(source);
 
 					PassExtensions.Default(module);
 

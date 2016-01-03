@@ -57,7 +57,6 @@ namespace LuaCP.CodeGen.Lua
 				return constant.Literal == Literal.Nil ? "nil" : constant.ToString();
 			}
 
-			if (value is GlobalEnvironment) return "_ENV";
 			if (value is Upvalue) return Upvalues[(Upvalue)value];
 			if (value is Phi) return Phis[(Phi)value];
 			if (value.Kind == ValueKind.Reference) return Refs[value];

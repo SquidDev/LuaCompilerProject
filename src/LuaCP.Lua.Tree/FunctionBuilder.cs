@@ -12,11 +12,11 @@ namespace LuaCP.Tree
 		public readonly Function Function;
 		public readonly List<IValue> Upvalues = new List<IValue>();
 
-		public FunctionBuilder(Module module, IValue globals)
+		public FunctionBuilder(Module module)
 		{
 			Function = module.EntryPoint;
 			EntryPoint = new BlockBuilder(Function);
-			EntryPoint.Variables.Declare(VariableScope.GlobalTable, globals);
+			EntryPoint.Variables.Declare(VariableScope.GlobalTable, new Upvalue(Function, true));
 		}
 
 		public FunctionBuilder(BlockBuilder builder, IEnumerable<string> args, bool dots)

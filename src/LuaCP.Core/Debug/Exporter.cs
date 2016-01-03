@@ -2,6 +2,8 @@ using System.IO;
 using LuaCP.Collections;
 using LuaCP.IR.Components;
 using LuaCP.IR.Instructions;
+using System;
+using System.Linq;
 
 namespace LuaCP.Debug
 {
@@ -41,6 +43,9 @@ namespace LuaCP.Debug
 
 			writer.Write("Dominated by: ");
 			writer.WriteLine(block.ImmediateDominator == null ? "Nothing" : numberer.PrettyGetBlock(block.ImmediateDominator));
+
+			writer.Write("Frontier: ");
+			writer.WriteLine(block.DominanceFrontier.Count == 0 ? "<empty>" : String.Join(", ", block.DominanceFrontier.Select(numberer.PrettyGetBlock)));
             
 			foreach (Phi phi in block.PhiNodes)
 			{
