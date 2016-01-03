@@ -120,7 +120,7 @@ namespace LuaCP.Passes
 		/// </code>
 		/// </summary>
 		[Test]
-		public void TestLonghandOrStyle()
+		public void TestShortOrStyle()
 		{
 			Module module = new Module();
 			ConstantPool pool = module.Constants;

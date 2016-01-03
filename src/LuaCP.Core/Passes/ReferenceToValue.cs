@@ -42,16 +42,16 @@ namespace LuaCP.Passes
 						break;
 				}
 			}
-        	
+			
 			return value;
 		}
 
 		private void Remove(IEnumerable<ReferenceNew> items)
 		{
 			/*
-              Based mostly off: http://ssabook.gforge.inria.fr/latest/book.pdf
-              However I might implement some stuff from http://compilers.cs.uni-saarland.de/papers/bbhlmz13cc.pdf
-             */
+			 Based mostly off: http://ssabook.gforge.inria.fr/latest/book.pdf
+			 However I might implement some stuff from http://compilers.cs.uni-saarland.de/papers/bbhlmz13cc.pdf
+			 */
 			foreach (ReferenceNew item in items)
 			{
 				// Remove redundant references - those which are never used
@@ -74,7 +74,7 @@ namespace LuaCP.Passes
 					item.Remove();
 					continue;
 				}
-                
+				
 				// If we only override and never read, then just ignore it
 				if (users.All(x => x is ReferenceSet))
 				{
@@ -90,11 +90,11 @@ namespace LuaCP.Passes
 					item.Remove();
 					continue;
 				}
-                
+				
 				Dictionary<Block, Phi> phis = InsertPhiNodes(item, users);
 				Dictionary<Block, IValue> values = phis.ToDictionary<Block, IValue, Phi>();
 				values.Add(item.Block, item.Value);
-                
+				
 				Func<Block, IValue> getValue = block =>
 				{
 					while (true)
@@ -108,7 +108,7 @@ namespace LuaCP.Passes
 				foreach (Block block in item.Block.DominancePreorder())
 				{
 					IValue value = values[block] = EvaluateReference(block, item, getValue(block));
-                	
+					
 					foreach (Block next in block.Next)
 					{
 						Phi phi;
@@ -165,14 +165,12 @@ namespace LuaCP.Passes
 								found = true;
 							}
 							break;
-						default:
-							break;
 					}
 
 					if (found) break;
 				}
 			}
-                
+
 			while (worklist.Count > 0)
 			{
 				foreach (Block previous in worklist.Dequeue().Previous)
@@ -192,9 +190,8 @@ namespace LuaCP.Passes
 		private Dictionary<Block, Phi> InsertPhiNodes(ReferenceNew reference, List<Instruction> users)
 		{
 			Dictionary<Block, Phi> phis = new Dictionary<Block, Phi>();
-            
-			// users.Where(x => x.Opcode != Opcode.ReferenceGet).Select(x => x.Block)
-			HashSet<Block> setters = new HashSet<Block>(ComputeLiveInBlocks(reference, users));
+
+			HashSet<Block> setters = new HashSet<Block>(users.Where(x => x.Opcode != Opcode.ReferenceGet).Select(x => x.Block));
 			Queue<Block> toVisit = new Queue<Block>(setters);
 			while (toVisit.Count > 0)
 			{
@@ -205,21 +202,21 @@ namespace LuaCP.Passes
 					{
 						Phi phi = new Phi(dom);
 						phis.Add(dom, phi);
-            			
+						
 						if (setters.Add(dom)) toVisit.Enqueue(dom);
 					}
 				}
 			}
-            
+			
 			return phis;
 		}
 
 		private IEnumerable<ReferenceNew> GetValid(Function function)
 		{
 			return function.Blocks
-            	.SelectMany(x => x)
-            	.Where(x => x.Opcode == Opcode.ReferenceNew).Cast<ReferenceNew>()
-            	.Where(r => r.Users.OfType<Instruction>().All(x => x.Opcode.IsReferenceInsn()));
+				.SelectMany(x => x)
+				.Where(x => x.Opcode == Opcode.ReferenceNew).Cast<ReferenceNew>()
+				.Where(r => r.Users.OfType<Instruction>().All(x => x.Opcode.IsReferenceInsn()));
 		}
 
 		public bool Run(Function function)
