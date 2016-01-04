@@ -5,7 +5,7 @@ namespace LuaCP.CodeGen.Bytecode
 {
 	public static class WriterExtensions
 	{
-		public static void Load(this IBytecodeWriter writer, ILuaValue value, Register to)
+		public static void Load(this IBytecodeWriter writer, ILuaValue value, Register to, bool force = false)
 		{
 			Register from = value as Register;
 			if (from == null)
@@ -14,7 +14,7 @@ namespace LuaCP.CodeGen.Bytecode
 			}
 			else
 			{
-				writer.Move(from, to);
+				if(force || from.Index != to.Index) writer.Move(from, to);
 			}
 		}
 

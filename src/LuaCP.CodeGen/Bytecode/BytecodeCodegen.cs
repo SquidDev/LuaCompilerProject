@@ -12,13 +12,13 @@ namespace LuaCP.CodeGen.Bytecode
 {
 	public class BytecodeCodegen
 	{
-		private class ValueReference
+		private class ValueRegister
 		{
 			private int users;
 			public readonly Register Register;
 			private readonly BytecodeCodegen gen;
 
-			public ValueReference(IValue value, BytecodeCodegen gen)
+			public ValueRegister(IValue value, BytecodeCodegen gen)
 			{
 				users = value.Users.TotalCount;
 				this.gen = gen;
@@ -49,7 +49,7 @@ namespace LuaCP.CodeGen.Bytecode
 		private readonly Function function;
 		private readonly SortedSet<int> stack = new SortedSet<int>(Enumerable.Range(0, 255));
 		private readonly Dictionary<Block, Label> blocks = new Dictionary<Block, Label>();
-		private readonly Dictionary<IValue, ValueReference> registers = new Dictionary<IValue, ValueReference>();
+		private readonly Dictionary<IValue, ValueRegister> registers = new Dictionary<IValue, ValueRegister>();
 		private readonly Dictionary<Upvalue, int> upvalIndexes = new Dictionary<Upvalue, int>();
 		private readonly Dictionary<Function, IBytecodeWriter> functions = new Dictionary<Function, IBytecodeWriter>();
 		private readonly HashSet<Block> visitedBlocks;
@@ -95,7 +95,16 @@ namespace LuaCP.CodeGen.Bytecode
 
 		private Register MakeRegister(IValue value)
 		{
-			return new ValueReference(value, this).Register;
+			ValueRegister register;
+			if (registers.TryGetValue(value, out register))
+			{
+				// This is a register merged into another
+				return register.Use();
+			}
+			else
+			{
+				return new ValueRegister(value, this).Register;
+			}
 		}
 
 		private void WriteBlock(Block block)
@@ -104,7 +113,15 @@ namespace LuaCP.CodeGen.Bytecode
 
 			foreach (Phi phi in block.DominatorTreeChildren.SelectMany(x => x.PhiNodes))
 			{
-				new ValueReference(phi, this);
+				ValueRegister reference = new ValueRegister(phi, this);
+				foreach (ValueInstruction value in phi.Source.Values.OfType<ValueInstruction>())
+				{
+					// If this value is created and used exclusively between this block and the phi node
+					if (!phi.Block.Dominates(value.Block) && block.Dominates(value.Block))
+					{
+						reference.Merge(value);
+					}
+				}
 			}
 
 			Instruction insn = block.First;
@@ -142,37 +159,24 @@ namespace LuaCP.CodeGen.Bytecode
 						case Opcode.Branch:
 							{
 								Branch branch = (Branch)insn;
-								// TODO: Inline blocks, write phis
-								foreach (Phi phi in branch.Target.PhiNodes)
-								{
-									writer.Load(Get(phi.Source[block]), registers[phi].Register);
-								}
-								JumpBlock(branch.Target);
+								JumpBlock(block, branch.Target);
 								break;
 							}
 						case Opcode.BranchCondition:
 							{
 								BranchCondition branchCond = (BranchCondition)insn;
 								// TODO: Inline blocks, write phis
-								Label failureTarget = branchCond.Failure.PhiNodes.Count == 0 ? blocks.GetOrAddDefault(branchCond.Failure) : new Label();
+								Label failureTarget = branchCond.Failure.PhiNodes.Count == 0 && branchCond.Failure.Previous.Count() > 1 ? blocks.GetOrAddDefault(branchCond.Failure) : new Label();
 								writer.Test(true, Get(branchCond.Test), failureTarget);
 
 								// Success
-								foreach (Phi phi in branchCond.Success.PhiNodes)
-								{
-									writer.Load(Get(phi.Source[block]), registers[phi].Register);
-								}
-								JumpBlock(branchCond.Success);
+								JumpBlock(block, branchCond.Success);
 
 								// Failure
-								if (branchCond.Failure.PhiNodes.Count > 0)
+								if (branchCond.Failure.PhiNodes.Count > 0 || branchCond.Failure.Previous.Count() == 1)
 								{
 									writer.Label(failureTarget);
-									foreach (Phi phi in branchCond.Failure.PhiNodes)
-									{
-										writer.Load(Get(phi.Source[block]), registers[phi].Register);
-									}
-									JumpBlock(branchCond.Failure);
+									JumpBlock(block, branchCond.Failure);
 								}
 								break;
 							}
@@ -353,11 +357,11 @@ namespace LuaCP.CodeGen.Bytecode
 								writer.Closure(childWriter, MakeRegister(closure));
 								foreach (IValue upvalue in closure.OpenUpvalues)
 								{
-									writer.Load(Get(upvalue), Register.PseudoRegister);
+									writer.Load(Get(upvalue), Register.PseudoRegister, true);
 								}
 								foreach (IValue upvalue in closure.ClosedUpvalues)
 								{
-									writer.Load(Get(upvalue), Register.PseudoRegister);
+									writer.Load(Get(upvalue), Register.PseudoRegister, true);
 								}
 								break;
 							}
@@ -372,15 +376,23 @@ namespace LuaCP.CodeGen.Bytecode
 			}
 		}
 
-		private void JumpBlock(Block block)
+		private void JumpBlock(Block from, Block to)
 		{
-			if (block.Previous.Count() == 1 && visitedBlocks.Add(block))
+			foreach (Phi phi in to.PhiNodes)
 			{
-				WriteBlock(block);
+				writer.Load(Get(phi.Source[from]), registers[phi].Register);
+			}
+
+			Console.WriteLine("Preparing block " + String.Join(", ", to.Take(3)) + "  " + to.Previous.Count());
+			if (to.Previous.Count() == 1 && visitedBlocks.Add(to))
+			{
+				Console.WriteLine("Inlining block " + String.Join(", ", to.Take(3)));
+				WriteBlock(to);
 			}
 			else
 			{
-				writer.Jump(blocks.GetOrAddDefault(block));
+				Console.WriteLine("Jumping block " + String.Join(", ", to.Take(3)));
+				writer.Jump(blocks.GetOrAddDefault(to));
 			}
 		}
 
