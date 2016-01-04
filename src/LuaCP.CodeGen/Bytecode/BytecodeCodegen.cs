@@ -52,11 +52,13 @@ namespace LuaCP.CodeGen.Bytecode
 		private readonly Dictionary<IValue, ValueReference> registers = new Dictionary<IValue, ValueReference>();
 		private readonly Dictionary<Upvalue, int> upvalIndexes = new Dictionary<Upvalue, int>();
 		private readonly Dictionary<Function, IBytecodeWriter> functions = new Dictionary<Function, IBytecodeWriter>();
+		private readonly HashSet<Block> visitedBlocks;
 
 		public BytecodeCodegen(IBytecodeWriter writer, Function function)
 		{
 			this.writer = writer;
 			this.function = function;
+			visitedBlocks = new HashSet<Block>();
 
 			int index = 0;
 			foreach (Upvalue up in function.Upvalues)
@@ -145,7 +147,7 @@ namespace LuaCP.CodeGen.Bytecode
 								{
 									writer.Load(Get(phi.Source[block]), registers[phi].Register);
 								}
-								writer.Jump(blocks.GetOrAddDefault(branch.Target));
+								JumpBlock(branch.Target);
 								break;
 							}
 						case Opcode.BranchCondition:
@@ -160,7 +162,7 @@ namespace LuaCP.CodeGen.Bytecode
 								{
 									writer.Load(Get(phi.Source[block]), registers[phi].Register);
 								}
-								writer.Jump(blocks.GetOrAddDefault(branchCond.Success));
+								JumpBlock(branchCond.Success);
 
 								// Failure
 								if (branchCond.Failure.PhiNodes.Count > 0)
@@ -170,7 +172,7 @@ namespace LuaCP.CodeGen.Bytecode
 									{
 										writer.Load(Get(phi.Source[block]), registers[phi].Register);
 									}
-									writer.Jump(blocks.GetOrAddDefault(branchCond.Failure));
+									JumpBlock(branchCond.Failure);
 								}
 								break;
 							}
@@ -370,11 +372,23 @@ namespace LuaCP.CodeGen.Bytecode
 			}
 		}
 
+		private void JumpBlock(Block block)
+		{
+			if (block.Previous.Count() == 1 && visitedBlocks.Add(block))
+			{
+				WriteBlock(block);
+			}
+			else
+			{
+				writer.Jump(blocks.GetOrAddDefault(block));
+			}
+		}
+
 		public void Write()
 		{
 			foreach (Block block in function.EntryPoint.ReachableLazy())
 			{
-				WriteBlock(block);
+				if (visitedBlocks.Add(block)) WriteBlock(block);
 			}
 
 			foreach (KeyValuePair<Function, IBytecodeWriter> child in functions)
