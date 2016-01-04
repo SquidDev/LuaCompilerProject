@@ -51,6 +51,7 @@ namespace LuaCP.CodeGen.Bytecode
 		private readonly Dictionary<Block, Label> blocks = new Dictionary<Block, Label>();
 		private readonly Dictionary<IValue, ValueReference> registers = new Dictionary<IValue, ValueReference>();
 		private readonly Dictionary<Upvalue, int> upvalIndexes = new Dictionary<Upvalue, int>();
+		private readonly Dictionary<Function, IBytecodeWriter> functions = new Dictionary<Function, IBytecodeWriter>();
 
 		public BytecodeCodegen(IBytecodeWriter writer, Function function)
 		{
@@ -92,7 +93,7 @@ namespace LuaCP.CodeGen.Bytecode
 
 		private Register MakeRegister(IValue value)
 		{
-			return new ValueReference(value, this).Use();
+			return new ValueReference(value, this).Register;
 		}
 
 		private void WriteBlock(Block block)
@@ -101,7 +102,7 @@ namespace LuaCP.CodeGen.Bytecode
 
 			foreach (Phi phi in block.DominatorTreeChildren.SelectMany(x => x.PhiNodes))
 			{
-				registers.Add(phi, new ValueReference(phi, this));
+				new ValueReference(phi, this);
 			}
 
 			Instruction insn = block.First;
@@ -318,6 +319,46 @@ namespace LuaCP.CodeGen.Bytecode
 								}
 								break;
 							}
+						case Opcode.ReferenceSet:
+							{
+								ReferenceSet setter = (ReferenceSet)insn;
+								if (setter.Reference is Upvalue)
+								{
+									writer.SetUpvalue(upvalIndexes[(Upvalue)setter.Reference], Get(setter.Value));
+								}
+								else
+								{
+									writer.Load(Get(setter.Value), GetRegister(setter.Reference));
+								}
+								break;
+							}
+						case Opcode.ReferenceNew:
+							{
+								ReferenceNew reference = (ReferenceNew)insn;
+								// TODO: We will need to close this somehow.
+								writer.Load(Get(reference.Value), MakeRegister(reference));
+								break;
+							}
+						case Opcode.ClosureNew:
+							{
+								ClosureNew closure = (ClosureNew)insn;
+								IBytecodeWriter childWriter;
+								if (!functions.TryGetValue(closure.Function, out childWriter))
+								{
+									childWriter = writer.Function(closure.Function);
+									functions.Add(closure.Function, childWriter);
+								}
+								writer.Closure(childWriter, MakeRegister(closure));
+								foreach (IValue upvalue in closure.OpenUpvalues)
+								{
+									writer.Load(Get(upvalue), Register.PseudoRegister);
+								}
+								foreach (IValue upvalue in closure.ClosedUpvalues)
+								{
+									writer.Load(Get(upvalue), Register.PseudoRegister);
+								}
+								break;
+							}
 						default:
 							Console.WriteLine("Cannot handle {0}", insn.Opcode);
 							break;
@@ -334,6 +375,11 @@ namespace LuaCP.CodeGen.Bytecode
 			foreach (Block block in function.EntryPoint.ReachableLazy())
 			{
 				WriteBlock(block);
+			}
+
+			foreach (KeyValuePair<Function, IBytecodeWriter> child in functions)
+			{
+				new BytecodeCodegen(child.Value, child.Key).Write();
 			}
 		}
 	}

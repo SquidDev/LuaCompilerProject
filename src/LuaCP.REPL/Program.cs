@@ -79,9 +79,10 @@ namespace LuaCP.REPL
 					switch (line.Substring(1))
 					{
 						case "help":
-							Console.WriteLine("!help: Print this help");
-							Console.WriteLine("!dump: Dump the previous source");
+							Console.WriteLine("!help:  Print this help");
+							Console.WriteLine("!dump:  Dump the previous source");
 							Console.WriteLine("!graph: Plot the CFG of the previous source");
+							Console.WriteLine("!lasm:  Dump LASM code of the module");
 							break;
 						case "dump":
 							new Exporter(Con.Out).ModuleLong(module);
