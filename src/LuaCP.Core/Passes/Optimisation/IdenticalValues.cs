@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using LuaCP.IR.Components;
 using LuaCP.IR;
 using System.Collections.Generic;
@@ -18,7 +18,7 @@ namespace LuaCP.Passes.Optimisation
 
 		public static Pass<Block> CheckPhis { get { return  DoCheckPhis; } }
 
-		private static bool DoCheckUpvalues(Function function)
+		private static bool DoCheckUpvalues(PassManager data, Function function)
 		{
 			if (function.ClosedUpvalues.Count == 0 || function.Users.UniqueCount == 0) return false;
 
@@ -49,7 +49,7 @@ namespace LuaCP.Passes.Optimisation
 			return changed.Count > 0;
 		}
 
-		private static bool DoCheckPhis(Block block)
+		private static bool DoCheckPhis(PassManager data, Block block)
 		{
 			bool changed = false;
 			foreach (Phi phi in block.PhiNodes)

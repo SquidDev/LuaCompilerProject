@@ -5,13 +5,11 @@ namespace LuaCP.Passes.Optimisation
 	/// <summary>
 	/// Inlines access and creation of tuples
 	/// </summary>
-	public class TupleInliner
+	public static class TupleInliner
 	{
-		private static readonly TupleInliner instance = new TupleInliner();
+		public static Pass<Instruction> Runner { get { return Run; } }
 
-		public static Pass<Instruction> Runner { get { return instance.Run; } }
-
-		public bool Run(Instruction instruction)
+		public static bool Run(PassManager data, Instruction instruction)
 		{
 			switch (instruction.Opcode)
 			{

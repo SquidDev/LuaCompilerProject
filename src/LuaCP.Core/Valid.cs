@@ -1,9 +1,15 @@
 using System;
-using System.Collections.Generic;
 
 namespace LuaCP
 {
-	public class Valid<T>
+	public interface IValid
+	{
+		void Evaluate();
+
+		void Invalidate();
+	}
+
+	public class Valid<T> : IValid
 	{
 		private T instance;
 		private bool valid = false;
@@ -25,17 +31,22 @@ namespace LuaCP
 		{
 			valid = false;
 		}
+
+		void IValid.Evaluate()
+		{
+			Evaluate();
+		}
 	}
 
-	public class Valid
+	public class Valid : IValid
 	{
 		private bool valid = false;
-		private Action invalidate;
-		private Action create;
+		private readonly Action invalidate;
+		private readonly Action evaluate;
 
 		public Valid(Action invalidate, Action evaluate)
 		{
-			this.create = evaluate;
+			this.evaluate = evaluate;
 			this.invalidate = invalidate;
 		}
 
@@ -44,7 +55,7 @@ namespace LuaCP
 			if (!valid)
 			{
 				valid = true;
-				create();
+				evaluate();
 			}
 		}
 
@@ -55,33 +66,6 @@ namespace LuaCP
 				valid = false;
 				invalidate();
 			}
-		}
-	}
-    
-	public class ValidDictionary<T>
-	{
-		private readonly Dictionary<Type, object> items = new Dictionary<Type, object>();
-		private readonly T instance;
-    	
-		public ValidDictionary(T instance)
-		{
-			this.instance = instance;
-		}
-    	
-		public TVal Evaluate<TVal>(Func<T, TVal> getter)
-		{
-			Object cached;
-			Type type = typeof(TVal);
-			if (items.TryGetValue(type, out cached)) return (TVal)cached;
-
-			TVal item = getter(instance);
-			items.Add(type, item);
-			return item;
-		}
-    	
-		public void Invalidate<TVal>()
-		{
-			items.Remove(typeof(TVal));
 		}
 	}
 }

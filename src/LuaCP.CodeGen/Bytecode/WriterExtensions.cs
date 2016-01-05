@@ -14,7 +14,7 @@ namespace LuaCP.CodeGen.Bytecode
 			}
 			else
 			{
-				if(force || from.Index != to.Index) writer.Move(from, to);
+				if (force || from.Index != to.Index) writer.Move(from, to);
 			}
 		}
 
@@ -23,11 +23,14 @@ namespace LuaCP.CodeGen.Bytecode
 			int args = function.Arguments.Count;
 			VarargType vararg = VarargType.None;
 
-			Argument arg = function.Arguments[args - 1];
-			if (arg.Kind == ValueKind.Tuple)
-			{
-				args--;
-				vararg = arg.Users.TotalCount == 0 ? VarargType.Exists : VarargType.Used;
+			if (args > 0)
+			{ 
+				Argument arg = function.Arguments[args - 1];
+				if (arg.Kind == ValueKind.Tuple)
+				{
+					args--;
+					vararg = arg.Users.TotalCount == 0 ? VarargType.Exists : VarargType.Used;
+				}
 			}
 
 			return writer.Function(function.OpenUpvalues.Count + function.ClosedUpvalues.Count, args, vararg);

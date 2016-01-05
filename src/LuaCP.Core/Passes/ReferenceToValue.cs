@@ -12,13 +12,11 @@ namespace LuaCP.Passes
 	/// <summary>
 	/// SSA construction: Converts references to values
 	/// </summary>
-	public class ReferenceToValue
+	public static class ReferenceToValue
 	{
-		private static readonly ReferenceToValue instance = new ReferenceToValue();
+		public static Pass<Function> Runner { get { return Run; } }
 
-		public static Pass<Function> Runner { get { return instance.Run; } }
-
-		private IValue EvaluateReference(Block block, IValue reference, IValue value)
+		private static IValue EvaluateReference(Block block, IValue reference, IValue value)
 		{
 			foreach (Instruction current in block)
 			{
@@ -46,7 +44,7 @@ namespace LuaCP.Passes
 			return value;
 		}
 
-		private void Remove(IEnumerable<ReferenceNew> items)
+		private static void Remove(IEnumerable<ReferenceNew> items)
 		{
 			/*
 			 Based mostly off: http://ssabook.gforge.inria.fr/latest/book.pdf
@@ -123,7 +121,7 @@ namespace LuaCP.Passes
 			}
 		}
 
-		private ISet<Block> ComputeLiveInBlocks(ReferenceNew reference, List<Instruction> users)
+		private static ISet<Block> ComputeLiveInBlocks(ReferenceNew reference, List<Instruction> users)
 		{
 			HashSet<Block> blocks = new HashSet<Block>();
 			Queue<Block> worklist = new Queue<Block>();
@@ -187,7 +185,7 @@ namespace LuaCP.Passes
 			return blocks;
 		}
 
-		private Dictionary<Block, Phi> InsertPhiNodes(ReferenceNew reference, List<Instruction> users)
+		private static Dictionary<Block, Phi> InsertPhiNodes(ReferenceNew reference, List<Instruction> users)
 		{
 			Dictionary<Block, Phi> phis = new Dictionary<Block, Phi>();
 
@@ -211,7 +209,7 @@ namespace LuaCP.Passes
 			return phis;
 		}
 
-		private IEnumerable<ReferenceNew> GetValid(Function function)
+		private static IEnumerable<ReferenceNew> GetValid(Function function)
 		{
 			return function.Blocks
 				.SelectMany(x => x)
@@ -219,7 +217,7 @@ namespace LuaCP.Passes
 				.Where(r => r.Users.OfType<Instruction>().All(x => x.Opcode.IsReferenceInsn()));
 		}
 
-		public bool Run(Function function)
+		private static bool Run(PassManager data, Function function)
 		{
 			function.Dominators.Evaluate();
 			List<ReferenceNew> references = GetValid(function).ToList();

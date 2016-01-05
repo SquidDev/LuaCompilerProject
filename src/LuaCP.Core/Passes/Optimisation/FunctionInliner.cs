@@ -11,13 +11,11 @@ namespace LuaCP.Passes.Optimisation
 	/// <summary>
 	/// Attempt to inline functions
 	/// </summary>
-	public class FunctionInliner
+	public static class FunctionInliner
 	{
-		private static readonly FunctionInliner instance = new FunctionInliner();
+		public static Pass<Function> Runner { get { return Run; } }
 
-		public static Pass<Function> Runner { get { return instance.Run; } }
-
-		public bool Run(Function function)
+		private static bool Run(PassManager data, Function function)
 		{
 			IEnumerable<ClosureNew> closures = function.Blocks
 				.SelectMany(x => x)
@@ -42,7 +40,7 @@ namespace LuaCP.Passes.Optimisation
 			return changed;
 		}
 
-		public void Inline(ClosureNew closure)
+		public static void Inline(ClosureNew closure)
 		{
 			Block block = closure.Block;
 			Function function = block.Function;
@@ -95,7 +93,7 @@ namespace LuaCP.Passes.Optimisation
 		/// </summary>
 		/// <param name="splitPoint">The point at which the block is split, all after this are put in the new block</param>
 		/// <returns>The new block</returns>
-		public Block Segment(Instruction splitPoint)
+		public static Block Segment(Instruction splitPoint)
 		{
 			Block current = splitPoint.Block;
 			Block contination = new Block(current.Function);

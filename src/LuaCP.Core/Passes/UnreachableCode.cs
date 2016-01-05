@@ -9,15 +9,13 @@ namespace LuaCP.Passes
 	/// <summary>
 	/// Removes blocks that are unreachable
 	/// </summary>
-	public class UnreachableCode
+	public static class UnreachableCode
 	{
-		private static readonly UnreachableCode instance = new UnreachableCode();
+		public static Pass<Function> ForFunction { get { return RunFunction; } }
 
-		public static Pass<Function> ForFunction { get { return instance.RunFunction; } }
+		public static Pass<Module> ForModule { get { return RunModule; } }
 
-		public static Pass<Module> ForModule { get { return instance.RunModule; } }
-
-		public bool RunFunction(Function function)
+		public static bool RunFunction(PassManager data, Function function)
 		{
 			HashSet<Block> reachable = function.EntryPoint.ReachableEager();
 			List<Block> unreachable = new List<Block>();
@@ -41,7 +39,7 @@ namespace LuaCP.Passes
 			return false;
 		}
 
-		public bool RunModule(Module module)
+		public static bool RunModule(PassManager data, Module module)
 		{
 			List<Function> functions = module.Functions.Where(x => x.Users.UniqueCount == 0 && x != module.EntryPoint).ToList();
 			foreach (Function function in functions)
@@ -58,7 +56,7 @@ namespace LuaCP.Passes
 			return functions.Count > 0;
 		}
 
-		private void DestroyBlock(Block block)
+		private static void DestroyBlock(Block block)
 		{
 			foreach (Phi phi in block.PhiNodes) phi.Source.Clear();
 			foreach (Block next in block.Next)

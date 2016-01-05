@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using LuaCP.IR;
 using LuaCP.IR.Components;
@@ -15,9 +15,10 @@ namespace LuaCP.Passes.Optimisation
 	{
 		public static Pass<Module> Runner { get { return Run; } }
 
-		private static bool Run(Module module)
+		private static bool Run(PassManager data, Module module)
 		{
-			UpvalueAnalysis analysis = new UpvalueAnalysis(module);
+			UpvalueAnalysis analysis = data.Get(x => new UpvalueAnalysis(x));
+
 			bool changed = false;
 			foreach (Function function in module.Functions)
 			{

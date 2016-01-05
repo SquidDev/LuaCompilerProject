@@ -9,14 +9,12 @@ namespace LuaCP.IR.Components
 		private readonly Function function;
 		private readonly string name;
 		private readonly ValueKind kind;
-		private readonly ValidDictionary<Argument> meta;
 
 		public Argument(Function function, string name, ValueKind kind)
 		{
 			this.function = function;
 			this.name = name;
 			this.kind = kind;
-			this.meta = new ValidDictionary<Argument>(this);
 		}
 
 		public static Argument Dots(Function function)
@@ -34,8 +32,6 @@ namespace LuaCP.IR.Components
 		public Function Function { get { return function; } }
 
 		public ValueKind Kind { get { return kind; } }
-        
-		public ValidDictionary<Argument> Meta { get { return meta; } }
 
 		public string Name { get { return name; } }
 	}

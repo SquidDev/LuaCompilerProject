@@ -8,7 +8,7 @@ namespace LuaCP.Passes.Optimisation
 	{
 		public static Pass<Instruction> Runner { get { return Run; } }
 
-		public static bool Run(Instruction insn)
+		private static bool Run(PassManager data, Instruction insn)
 		{
 			if (insn.Opcode.IsBinaryOperator())
 			{

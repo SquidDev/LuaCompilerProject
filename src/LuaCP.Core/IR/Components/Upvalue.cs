@@ -12,14 +12,12 @@ namespace LuaCP.IR.Components
 		private readonly CountingSet<IUser<IValue>> users = new CountingSet<IUser<IValue>>();
 		private readonly bool closed;
 		private readonly Function function;
-		private readonly ValidDictionary<Upvalue> meta;
 
 		public Upvalue(Function function, bool closed)
 		{
 			(closed ? function.closedUpvalues : function.openUpvalues).Add(this);
 			this.closed = closed;
 			this.function = function;
-			this.meta = new ValidDictionary<Upvalue>(this);
 		}
 
 		public ValueKind Kind { get { return Closed ? ValueKind.Value : ValueKind.Reference; } }
@@ -29,8 +27,6 @@ namespace LuaCP.IR.Components
 		public bool Closed { get { return closed; } }
 
 		public Function Function { get { return function; } }
-
-		public ValidDictionary<Upvalue> Meta { get { return meta; } }
 
 		public IEnumerable<KeyValuePair<IValue, ClosureNew>> KnownValues
 		{

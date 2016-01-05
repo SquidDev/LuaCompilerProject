@@ -7,7 +7,7 @@ using LuaCP.Passes.Optimisation;
 
 namespace LuaCP.Passes
 {
-	public delegate bool Pass<T>(T item);
+	public delegate bool Pass<T>(PassManager handler, T item);
 
 	public static class PassExtensions
 	{
@@ -30,22 +30,22 @@ namespace LuaCP.Passes
 
 		public static Pass<T> Repeat<T>(this Pass<T> pass)
 		{
-			return x =>
+			return (data, x) =>
 			{
 				bool changed = false;
-				while (pass(x)) changed = true;
+				while (pass(data, x)) changed = true;
 				return changed;
 			};
 		}
 
 		public static Pass<T> Group<T>(this IEnumerable<Pass<T>> passes)
 		{
-			return x =>
+			return (data, x) =>
 			{
 				bool changed = false;
 				foreach (Pass<T> pass in passes)
 				{
-					if (pass(x)) changed = true;
+					if (pass(data, x)) changed = true;
 				}
 
 				return changed;
@@ -54,12 +54,12 @@ namespace LuaCP.Passes
 
 		public static Pass<U> Select<T, U>(this Pass<T> pass, Func<U, IEnumerable<T>> selector)
 		{
-			return x =>
+			return (data, x) =>
 			{
 				bool changed = false;
 				foreach (T item in selector(x))
 				{
-					if (pass(item)) changed = true;
+					if (pass(data, item)) changed = true;
 				}
 				return changed;
 			};

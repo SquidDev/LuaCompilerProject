@@ -17,7 +17,7 @@ namespace LuaCP.Passes.Optimisation
 	{
 		public static Pass<Block> Runner { get { return Run; } }
 
-		public static bool Run(Block block)
+		private static bool Run(PassManager data, Block block)
 		{
 			bool changed = false;
 			Function function = block.Function;
