@@ -48,7 +48,7 @@ namespace LuaCP.Passes
 
 			new Exporter(Console.Out).ModuleLong(module);
 
-			ReferenceToValue.Runner(func);
+			new PassManager(module).RunPass(ReferenceToValue.Runner, func);
 
 			Assert.AreEqual(1, end.PhiNodes.Count);
 
@@ -98,7 +98,7 @@ namespace LuaCP.Passes
 
 			new Exporter(Console.Out).ModuleLong(module);
 
-			ReferenceToValue.Runner(func);
+			new PassManager(module).RunPass(ReferenceToValue.Runner, func);
 
 			Assert.AreEqual(1, end.PhiNodes.Count);
 
@@ -144,7 +144,7 @@ namespace LuaCP.Passes
 
 			new Exporter(Console.Out).ModuleLong(module);
 
-			ReferenceToValue.Runner(func);
+			new PassManager(module).RunPass(ReferenceToValue.Runner, func);
 
 			Assert.AreEqual(1, end.PhiNodes.Count);
 
