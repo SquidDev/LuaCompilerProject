@@ -276,16 +276,6 @@ namespace LuaCP.CodeGen.Bytecode
 								}
 								break;
 							}
-						case Opcode.TableNew:
-							{
-								//TODO: Implement me
-								break;
-							}
-						case Opcode.Call:
-							{
-								// TODO: Lots of tuple goodness!
-								break;
-							}
 						case Opcode.ReferenceGet:
 							{
 								ReferenceGet getter = (ReferenceGet)insn;

@@ -14,6 +14,7 @@ namespace LuaCP.Passes
 		public static readonly Pass<Module> Default = new Pass<Module>[]
 		{
 			UnreachableCode.ForModule,
+			DemoteUpvalue.Runner,
 			new Pass<Function>[]
 			{
 				UnreachableCode.ForFunction,
@@ -22,6 +23,8 @@ namespace LuaCP.Passes
 				ConstantFolding.Runner.AsFunction(),
 				FunctionInliner.Runner,
 				TupleInliner.Runner.AsFunction(),
+				IdenticalValues.CheckPhis.AsFunction(),
+				IdenticalValues.CheckUpvalues,
 			}.Group().Repeat().AsModule(),
 		}.Group().Repeat();
 
@@ -66,7 +69,7 @@ namespace LuaCP.Passes
 		{
 			return pass.Select<Instruction, Block>(x => x);
 		}
-            
+
 		public static Pass<Function> AsFunction(this Pass<Block> pass)
 		{
 			return pass.Select<Block, Function>(x => x.Blocks);

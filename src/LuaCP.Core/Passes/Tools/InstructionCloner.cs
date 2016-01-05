@@ -8,7 +8,7 @@ using LuaCP.IR.Instructions;
 using LuaCP.IR.User;
 using LuaCP.Collections;
 
-namespace LuaCP.Passes.Optimisation
+namespace LuaCP.Passes.Tools
 {
 	public class InstructionCloner
 	{

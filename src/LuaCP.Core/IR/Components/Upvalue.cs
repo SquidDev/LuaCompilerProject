@@ -29,18 +29,23 @@ namespace LuaCP.IR.Components
 		public bool Closed { get { return closed; } }
 
 		public Function Function { get { return function; } }
-        
+
 		public ValidDictionary<Upvalue> Meta { get { return meta; } }
-        
-		public IEnumerable<IValue> KnownValues
+
+		public IEnumerable<KeyValuePair<IValue, ClosureNew>> KnownValues
 		{
 			get
 			{
-				int index = (closed ? function.closedUpvalues : function.openUpvalues).IndexOf(this);
+				int index = Index;
 				return function.Users
                     .OfType<ClosureNew>()
-                    .Select(x => (closed ? x.ClosedUpvalues : x.OpenUpvalues)[index]);
+					.Select(x => new KeyValuePair<IValue, ClosureNew>((closed ? x.ClosedUpvalues : x.OpenUpvalues)[index], x));
 			}
+		}
+
+		public int Index
+		{ 
+			get { return (closed ? function.closedUpvalues : function.openUpvalues).IndexOf(this); }
 		}
 
 		public void Remove()

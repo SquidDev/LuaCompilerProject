@@ -12,7 +12,7 @@ namespace LuaCP.IR.Components
 	public sealed partial class Block : ICollection<Instruction>, IEnumerable<Instruction>, IUsable<Block>, IGraphNode<Block>
 	{
 		private readonly CountingSet<IUser<Block>> users = new CountingSet<IUser<Block>>();
-		private readonly HashSet<Phi> phiNodes = new HashSet<Phi>();
+		internal readonly HashSet<Phi> phiNodes = new HashSet<Phi>();
 		private readonly Function function;
 
 		public Block(Function func)

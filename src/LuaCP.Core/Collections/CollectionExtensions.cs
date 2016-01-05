@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace LuaCP.Collections
 {
@@ -21,9 +20,26 @@ namespace LuaCP.Collections
 
 		public static bool AllEqual<T>(this IEnumerable<T> e)
 		{
-			if (e.IsEmpty()) return true;
-			T val = e.First();
-			return e.All(x => EqualityComparer<T>.Default.Equals(x, val));
+			T val;
+			return e.AllEqual(out val);
+		}
+
+		public static bool AllEqual<T>(this IEnumerable<T> e, out T first)
+		{
+			IEnumerator<T> enumerator = e.GetEnumerator();
+			if (!enumerator.MoveNext())
+			{
+				first = default(T);
+				return true;
+			}
+
+			first = enumerator.Current;
+			while (enumerator.MoveNext())
+			{
+				if (!EqualityComparer<T>.Default.Equals(enumerator.Current, first)) return false;
+			}
+
+			return true;
 		}
 
 		public static int FindIndex<T>(this IEnumerable<T> e, T item)
@@ -71,6 +87,13 @@ namespace LuaCP.Collections
 				list[starting] = item;
 				starting++;
 			}
+		}
+
+		public static T[] Repeat<T>(this T item, int count)
+		{
+			T[] output = new T[count];
+			for (int i = 0; i < count; i++) output[i] = item;
+			return output;
 		}
 	}
 }

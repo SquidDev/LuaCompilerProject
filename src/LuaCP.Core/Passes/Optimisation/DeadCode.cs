@@ -1,10 +1,8 @@
-using System;
 using System.Linq;
 using LuaCP.IR;
 using LuaCP.IR.Components;
 using LuaCP.IR.Instructions;
 using LuaCP.IR.User;
-using LuaCP.Collections;
 
 namespace LuaCP.Passes.Optimisation
 {
@@ -12,43 +10,24 @@ namespace LuaCP.Passes.Optimisation
 	/// Removes useless constructs including: 
 	///  - Unused instructions
 	///  - Unused phi nodes
-	///  - Phi nodes where all options are identical
 	///  - Conditions on constants
-	///  - Branches just composed of a jump instruction
+	///  - Branches just composed of a jump instruction with no following phi node
 	/// </summary>
-	public class DeadCode
+	public static class DeadCode
 	{
-		private static readonly DeadCode instance = new DeadCode();
+		public static Pass<Block> Runner { get { return Run; } }
 
-		public static Pass<Block> Runner { get { return instance.Run; } }
-
-		public bool Run(Block block)
+		public static bool Run(Block block)
 		{
 			bool changed = false;
 			Function function = block.Function;
 
-			// Simplify Phi nodes
+			// Remove unused phi nodes
 			foreach (Phi phi in block.PhiNodes.ToList())
 			{
-				// Same as all values. If we never use it then clear it
 				if (phi.Users.UniqueCount == 0)
 				{
-					phi.Source.Clear();
-					block.PhiNodes.Remove(phi);
-					changed = true;
-				}
-				else if (phi.Source.Count == 0)
-				{
-					// Something is wrong here.
-					throw new ArgumentException("Empty phi node being used");
-				}
-				else if (phi.Source.Values.Where(x => x != phi).AllEqual())
-				{
-					IValue value = phi.Source.Values.First(x => x != phi);
-					phi.ReplaceWith(value);
-				
-					phi.Source.Clear();
-					block.PhiNodes.Remove(phi);
+					phi.Remove();
 					changed = true;
 				}
 			}
@@ -160,7 +139,7 @@ namespace LuaCP.Passes.Optimisation
 			return changed;
 		}
 
-		public void RemoveBranch(Block current, Block next)
+		public static void RemoveBranch(Block current, Block next)
 		{
 			next.Function.Dominators.Invalidate();
 			if (!next.Previous.Contains(current))

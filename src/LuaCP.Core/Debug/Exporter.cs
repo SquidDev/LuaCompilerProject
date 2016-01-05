@@ -28,7 +28,10 @@ namespace LuaCP.Debug
 		{
 			writer.WriteLine("Function: " + function.Module.Functions.FindIndex(function));
 			function.Dominators.Evaluate();
+
 			NodeNumberer numberer = new NodeNumberer(function);
+			writer.WriteLine("Closed: {0}", function.ClosedUpvalues.Count);
+			writer.WriteLine("Open: {0}", function.OpenUpvalues.Count);
 
 			foreach (Block block in function.Blocks)
 			{

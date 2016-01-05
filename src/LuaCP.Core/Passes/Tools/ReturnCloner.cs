@@ -3,7 +3,7 @@ using LuaCP.IR;
 using LuaCP.IR.Components;
 using LuaCP.IR.Instructions;
 
-namespace LuaCP.Passes.Optimisation
+namespace LuaCP.Passes.Tools
 {
 	public class ReturnCloner : InstructionCloner
 	{

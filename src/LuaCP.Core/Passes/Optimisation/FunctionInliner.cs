@@ -4,6 +4,7 @@ using LuaCP.IR;
 using LuaCP.IR.Components;
 using LuaCP.IR.Instructions;
 using LuaCP.IR.User;
+using LuaCP.Passes.Tools;
 
 namespace LuaCP.Passes.Optimisation
 {

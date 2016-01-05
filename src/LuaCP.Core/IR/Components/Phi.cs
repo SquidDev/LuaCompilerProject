@@ -17,14 +17,14 @@ namespace LuaCP.IR.Components
 		{
 			this.source = new UsingDictionary<Block, IValue, Phi>(this, source);
 			this.block = block;
-			block.PhiNodes.Add(this);
+			block.phiNodes.Add(this);
 		}
 
 		public Phi(Block block)
 		{
 			this.source = new UsingDictionary<Block, IValue, Phi>(this);
 			this.block = block;
-			block.PhiNodes.Add(this);
+			block.phiNodes.Add(this);
 		}
 
 		public IEnumerable<IValue> GetUses()
@@ -45,6 +45,12 @@ namespace LuaCP.IR.Components
 		public void Replace(Block original, Block replace)
 		{
 			source.ReplaceKey(original, replace);
+		}
+
+		public void Remove()
+		{
+			source.Clear();
+			block.phiNodes.Remove(this);
 		}
 
 		public ValueKind Kind { get { return ValueKind.Value; } }

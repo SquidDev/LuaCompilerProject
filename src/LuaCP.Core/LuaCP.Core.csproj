@@ -44,7 +44,6 @@
     <Compile Include="IR\Components\Module.cs" />
     <Compile Include="IR\Components\Phi.cs" />
     <Compile Include="IR\Components\Upvalue.cs" />
-    <Compile Include="IR\Components\ValueState.cs" />
     <Compile Include="IR\Instructions\BinaryOp.cs" />
     <Compile Include="IR\Instructions\Branch.cs" />
     <Compile Include="IR\Instructions\Call.cs" />
@@ -79,17 +78,23 @@
     <Compile Include="Passes\Optimisation\ConstantFolding.cs" />
     <Compile Include="Passes\Optimisation\DeadCode.cs" />
     <Compile Include="Passes\Optimisation\FunctionInliner.cs" />
-    <Compile Include="Passes\Optimisation\InstructionCloner.cs" />
-    <Compile Include="Passes\Optimisation\ReturnCloner.cs" />
     <Compile Include="Passes\Optimisation\TupleInliner.cs" />
     <Compile Include="Collections\Allocator.cs" />
     <Compile Include="Passes\ReferenceToValue.cs" />
     <Compile Include="Passes\UnreachableCode.cs" />
+    <Compile Include="Collections\SingletonEnumerator.cs" />
+    <Compile Include="Passes\Optimisation\DemoteUpvalue.cs" />
+    <Compile Include="Passes\Optimisation\IdenticalValues.cs" />
+    <Compile Include="Passes\Tools\InstructionCloner.cs" />
+    <Compile Include="Passes\Tools\ReturnCloner.cs" />
+    <Compile Include="Passes\Analysis\UpvalueAnalysis.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
     <Folder Include="Debug\" />
     <Folder Include="Collections\" />
     <Folder Include="Passes\" />
+    <Folder Include="Passes\Tools\" />
+    <Folder Include="Passes\Analysis\" />
   </ItemGroup>
 </Project>
