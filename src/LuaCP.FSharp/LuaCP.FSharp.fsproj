@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{020F1454-9CE4-4A9A-BCA8-BC3F74307DDD}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>LuaCP</RootNamespace>
+    <AssemblyName>LuaCP.FSharp</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>..\bin\Debug</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <ConsolePause>false</ConsolePause>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <OutputPath>..\bin\Release</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <ConsolePause>false</ConsolePause>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="mscorlib" />
+    <Reference Include="FSharp.Core" />
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Numerics" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="IR\InstructionUnion.fs" />
+    <Compile Include="IR\InstructionMatching.fs" />
+    <Compile Include="Types\ValueTypes.fs" />
+    <Compile Include="Types\TypeChecker.fs" />
+    <Compile Include="Collections\List.fs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.1\Framework\v4.0\Microsoft.FSharp.Targets" />
+  <ItemGroup>
+    <Folder Include="IR\" />
+    <Folder Include="Types\" />
+    <Folder Include="Collections\" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\LuaCP.Core\LuaCP.Core.csproj">
+      <Project>{9E0538BF-B68A-463F-8067-4621AEB2363E}</Project>
+      <Name>LuaCP.Core</Name>
+    </ProjectReference>
+  </ItemGroup>
+</Project>
