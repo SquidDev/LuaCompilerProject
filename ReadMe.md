@@ -1,4 +1,4 @@
-# Lua Compiler Project
+# Lua Compiler Project [![](https://ci.appveyor.com/api/projects/status/p49ub3b610kmi2n6/branch/vnext?svg=true)](https://ci.appveyor.com/project/SquidDev/luacompilerproject/branch/vnext)
 The Lua Compiler Project (LuaCP) is an attempt to create a language agnostic approach to processing Lua code.
 
 Wait: language agnostic? LuaCP aims to allow writing in Lua, Moonscript and Tua - a series of extensions of the basic Lua syntax. There will also be an API to add custom language frontends.
