@@ -41,3 +41,9 @@ type ValueType =
 //     | Link of ValueType
 //     | Generic of id : int
 and TupleType = ValueType list * Option<ValueType>
+
+module Primitives = 
+    let Number = Primitive LiteralKind.Number
+    let Integer = Primitive LiteralKind.Integer
+    let String = Primitive LiteralKind.String
+    let Boolean = Primitive LiteralKind.Boolean

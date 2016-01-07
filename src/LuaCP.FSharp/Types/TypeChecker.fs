@@ -67,6 +67,7 @@ let rec FindBestFunction (func : ValueType) (args : TupleType) =
                 if IsTupleSubtype fArgs args then Some(func), []
                 else None, func :: best
             else None, best
+        | Nil -> None, best
         | _ -> raise (ArgumentException(sprintf "Expected function type, got %A" func, "func"))
     
     and findBests (funcs : ValueType list) (best : ValueType list) = 
