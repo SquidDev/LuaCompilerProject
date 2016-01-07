@@ -15,12 +15,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LuaCP.Lua.Tree", "src\LuaCP
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LuaCP.CodeGen", "src\LuaCP.CodeGen\LuaCP.CodeGen.csproj", "{6FB5CD12-7D50-4C94-806C-6A2881C194F2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LuaCP.Test", "src\LuaCP.Test\LuaCP.Test.csproj", "{1FB41277-ECB6-45EF-B8C9-70B6BD844473}"
 Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "LuaCP.FSharp", "src\LuaCP.FSharp\LuaCP.FSharp.fsproj", "{020F1454-9CE4-4A9A-BCA8-BC3F74307DDD}"
 EndProject
-Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "LuaCP.FSharp", "src\LuaCP.FSharp\LuaCP.FSharp.fsproj", "{020F1454-9CE4-4A9A-BCA8-BC3F74307DDD}"
-EndProject
-Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "LuaCP.FSharp.Test", "src\LuaCP.FSharp.Test\LuaCP.FSharp.Test.fsproj", "{96055562-AE1E-475D-B7E3-0501251D0F6D}"
+Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "LuaCP.Test", "src\LuaCP.Test\LuaCP.Test.fsproj", "{96055562-AE1E-475D-B7E3-0501251D0F6D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -32,10 +29,6 @@ Global
 		{020F1454-9CE4-4A9A-BCA8-BC3F74307DDD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{020F1454-9CE4-4A9A-BCA8-BC3F74307DDD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{020F1454-9CE4-4A9A-BCA8-BC3F74307DDD}.Release|Any CPU.Build.0 = Release|Any CPU
-		{1FB41277-ECB6-45EF-B8C9-70B6BD844473}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1FB41277-ECB6-45EF-B8C9-70B6BD844473}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1FB41277-ECB6-45EF-B8C9-70B6BD844473}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1FB41277-ECB6-45EF-B8C9-70B6BD844473}.Release|Any CPU.Build.0 = Release|Any CPU
 		{4A2E8F61-88B2-4DE5-A4B9-E0B929CEEEFA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{4A2E8F61-88B2-4DE5-A4B9-E0B929CEEEFA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4A2E8F61-88B2-4DE5-A4B9-E0B929CEEEFA}.Release|Any CPU.ActiveCfg = Release|Any CPU

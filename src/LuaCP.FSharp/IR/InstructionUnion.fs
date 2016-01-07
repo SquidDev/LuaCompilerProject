@@ -1,6 +1,7 @@
-﻿namespace LuaCP.IR.Instructions
+﻿namespace LuaCP.IR.Instructions.Union
 
 open System
+open LuaCP.IR.Instructions
 
 /// A union for instructions, useful for pattern matching
 type InstructionUnion = 

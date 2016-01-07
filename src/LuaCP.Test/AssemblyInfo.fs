@@ -1,9 +1,9 @@
-﻿module LuaCP.FSharp.Test.AssemblyInfo
+﻿module LuaCP.Test.AssemblyInfo
 
 open System.Reflection
 open System.Runtime.CompilerServices
 
-[<assembly:AssemblyTitle("LuaCP.FSharp.Test")>]
+[<assembly:AssemblyTitle("LuaCP.Test")>]
 [<assembly:AssemblyDescription("")>]
 [<assembly:AssemblyConfiguration("")>]
 [<assembly:AssemblyCompany("")>]

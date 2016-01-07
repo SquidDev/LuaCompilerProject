@@ -33,8 +33,12 @@ let rec IsSubtype (current : ValueType) (target : ValueType) : bool =
         | (_, Function(_, _)) | (_, Nil) | (_, Literal _) | (_, Primitive _) -> false
 
 and IsTupleSubtype ((current, currentVar) : TupleType) ((target, targetVar) : TupleType) : bool = 
-    let extract (x : Option<ValueType>) = 
+    let extractCurrent (x : Option<ValueType>) = 
         if x.IsNone then Nil
+        else Union [ x.Value; Nil ]
+    
+    let extractTarget (x : Option<ValueType>) = 
+        if x.IsNone then Union [ Value; Nil ]
         else Union [ x.Value; Nil ]
     
     let rec check current target = 
@@ -42,10 +46,10 @@ and IsTupleSubtype ((current, currentVar) : TupleType) ((target, targetVar) : Tu
         | [], [] -> true // TODO: Ma
         | cFirst :: cRem, tFirst :: tRem -> IsSubtype cFirst tFirst && check cRem tRem
         | [], tRem -> 
-            let c = extract currentVar
-            List.forall (IsSubtype c) tRem && IsSubtype c (extract targetVar)
+            let c = extractCurrent currentVar
+            List.forall (IsSubtype c) tRem && IsSubtype c (extractTarget targetVar)
         | cRem, [] -> 
-            let t = extract targetVar
-            List.forall (fun x -> IsSubtype x t) cRem && IsSubtype (extract currentVar) t
+            let t = extractTarget targetVar
+            List.forall (fun x -> IsSubtype x t) cRem && IsSubtype (extractCurrent currentVar) t
     
     check current target
