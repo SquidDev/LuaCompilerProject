@@ -2,7 +2,7 @@ using System;
 
 namespace LuaCP.IR.Instructions
 {
-	public enum Opcode : byte
+	public enum Opcode
 	{
 		// Unary operators
 		Not,

@@ -1,5 +1,7 @@
 ﻿module LuaCP.Types.TypeChecker
 
+open System
+open LuaCP.Types
 open LuaCP.IR
 
 // let Assignable (from : ValueType) (target : ValueType) = 
@@ -12,9 +14,11 @@ let rec IsSubtype (current : ValueType) (target : ValueType) : bool =
     if current = target then true
     else 
         match (current, target) with
-        // Do unions first:
+        // Do unions/intersections first:
         | (Union contents, _) -> Seq.forall (fun v -> IsSubtype v target) contents
         | (_, Union contents) -> Seq.exists (fun v -> IsSubtype current v) contents
+        | (FunctionIntersection contents, _) -> Seq.exists (fun v -> IsSubtype v target) contents
+        | (_, FunctionIntersection contents) -> Seq.forall (fun v -> IsSubtype current v) contents
         // Any type can be cast to/from anything
         | (_, Dynamic) | (Dynamic, _) -> true
         | (Nil, Nil) | (Value, Value) -> true
@@ -53,3 +57,27 @@ and IsTupleSubtype ((current, currentVar) : TupleType) ((target, targetVar) : Tu
             List.forall (fun x -> IsSubtype x t) cRem && IsSubtype (extractCurrent currentVar) t
     
     check current target
+
+let rec FindBestFunction (func : ValueType) (args : TupleType) = 
+    let rec findBest (func : ValueType) (best : ValueType list) = 
+        match func with
+        | FunctionIntersection funcs -> findBests funcs best
+        | Function(fArgs, _) -> 
+            if IsTupleSubtype args fArgs then 
+                if IsTupleSubtype fArgs args then Some(func), []
+                else None, func :: best
+            else None, best
+        | _ -> raise (ArgumentException(sprintf "Expected function type, got %A" func, "func"))
+    
+    and findBests (funcs : ValueType list) (best : ValueType list) = 
+        match funcs with
+        | [] -> None, best
+        | item :: remaining -> 
+            let found, best = findBest item best
+            if found.IsSome then found, []
+            else findBests remaining best
+    
+    let func, bests = findBest func []
+    match func, bests with
+    | (None, [ item ]) -> Some item, []
+    | _ -> func, bests

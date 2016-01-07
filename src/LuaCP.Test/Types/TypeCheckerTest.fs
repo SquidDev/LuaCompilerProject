@@ -2,6 +2,7 @@
 
 open NUnit.Framework
 open System
+open System.Text
 open LuaCP.IR
 open LuaCP.Types
 open LuaCP.Types.TypeChecker
@@ -18,6 +19,8 @@ type Data() =
 
 let tStr, tNum, tInt = Primitive LiteralKind.String, Primitive LiteralKind.Number, Primitive LiteralKind.Integer
 let tVoid = [], None
+let lStr x = Literal(Literal.String x)
+let func x = Function((x, None), tVoid)
 
 let ValueSubtypes = 
     [| // Primitive conversions
@@ -52,6 +55,7 @@ let ValueSubtypes =
        Data.Make(Function(([ tNum ], None), tVoid), Function(([ tInt ], None), tVoid), true) |]
 
 let empty = List.empty<ValueType>
+let emptyTuples = List.empty<TupleType>
 
 let TupleSubtypes = 
     [| Data.Make([ tStr ], None, empty, None, true)
@@ -66,6 +70,22 @@ let TupleSubtypes =
                    Union [ tInt; Nil ]
                    Union [ tInt; Nil ] ], None, true) |]
 
+let Functions = 
+    [| Data.Make(Function(([ tStr ], None), tVoid), [ tStr ], None, Some(Function(([ tStr ], None), tVoid)), empty)
+       Data.Make(Function(([ tStr ], None), tVoid), [ tNum ], None, None, empty)
+       Data.Make(FunctionIntersection [ func [ tStr ]
+                                        func [ lStr "foo" ] ], [ tStr ], None, Some(func [ tStr ]), empty)
+       Data.Make(FunctionIntersection [ func [ tStr ]
+                                        func [ lStr "foo" ] ], [ lStr "foo" ], None, Some(func [ lStr "foo" ]), empty)
+       Data.Make(FunctionIntersection [ func [ tStr ]
+                                        func [ lStr "foo" ] ], [ lStr "bar" ], None, Some(func [ tStr ]), empty)
+       Data.Make(FunctionIntersection [ func [ tStr ]
+                                        func [ Value ] ], [ lStr "bar" ], None, None, 
+                 [ func [ tStr ]
+                   func [ Value ] ])
+       Data.Make(FunctionIntersection [ func [ tStr ]
+                                        func [ tNum ] ], [ lStr "bar" ], None, Some(func [ tStr ]), empty) |]
+
 [<Test>]
 [<TestCaseSource("ValueSubtypes")>]
 let ``Value subtypes`` (current : ValueType) (target : ValueType) (pass : bool) = 
@@ -77,3 +97,15 @@ let ``Value subtypes`` (current : ValueType) (target : ValueType) (pass : bool) 
 let ``Tuple subtypes`` (current : TupleType) (target : TupleType) (pass : bool) = 
     if pass then AssertSubtype IsTupleSubtype current target
     else AssertNotSubtype IsTupleSubtype current target
+
+[<Test>]
+[<TestCaseSource("Functions")>]
+let ``Best functions`` (func : ValueType) (args : TupleType) (eFunc : option<ValueType>) (eAlt : ValueType list) = 
+    let aFunc, aAlt = FindBestFunction func args
+    Assert.AreEqual
+        (eFunc, aFunc, 
+         sprintf "Function %A with %O: expected %A, got %A + %A" func (ValueType.FormatTuple args) eFunc aFunc aAlt)
+    CollectionAssert.AreEquivalent
+        (eAlt, aAlt, 
+         sprintf "Function %A with %O: expected alternatives of %A, got %A + %A" func (ValueType.FormatTuple args) eAlt 
+             aFunc aAlt)
