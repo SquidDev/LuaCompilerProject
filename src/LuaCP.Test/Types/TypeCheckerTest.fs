@@ -1,6 +1,7 @@
 ﻿module LuaCP.Types.TypeCheckerTest
 
 open NUnit.Framework
+open System
 open LuaCP.IR
 open LuaCP.Types
 open LuaCP.Types.TypeChecker
@@ -11,57 +12,59 @@ let AssertSubtype func current target =
 let AssertNotSubtype func current target = 
     if func current target then Assert.Fail(sprintf "Should not be able to convert %A to %A" current target)
 
-type TC = TestCaseData
+type Data() = 
+    // This works as a member function, but not a let binding.
+    static member Make([<ParamArray>] args : Object []) = TestCaseData(args).SetName(sprintf "%A" args)
 
 let tStr, tNum, tInt = Primitive LiteralKind.String, Primitive LiteralKind.Number, Primitive LiteralKind.Integer
 let tVoid = [], None
 
 let ValueSubtypes = 
     [| // Primitive conversions
-       TC(tInt, tNum, true)
-       TC(tNum, tInt, false)
-       TC(tStr, tNum, false)
+       Data.Make(tInt, tNum, true)
+       Data.Make(tNum, tInt, false)
+       Data.Make(tStr, tNum, false)
        // Literal conversion
-       TC(ValueType.Literal(Literal.String "x"), ValueType.Literal(Literal.String "x"), true)
-       TC(ValueType.Literal(Literal.String "x"), ValueType.Literal(Literal.String "y"), false)
-       TC(ValueType.Literal(Literal.String "x"), tStr, true)
-       TC(ValueType.Literal(Literal.String "x"), tNum, false)
-       TC(tStr, ValueType.Literal(Literal.String "x"), false)
+       Data.Make(ValueType.Literal(Literal.String "x"), ValueType.Literal(Literal.String "x"), true)
+       Data.Make(ValueType.Literal(Literal.String "x"), ValueType.Literal(Literal.String "y"), false)
+       Data.Make(ValueType.Literal(Literal.String "x"), tStr, true)
+       Data.Make(ValueType.Literal(Literal.String "x"), tNum, false)
+       Data.Make(tStr, ValueType.Literal(Literal.String "x"), false)
        // Unions
-       TC(Nil, Union [ Nil; tStr ], true)
-       TC(tStr, Union [ Nil; tStr ], true)
-       TC(Union [ Nil; tStr ], tStr, false)
-       TC(Union [ Nil; tStr ], Nil, false)
-       TC(Union [ Nil; tStr; tNum ], Union [ tStr; tNum ], false)
-       TC(Union [ tStr; tNum ], Union [ Nil; tStr; tNum ], true)
-       TC(Union [ tStr; tInt ], Union [ tStr; tNum ], true)
+       Data.Make(Nil, Union [ Nil; tStr ], true)
+       Data.Make(tStr, Union [ Nil; tStr ], true)
+       Data.Make(Union [ Nil; tStr ], tStr, false)
+       Data.Make(Union [ Nil; tStr ], Nil, false)
+       Data.Make(Union [ Nil; tStr; tNum ], Union [ tStr; tNum ], false)
+       Data.Make(Union [ tStr; tNum ], Union [ Nil; tStr; tNum ], true)
+       Data.Make(Union [ tStr; tInt ], Union [ tStr; tNum ], true)
        // Value
-       TC(Union [ Nil; tStr ], Value, false)
-       TC(tStr, Value, true)
-       TC(Union [ tNum; tStr ], Value, true)
-       TC(Union [ Nil; tNum; tStr ], Union [ Value; Nil ], true)
+       Data.Make(Union [ Nil; tStr ], Value, false)
+       Data.Make(tStr, Value, true)
+       Data.Make(Union [ tNum; tStr ], Value, true)
+       Data.Make(Union [ Nil; tNum; tStr ], Union [ Value; Nil ], true)
        // Functions!
        // Basic args
-       TC(Function(([ tStr ], None), tVoid), Function(([ tStr ], None), tVoid), true)
-       TC(Function(([], None), tVoid), Function(([ tStr ], None), tVoid), true)
-       TC(Function(([ tStr ], None), tVoid), Function(([], None), tVoid), false)
-       TC(Function(([ tNum ], None), tVoid), Function(([ tStr ], None), tVoid), false)
-       TC(Function(([ tNum ], None), tVoid), Function(([ tInt ], None), tVoid), true) |]
+       Data.Make(Function(([ tStr ], None), tVoid), Function(([ tStr ], None), tVoid), true)
+       Data.Make(Function(([], None), tVoid), Function(([ tStr ], None), tVoid), true)
+       Data.Make(Function(([ tStr ], None), tVoid), Function(([], None), tVoid), false)
+       Data.Make(Function(([ tNum ], None), tVoid), Function(([ tStr ], None), tVoid), false)
+       Data.Make(Function(([ tNum ], None), tVoid), Function(([ tInt ], None), tVoid), true) |]
 
 let empty = List.empty<ValueType>
 
 let TupleSubtypes = 
-    [| TC([ tStr ], None, empty, None, true)
-       TC(empty, None, [ tStr ], None, false)
-       TC([ tInt ], None, [ tNum ], None, true)
-       TC([ tNum ], None, [ tInt ], None, false)
-       TC([ tInt; tInt ], None, [ tInt ], None, true)
-       TC([ tInt; tInt; tInt ], None, [ tInt ], Some tInt, true)
-       TC([ tInt ], Some tInt, [ tInt; tInt; tInt ], None, false)
-       TC([ tInt ], Some tInt, 
-          [ tInt
-            Union [ tInt; Nil ]
-            Union [ tInt; Nil ] ], None, true) |]
+    [| Data.Make([ tStr ], None, empty, None, true)
+       Data.Make(empty, None, [ tStr ], None, false)
+       Data.Make([ tInt ], None, [ tNum ], None, true)
+       Data.Make([ tNum ], None, [ tInt ], None, false)
+       Data.Make([ tInt; tInt ], None, [ tInt ], None, true)
+       Data.Make([ tInt; tInt; tInt ], None, [ tInt ], Some tInt, true)
+       Data.Make([ tInt ], Some tInt, [ tInt; tInt; tInt ], None, false)
+       Data.Make([ tInt ], Some tInt, 
+                 [ tInt
+                   Union [ tInt; Nil ]
+                   Union [ tInt; Nil ] ], None, true) |]
 
 [<Test>]
 [<TestCaseSource("ValueSubtypes")>]
