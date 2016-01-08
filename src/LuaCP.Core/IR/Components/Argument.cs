@@ -3,7 +3,7 @@ using LuaCP.Collections;
 
 namespace LuaCP.IR.Components
 {
-	public sealed class Argument : IValue
+	public sealed class Argument : IValue, IBelongs<Function>
 	{
 		private readonly CountingSet<IUser<IValue>> users = new CountingSet<IUser<IValue>>();
 		private readonly Function function;
@@ -34,6 +34,8 @@ namespace LuaCP.IR.Components
 		public ValueKind Kind { get { return kind; } }
 
 		public string Name { get { return name; } }
+
+		public Function Owner { get { return function; } }
 	}
 }
 

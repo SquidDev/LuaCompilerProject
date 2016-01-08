@@ -7,7 +7,7 @@ using LuaCP.Collections;
 
 namespace LuaCP.IR.Instructions
 {
-	public abstract class Instruction
+	public abstract class Instruction : IBelongs<Block>
 	{
 		private readonly Opcode opcode;
 
@@ -22,6 +22,8 @@ namespace LuaCP.IR.Instructions
 		public Block Block { get; internal set; }
 
 		public Range Position { get; set; }
+
+		public Block Owner { get { return Block; } }
 
 		public Instruction(Opcode opcode)
 		{

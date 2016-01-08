@@ -7,7 +7,7 @@ using LuaCP.Collections;
 
 namespace LuaCP.IR.Components
 {
-	public class Upvalue : IValue
+	public class Upvalue : IValue, IBelongs<Function>
 	{
 		private readonly CountingSet<IUser<IValue>> users = new CountingSet<IUser<IValue>>();
 		private readonly bool closed;
@@ -49,6 +49,8 @@ namespace LuaCP.IR.Components
 			if (users.UniqueCount > 0) throw new InvalidOperationException("Cannot remove upvalue as it is used");
 			(closed ? function.closedUpvalues : function.openUpvalues).Remove(this);
 		}
+
+		public Function Owner { get { return function; } }
 	}
 }
 

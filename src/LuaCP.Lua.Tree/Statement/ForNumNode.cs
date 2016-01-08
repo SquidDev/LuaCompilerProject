@@ -64,7 +64,7 @@ namespace LuaCP.Tree.Statement
 			}
             
 			// Index += Step
-			IValue newIndex = addBlock.Block.AddLast(new BinaryOp(Opcode.Add, start, step));
+			IValue newIndex = addBlock.Block.AddLast(new BinaryOp(Opcode.Add, index, step));
 			index.Source.Add(addBlock.Block, newIndex);
 			addBlock.Block.AddLast(new Branch(testBlock.Block));
 

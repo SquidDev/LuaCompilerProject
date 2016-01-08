@@ -116,7 +116,7 @@ namespace LuaCP.REPL
 					module = new Module();
 					new FunctionBuilder(module).Accept(source);
 
-					PassManager.Run(module, PassExtensions.Default);
+					PassManager.Run(module, PassExtensions.Default, true);
 
 					new Exporter(Con.Out).ModuleLong(module);
 				}

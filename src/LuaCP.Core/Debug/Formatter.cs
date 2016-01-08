@@ -5,6 +5,7 @@ using LuaCP.IR.Components;
 using LuaCP.IR.Instructions;
 using LuaCP.IR;
 using LuaCP.Collections;
+using System.Globalization;
 
 namespace LuaCP.Debug
 {
@@ -254,6 +255,39 @@ namespace LuaCP.Debug
 			}
             
 			return writer;
+		}
+	}
+
+	public class IRFormatProvider : IFormatProvider, ICustomFormatter
+	{
+		public readonly NodeNumberer numberer;
+
+		public IRFormatProvider(NodeNumberer numberer)
+		{
+			this.numberer = numberer;
+		}
+
+		public object GetFormat(Type formatType)
+		{
+			return formatType == typeof(ICustomFormatter) ? this : null;
+		}
+
+		public string Format(string format, object arg, IFormatProvider formatProvider)
+		{
+			if (arg is IValue)
+			{
+				using (StringWriter writer = new StringWriter())
+				{
+					Formatter.Default.Value((IValue)arg, writer, numberer);
+					return writer.ToString();
+				}
+			}
+			if (arg is Block) return numberer.PrettyGetBlock((Block)arg);
+
+			if (arg is IFormattable) return ((IFormattable)arg).ToString(format, CultureInfo.CurrentCulture);
+			if (arg != null) return arg.ToString();
+
+			return String.Empty;
 		}
 	}
 }

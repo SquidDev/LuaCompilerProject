@@ -8,14 +8,16 @@ using LuaCP.Collections;
 
 namespace LuaCP.Debug
 {
-	public class DotExporter : Exporter
+	public sealed class DotExporter : Exporter
 	{
-		protected readonly TextWriter normalWriter;
+		private readonly TextWriter normalWriter;
+		private readonly bool withDominators;
 
-		public DotExporter(TextWriter writer)
+		public DotExporter(TextWriter writer, bool withDominators = true)
 			: base(new EscapeWriter(writer))
 		{
 			normalWriter = writer;
+			this.withDominators = withDominators;
 		}
 
 		public override void ModuleLong(Module module)
@@ -92,48 +94,51 @@ namespace LuaCP.Debug
 				}
 			}
 
-			// Dom tree
-			normalWriter.Write("dom_");
-			normalWriter.Write(name);
-			normalWriter.Write(" [label=<<b>Block: ");
-			Block(block, writer, numberer);
-			normalWriter.Write("</b>");
-			if (block.DominanceFrontier.Count > 0)
+			if (withDominators)
 			{
-				normalWriter.Write("<br />Doms: ");
-				foreach (Block f in block.DominanceFrontier)
-				{
-					Block(f, writer, numberer);
-					normalWriter.Write(", ");
-				}
-			}
-
-			if (block.DominatorTreeChildren.Count > 0)
-			{
-				normalWriter.Write("<br />Children: ");
-				foreach (Block f in block.DominatorTreeChildren)
-				{
-					Block(f, writer, numberer);
-					normalWriter.Write(", ");
-				}
-			}
-
-			normalWriter.WriteLine(">];");
-			if (block.ImmediateDominator != null)
-			{
+				// Dom tree
 				normalWriter.Write("dom_");
 				normalWriter.Write(name);
-				normalWriter.Write("-> dom_block_");
-				normalWriter.Write(functionIndex);
-				normalWriter.Write("_");
-				normalWriter.Write(numberer.GetBlock(block.ImmediateDominator));
-				normalWriter.WriteLine(";");
+				normalWriter.Write(" [label=<<b>Block: ");
+				Block(block, writer, numberer);
+				normalWriter.Write("</b>");
+				if (block.DominanceFrontier.Count > 0)
+				{
+					normalWriter.Write("<br />Doms: ");
+					foreach (Block f in block.DominanceFrontier)
+					{
+						Block(f, writer, numberer);
+						normalWriter.Write(", ");
+					}
+				}
+
+				if (block.DominatorTreeChildren.Count > 0)
+				{
+					normalWriter.Write("<br />Children: ");
+					foreach (Block f in block.DominatorTreeChildren)
+					{
+						Block(f, writer, numberer);
+						normalWriter.Write(", ");
+					}
+				}
+
+				normalWriter.WriteLine(">];");
+				if (block.ImmediateDominator != null)
+				{
+					normalWriter.Write("dom_");
+					normalWriter.Write(name);
+					normalWriter.Write("-> dom_block_");
+					normalWriter.Write(functionIndex);
+					normalWriter.Write("_");
+					normalWriter.Write(numberer.GetBlock(block.ImmediateDominator));
+					normalWriter.WriteLine(";");
+				}
 			}
 		}
 
 		private const string GraphVizPath = "dot";
 
-		public static void Write(Module module)
+		public static void Write(Module module, bool doms = true)
 		{
 			string tempWhole = Path.GetTempFileName();
 			string tempName = tempWhole + ".png";
@@ -154,7 +159,7 @@ namespace LuaCP.Debug
 				{
 					using (StreamWriter standardInput = process.StandardInput)
 					{
-						new DotExporter(standardInput).ModuleLong(module);
+						new DotExporter(standardInput, doms).ModuleLong(module);
 						standardInput.Close();
 					}
 

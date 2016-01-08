@@ -60,7 +60,7 @@ namespace LuaCP.Passes.Optimisation
 					{
 						IValue value = creator.OpenUpvalues[index];
 						ReferenceGet getter = new ReferenceGet(value);
-						creator.Block.AddAfter(creator, getter);
+						creator.Block.AddBefore(creator, getter);
 
 						creator.OpenUpvalues.RemoveAt(index);
 						creator.ClosedUpvalues.Add(getter);

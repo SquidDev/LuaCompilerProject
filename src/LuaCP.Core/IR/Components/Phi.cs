@@ -7,7 +7,7 @@ namespace LuaCP.IR.Components
 	/// <summary>
 	/// A merge point of two variables depending on where this block was branched from
 	/// </summary>
-	public sealed class Phi : IValue, IUser<IValue>, IUser<Block>
+	public sealed class Phi : IValue, IUser<IValue>, IUser<Block>, IBelongs<Block>
 	{
 		private readonly UsingDictionary<Block, IValue, Phi> source;
 		private readonly CountingSet<IUser<IValue>> users = new CountingSet<IUser<IValue>>();
@@ -60,6 +60,8 @@ namespace LuaCP.IR.Components
 		public IDictionary<Block, IValue> Source { get { return source; } }
 
 		public Block Block { get { return block; } }
+
+		public Block Owner { get { return block; } }
 	}
 }
 

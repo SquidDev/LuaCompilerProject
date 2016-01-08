@@ -13,10 +13,15 @@ namespace LuaCP.IR.User
 	public interface IUser<T>
 	{
 		IEnumerable<T> GetUses();
-		
+
 		void Replace(T original, T replace);
 	}
-	
+
+	public interface IBelongs<T>
+	{
+		T Owner { get; }
+	}
+
 	public static class UserExtensions
 	{
 		public static T Replace<T>(IUser<T> user, T original, T replace)
@@ -28,7 +33,7 @@ namespace LuaCP.IR.User
 			
 			return replace;
 		}
-		
+
 		public static void Increment<T>(this IEnumerable<T> items, IUser<T> user)
 			where T : IUsable<T>
 		{
@@ -37,7 +42,7 @@ namespace LuaCP.IR.User
 				item.Users.Increment(user);
 			}
 		}
-		
+
 		public static void Decrement<T>(this IEnumerable<T> items, IUser<T> user)
 			where T : IUsable<T>
 		{
@@ -46,7 +51,7 @@ namespace LuaCP.IR.User
 				item.Users.Decrement(user);
 			}
 		}
-		
+
 		public static void ReplaceWith<T>(this T original, T replace)
 			where T : IUsable<T>
 		{

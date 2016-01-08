@@ -1,6 +1,8 @@
 using System;
 using LuaCP.IR.Components;
 using LuaCP.Collections;
+using System.IO;
+using LuaCP.Passes.Analysis;
 
 namespace LuaCP.Passes
 {
@@ -11,11 +13,13 @@ namespace LuaCP.Passes
 	{
 		public readonly Module Module;
 		private readonly ValidDictionary<Module> moduleData;
+		private readonly bool verify;
 
-		public PassManager(Module module)
+		public PassManager(Module module, bool verify = false)
 		{
 			Module = module;
 			moduleData = new ValidDictionary<Module>(module);
+			this.verify = verify;
 		}
 
 		public bool RunPass(Pass<Module> pass)
@@ -28,6 +32,35 @@ namespace LuaCP.Passes
 			if (pass(this, item))
 			{
 				moduleData.Invalidate();
+
+				if (verify)
+				{
+					// TODO: Fix this slightly
+					StringWriter writer = new StringWriter();
+					writer.WriteLine("Validation errors:");
+					bool errors = false;
+					int index = 0;
+					foreach (Function function in Module.Functions)
+					{
+						using (StringWriter funcWriter = new StringWriter())
+						{
+							var messager = new IRVerifier.WriterMessager(writer, function);
+							IRVerifier.Run(function, messager);
+							if (messager.HasErrors)
+							{
+								errors = true;
+								writer.WriteLine("Function " + index);
+								writer.Write(funcWriter);
+							}
+						}
+						Console.WriteLine("Function " + index);
+
+						index++;
+					}
+
+
+					if (errors) throw new Exception(writer.ToString());
+				}
 				return true;
 			}
 
@@ -44,7 +77,7 @@ namespace LuaCP.Passes
 			moduleData.Invalidate<T>();
 		}
 
-		public static void Run(Module module, Pass<Module> pass)
+		public static void Run(Module module, Pass<Module> pass, bool verify = false)
 		{
 			new PassManager(module).RunPass(pass);
 		}

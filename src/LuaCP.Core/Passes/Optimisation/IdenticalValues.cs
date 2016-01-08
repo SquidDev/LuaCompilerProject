@@ -52,6 +52,7 @@ namespace LuaCP.Passes.Optimisation
 		private static bool DoCheckPhis(PassManager data, Block block)
 		{
 			bool changed = false;
+			Dictionary<Phi, IValue> phis = new Dictionary<Phi, IValue>(0);
 			foreach (Phi phi in block.PhiNodes)
 			{
 				// We'll handle this elsewhere
@@ -62,11 +63,15 @@ namespace LuaCP.Passes.Optimisation
 				IValue value;
 				if (phi.Source.Values.Where(x => x != phi).AllEqual(out value))
 				{
-					phi.ReplaceWith(value);
-					phi.Remove();
-
+					phis.Add(phi, value);
 					changed = true;
 				}
+			}
+
+			foreach (KeyValuePair<Phi, IValue> phi in phis)
+			{
+				phi.Key.ReplaceWith(phi.Value);
+				phi.Key.Remove();
 			}
 
 			return changed;

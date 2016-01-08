@@ -9,7 +9,7 @@ namespace LuaCP.IR.Components
 	/// <summary>
 	/// Represents a series of instructions, ending in a branch or return
 	/// </summary>
-	public sealed partial class Block : ICollection<Instruction>, IEnumerable<Instruction>, IUsable<Block>, IGraphNode<Block>
+	public sealed partial class Block : ICollection<Instruction>, IEnumerable<Instruction>, IUsable<Block>, IGraphNode<Block>, IBelongs<Function>
 	{
 		private readonly CountingSet<IUser<Block>> users = new CountingSet<IUser<Block>>();
 		internal readonly HashSet<Phi> phiNodes = new HashSet<Phi>();
@@ -28,5 +28,7 @@ namespace LuaCP.IR.Components
 		public Function Function { get { return function; } }
 
 		public ISet<Phi> PhiNodes { get { return phiNodes; } }
+
+		public Function Owner{ get { return function; } }
 	}
 }
