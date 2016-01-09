@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using LuaCP.Debug;
 
 namespace LuaCP.CodeGen
 {

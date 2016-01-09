@@ -6,7 +6,6 @@ using System.Linq;
 using LuaCP.IR.Instructions;
 using System.Text;
 using LuaCP.IR.User;
-using System.CodeDom.Compiler;
 
 namespace LuaCP.CodeGen.Lua
 {

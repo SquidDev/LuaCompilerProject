@@ -1,9 +1,7 @@
 using System;
-using System.CodeDom.Compiler;
 using FParsec;
 using LuaCP.CodeGen.Lua;
 using LuaCP.Debug;
-using LuaCP.IR;
 using LuaCP.IR.Components;
 using LuaCP.Parser;
 using LuaCP.Passes;
@@ -12,7 +10,7 @@ using Microsoft.FSharp.Core;
 using Con = System.Console;
 using LuaCP.CodeGen.Bytecode;
 using System.Text;
-using LuaCP.Passes.Optimisation;
+using LuaCP.CodeGen;
 
 namespace LuaCP.REPL
 {

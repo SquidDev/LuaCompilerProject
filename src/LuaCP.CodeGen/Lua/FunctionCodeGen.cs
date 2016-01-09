@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using LuaCP.IR;
 using LuaCP.IR.Instructions;
 using System.Linq;
-using System.CodeDom.Compiler;
 using LuaCP.Graph;
 
 namespace LuaCP.CodeGen.Lua

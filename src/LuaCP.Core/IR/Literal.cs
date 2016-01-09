@@ -15,7 +15,6 @@ namespace LuaCP.IR
 	{
 		#region Implementations
 
-		[Serializable]
 		public sealed class String : Literal
 		{
 			internal readonly string item;
@@ -34,7 +33,6 @@ namespace LuaCP.IR
 			}
 		}
 
-		[Serializable]
 		public sealed class Integer : Literal
 		{
 			internal readonly int item;
@@ -53,7 +51,6 @@ namespace LuaCP.IR
 			}
 		}
 
-		[Serializable]
 		public sealed class Number : Literal
 		{
 			internal readonly double item;
@@ -72,7 +69,6 @@ namespace LuaCP.IR
 			}
 		}
 
-		[Serializable]
 		public sealed class Boolean : Literal
 		{
 			internal readonly bool item;

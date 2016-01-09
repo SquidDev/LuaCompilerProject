@@ -33,6 +33,7 @@
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="NameAllocator.cs" />
+	<Compile Include="IndentedTextWriter.cs" />
     <Compile Include="Lua\BlockCodegen.cs" />
     <Compile Include="Lua\FunctionCodeGen.cs" />
     <Compile Include="Bytecode\LuaOpcode.cs" />
