@@ -31,10 +31,23 @@ let rec IsSubtype (current : ValueType) (target : ValueType) : bool =
         | (Literal a, Literal b) -> a = b
         | (Literal a, Primitive b) -> IsBaseSubtype a.Kind b // You can convert "Hello" to string
         | (Primitive a, Primitive b) -> IsBaseSubtype a b
-        // Function
+        // Advanded types
         | (Function(cArgs, cRet), Function(tArgs, tRet)) -> (IsTupleSubtype tArgs cArgs) && (IsTupleSubtype cRet tRet)
+        | (Table(cFields, cOpcodes), Table(tFields, tOpcodes)) -> 
+            Seq.forall (fun t -> Seq.exists (fun c -> IsFieldSubtype c t) cFields) tFields 
+            && IsOperatorsSubtype cOpcodes tOpcodes
+        | (Primitive current, Table(tFields, tOpcodes)) -> 
+            Seq.isEmpty tFields && IsOperatorsSubtype (OperatorHandling.GetPrimitiveLookup current) tOpcodes
+        | (Literal current, Table(tFields, tOpcodes)) -> 
+            Seq.isEmpty tFields && IsOperatorsSubtype (OperatorHandling.GetPrimitiveLookup current.Kind) tOpcodes
+        | Function(_, _), Table(tFields, tOpcodes) -> 
+            if Seq.isEmpty tFields then 
+                let ops : ValueType [] = Array.create OperatorExtensions.LastIndex Nil
+                ops.[int Operator.Call] <- current
+                IsOperatorsSubtype ops tOpcodes
+            else false
         // These are the 'primitives', cannot be handled anywhere else. 
-        | (_, Function(_, _)) | (_, Nil) | (_, Literal _) | (_, Primitive _) -> false
+        | (_, Function(_, _)) | (_, Nil) | (_, Literal _) | (_, Primitive _) | (_, Table(_, _)) -> false
 
 and IsTupleSubtype ((current, currentVar) : TupleType) ((target, targetVar) : TupleType) : bool = 
     let extractCurrent (x : Option<ValueType>) = 
@@ -57,6 +70,23 @@ and IsTupleSubtype ((current, currentVar) : TupleType) ((target, targetVar) : Tu
             List.forall (fun x -> IsSubtype x t) cRem && IsSubtype (extractCurrent currentVar) t
     
     check current target
+
+and IsBiwaySubtype (current : ValueType) (target : ValueType) : bool = 
+    IsSubtype current target && IsSubtype target current
+
+and IsFieldSubtype (current : TableField) (target : TableField) = 
+    IsSubtype target.Key current.Key && match (current, target) with
+                                        | ({ ReadOnly = false }, { ReadOnly = false }) -> 
+                                            (IsBiwaySubtype current.Value target.Value) // The value type must be equal if we are converting
+                                        | (_, { ReadOnly = true }) -> IsSubtype current.Key target.Key // We can assign any subtype to a readonly field
+                                        | _ -> false
+
+and IsOperatorSubtype (current : ValueType) (target : ValueType) = 
+    if target = Nil then true
+    else IsSubtype current target
+
+and IsOperatorsSubtype (current : Operators) (target : Operators) = 
+    Seq.zip current target |> Seq.forall (fun (x, y) -> IsOperatorSubtype x y)
 
 let rec FindBestFunction (func : ValueType) (args : TupleType) = 
     let rec findBest (func : ValueType) (best : ValueType list) = 

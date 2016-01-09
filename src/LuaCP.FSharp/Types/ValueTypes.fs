@@ -1,5 +1,6 @@
 ﻿namespace LuaCP.Types
 
+open System
 open LuaCP.IR
 
 [<StructuredFormatDisplay("{AsString}")>]
@@ -10,7 +11,7 @@ type ValueType =
     | Value
     | Dynamic
     | Function of TupleType * TupleType
-    // | Table of (ValueType * ValueType) list
+    | Table of TableField list * Operators
     | Union of ValueType list
     | FunctionIntersection of ValueType list
     
@@ -24,6 +25,19 @@ type ValueType =
         | Union(items) -> (String.concat " | " (Seq.map ValueType.Format items))
         | FunctionIntersection(items) -> (String.concat " & " (Seq.map ValueType.Format items))
         | Function(args, ret) -> ValueType.FormatTuple args + "->" + ValueType.FormatTuple ret
+        | Table(items, meta) -> 
+            let fields = 
+                items |> Seq.map (fun item -> 
+                             (if item.ReadOnly then "readonly "
+                              else "") + ValueType.Format item.Key + ":" + ValueType.Format item.Value)
+            
+            let items = 
+                meta
+                |> Seq.mapi (fun x y -> x, y)
+                |> Seq.filter (fun (x, y) -> y <> Nil)
+                |> Seq.map (fun (x, y) -> "meta " + (enum<Operator> (x)).ToString() + ":" + ValueType.Format y)
+            
+            "{" + String.concat ", " (Seq.append fields items) + "}"
     
     static member FormatTuple(x : TupleType) = 
         match x with
@@ -34,13 +48,14 @@ type ValueType =
     override this.ToString() = ValueType.Format this
     member this.AsString = this.ToString()
 
-// | Apply of ValueType * ValueType list
-// | Var of VarType ref
-// and VarType = 
-//     | Unbound of id : int * level : int * bool
-//     | Link of ValueType
-//     | Generic of id : int
 and TupleType = ValueType list * Option<ValueType>
+
+and TableField = 
+    { Key : ValueType
+      Value : ValueType
+      ReadOnly : bool }
+
+and Operators = ValueType []
 
 module Primitives = 
     let Number = Primitive LiteralKind.Number

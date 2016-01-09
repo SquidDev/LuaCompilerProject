@@ -53,7 +53,6 @@ namespace LuaCP.Passes
 								writer.Write(funcWriter);
 							}
 						}
-						Console.WriteLine("Function " + index);
 
 						index++;
 					}
@@ -79,7 +78,7 @@ namespace LuaCP.Passes
 
 		public static void Run(Module module, Pass<Module> pass, bool verify = false)
 		{
-			new PassManager(module).RunPass(pass);
+			new PassManager(module, verify).RunPass(pass);
 		}
 	}
 }

@@ -17,10 +17,12 @@ type Data() =
     // This works as a member function, but not a let binding.
     static member Make([<ParamArray>] args : Object []) = TestCaseData(args).SetName(sprintf "%A" args)
 
-let tStr, tNum, tInt = Primitive LiteralKind.String, Primitive LiteralKind.Number, Primitive LiteralKind.Integer
+let tStr, tNum, tInt = Primitives.String, Primitives.Number, Primitives.Integer
 let tVoid = [], None
 let lStr x = Literal(Literal.String x)
 let func x = Function((x, None), tVoid)
+let funcL x y = Function((x, None), (y, None))
+let tabl x = Table(x, OperatorHandling.Empty)
 
 let ValueSubtypes = 
     [| // Primitive conversions
@@ -48,11 +50,38 @@ let ValueSubtypes =
        Data.Make(Union [ Nil; tNum; tStr ], Union [ Value; Nil ], true)
        // Functions!
        // Basic args
-       Data.Make(Function(([ tStr ], None), tVoid), Function(([ tStr ], None), tVoid), true)
-       Data.Make(Function(([], None), tVoid), Function(([ tStr ], None), tVoid), true)
-       Data.Make(Function(([ tStr ], None), tVoid), Function(([], None), tVoid), false)
-       Data.Make(Function(([ tNum ], None), tVoid), Function(([ tStr ], None), tVoid), false)
-       Data.Make(Function(([ tNum ], None), tVoid), Function(([ tInt ], None), tVoid), true) |]
+       Data.Make(func [ tStr ], func [ tStr ], true)
+       Data.Make(func [], func [ tStr ], true)
+       Data.Make(func [ tStr ], func [], false)
+       Data.Make(func [ tNum ], func [ tStr ], false)
+       Data.Make(func [ tNum ], func [ tInt ], true)
+       // Intersections
+       Data.Make(FunctionIntersection [ func [ tNum ]
+                                        func [ tStr ] ], func [ tInt ], true)
+       Data.Make(func [ tInt ], 
+                 FunctionIntersection [ func [ tNum ]
+                                        func [ tStr ] ], false)
+       // Tables
+       Data.Make(tabl [ { Key = tNum
+                          Value = tNum
+                          ReadOnly = false } ], 
+                 tabl [ { Key = tNum
+                          Value = tNum
+                          ReadOnly = false } ], true)
+       Data.Make(tabl [ { Key = tNum
+                          Value = tNum
+                          ReadOnly = false } ], 
+                 tabl [ { Key = tNum
+                          Value = Value
+                          ReadOnly = false } ], false)
+       Data.Make(tabl [ { Key = tNum
+                          Value = tNum
+                          ReadOnly = false } ], 
+                 tabl [ { Key = tNum
+                          Value = Value
+                          ReadOnly = true } ], true)
+       // Opcodes
+       Data.Make(tNum, Table([], OperatorHandling.Singleton (funcL [ tNum; tNum ] [ tNum ]) Operator.Add), true) |]
 
 let empty = List.empty<ValueType>
 let emptyTuples = List.empty<TupleType>

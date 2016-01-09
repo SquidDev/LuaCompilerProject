@@ -35,6 +35,9 @@
     <Reference Include="FParsecCS">
       <HintPath>..\..\packages\FParsec.1.0.2\lib\net40-client\FParsecCS.dll</HintPath>
     </Reference>
+    <Reference Include="LuaCP.Lua.Parser">
+      <HintPath>..\bin\Debug\LuaCP.Lua.Parser.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Program.cs" />
