@@ -11,6 +11,7 @@ using Con = System.Console;
 using LuaCP.CodeGen.Bytecode;
 using System.Text;
 using LuaCP.CodeGen;
+using LuaCP.Passes.Analysis;
 
 namespace LuaCP.REPL
 {
@@ -114,7 +115,14 @@ namespace LuaCP.REPL
 					module = new Module();
 					new FunctionBuilder(module).Accept(source);
 
-					PassManager.Run(module, PassExtensions.Default, true);
+					try
+					{
+						PassManager.Run(module, PassExtensions.Default, true);
+					}
+					catch (VerificationException e)
+					{
+						Console.WriteLine("Cannot verifiy: " + e);
+					}
 
 					new Exporter(Con.Out).ModuleLong(module);
 				}

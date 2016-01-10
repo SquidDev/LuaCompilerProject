@@ -88,9 +88,9 @@
     <Compile Include="Passes\Tools\InstructionCloner.cs" />
     <Compile Include="Passes\Tools\ReturnCloner.cs" />
     <Compile Include="Passes\Analysis\UpvalueAnalysis.cs" />
-    <Compile Include="Passes\AnalysisHandler.cs" />
     <Compile Include="Collections\ValidDictionary.cs" />
     <Compile Include="Passes\Analysis\IRVerifier.cs" />
+    <Compile Include="Passes\PassManager.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

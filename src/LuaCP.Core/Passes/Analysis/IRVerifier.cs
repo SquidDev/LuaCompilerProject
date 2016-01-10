@@ -52,13 +52,14 @@ namespace LuaCP.Passes.Analysis
 
 			public void InvalidInstruction(Instruction user, string format, params object[] args)
 			{
-				writer.Write(numberer.GetInstruction(user) + ": " + String.Format(provider, format, args));
+				Formatter.Default.InstructionLong(user, writer, numberer);
+				writer.WriteLine(": " + String.Format(provider, format, args));
 				HasErrors = true;
 			}
 
 			public void InvalidBlock(Block block, string format, params object[] args)
 			{
-				writer.Write(numberer.PrettyGetBlock(block) + ": " + String.Format(provider, format, args));
+				writer.WriteLine(numberer.PrettyGetBlock(block) + ": " + String.Format(provider, format, args));
 				HasErrors = true;
 			}
 		}
@@ -104,7 +105,7 @@ namespace LuaCP.Passes.Analysis
 				if (used.Block == user.Block)
 				{
 					Instruction first = used.Block.First(x => x == used || x == user);
-					if (first == used) messager.InvalidInstruction(user, UndefinedValue, value);
+					if (first == user) messager.InvalidInstruction(user, UndefinedValue, value);
 				}
 			}
 		}
@@ -170,6 +171,14 @@ namespace LuaCP.Passes.Analysis
 			{
 				ValidateBlock(block, messager);
 			}
+		}
+	}
+
+	public class VerificationException : Exception
+	{
+		public VerificationException(string message)
+			: base(message)
+		{
 		}
 	}
 }

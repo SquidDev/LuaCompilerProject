@@ -58,7 +58,7 @@ namespace LuaCP.Passes
 					}
 
 
-					if (errors) throw new Exception(writer.ToString());
+					if (errors) throw new VerificationException(writer.ToString());
 				}
 				return true;
 			}
