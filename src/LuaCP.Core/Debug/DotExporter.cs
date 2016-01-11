@@ -153,7 +153,7 @@ namespace LuaCP.Debug
 				RedirectStandardError = true
 			};
 
-			using (StreamWriter output = new StreamWriter(File.OpenRead(tempName)))
+			using (StreamWriter output = new StreamWriter(File.OpenWrite(tempName)))
 			{
 				using (Process process = Process.Start(startInfo))
 				{

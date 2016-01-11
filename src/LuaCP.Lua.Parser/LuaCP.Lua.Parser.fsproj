@@ -47,6 +47,7 @@
     <Compile Include="Expression.fs" />
     <Compile Include="Statement.fs" />
     <Compile Include="Extensions\Basics.fs" />
+    <Compile Include="Extensions\Types.fs" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.1\Framework\v4.0\Microsoft.FSharp.Targets" />
   <ItemGroup>
@@ -64,6 +65,10 @@
     <ProjectReference Include="..\LuaCP.Parser.Extensions\LuaCP.Parser.Extensions.csproj">
       <Project>{A56ABC74-157D-4BDA-A447-DDA1EEDAEA25}</Project>
       <Name>LuaCP.Parser.Extensions</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\LuaCP.FSharp\LuaCP.FSharp.fsproj">
+      <Project>{020F1454-9CE4-4A9A-BCA8-BC3F74307DDD}</Project>
+      <Name>LuaCP.FSharp</Name>
     </ProjectReference>
   </ItemGroup>
 </Project>

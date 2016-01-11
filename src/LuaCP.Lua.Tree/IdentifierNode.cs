@@ -34,7 +34,7 @@ namespace LuaCP.Tree
 			return setupBuilder;
 		}
 
-		public BlockBuilder Declare(BlockBuilder builder, IValue value)
+		public virtual BlockBuilder Declare(BlockBuilder builder, IValue value)
 		{
 			builder.Variables.Declare(Name, builder.Block.AddLast(new ReferenceNew(value)));
 			return builder;

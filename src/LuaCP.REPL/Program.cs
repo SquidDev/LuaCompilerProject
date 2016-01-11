@@ -61,6 +61,7 @@ namespace LuaCP.REPL
 			Add<Parser.Extensions.Adt>();
 			Add<Parser.Extensions.Lambda>();
 			Add<Parser.Extensions.OpEquals>();
+			Add<LuaCP.Lua.Parser.Extensions.Types>();
 
 			Module module = null;
 			while (true)

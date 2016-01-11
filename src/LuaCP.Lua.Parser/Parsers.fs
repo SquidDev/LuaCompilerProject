@@ -106,6 +106,14 @@ let blacklist (illegal : Set<string>) (p : Parser<string, _>)
         stream.BacktrackTo current
         Reply(Error, unexpectedString ("identifier" + result.Result))
     else result
+let whitelist (valid : Set<string>) (p : Parser<string, _>) 
+    (stream : CharStream<_>) = 
+    let current = stream.State
+    let result = p stream
+    if result.Status = Ok && not (valid.Contains result.Result) then 
+        stream.BacktrackTo current
+        Reply(Error, unexpectedString ("identifier" + result.Result))
+    else result
 
 let inline getPosition (stream : CharStream<_>) = 
     new Position(int32 (stream.Line), int32 (stream.Column), 
