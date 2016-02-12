@@ -20,6 +20,7 @@ let main argv =
     language.Get(fun x -> new Extensions.Adt(x)) |> ignore
     language.Get(fun x -> new Extensions.Lambda(x)) |> ignore
     language.Get(fun x -> new Extensions.OpEquals(x)) |> ignore
+    language.Get(fun x -> new LuaCP.Lua.Parser.Extensions.Types(x)) |> ignore
     let rec parse str : INode option = 
         if String.IsNullOrWhiteSpace str then None
         else if str.StartsWith "=" then parse ("return " + str.Substring(1))

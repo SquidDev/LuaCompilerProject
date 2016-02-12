@@ -59,6 +59,10 @@
       <Project>{A56ABC74-157D-4BDA-A447-DDA1EEDAEA25}</Project>
       <Name>LuaCP.Parser.Extensions</Name>
     </ProjectReference>
+    <ProjectReference Include="..\LuaCP.FSharp\LuaCP.FSharp.fsproj">
+      <Project>{020F1454-9CE4-4A9A-BCA8-BC3F74307DDD}</Project>
+      <Name>LuaCP.FSharp</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
