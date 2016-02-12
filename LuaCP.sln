@@ -5,8 +5,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LuaCP.Core", "src\LuaCP.Cor
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LuaCP.Parser.Extensions", "src\LuaCP.Parser.Extensions\LuaCP.Parser.Extensions.csproj", "{A56ABC74-157D-4BDA-A447-DDA1EEDAEA25}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LuaCP.REPL", "src\LuaCP.REPL\LuaCP.REPL.csproj", "{5B70C395-1E99-431D-BAC2-9655D1A78B2F}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Lua", "Lua", "{708D21DA-BEB2-441B-9A9D-0852FD9BF030}"
 EndProject
 Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "LuaCP.Lua.Parser", "src\LuaCP.Lua.Parser\LuaCP.Lua.Parser.fsproj", "{BB059E0A-6FF0-482C-BDC6-3970A56916C9}"
@@ -18,6 +16,8 @@ EndProject
 Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "LuaCP.FSharp", "src\LuaCP.FSharp\LuaCP.FSharp.fsproj", "{020F1454-9CE4-4A9A-BCA8-BC3F74307DDD}"
 EndProject
 Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "LuaCP.Test", "src\LuaCP.Test\LuaCP.Test.fsproj", "{96055562-AE1E-475D-B7E3-0501251D0F6D}"
+EndProject
+Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "LuaCP.REPL", "src\LuaCP.REPL\LuaCP.REPL.fsproj", "{821787D2-46C0-49B4-864B-34CC253F4ECE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,14 +33,14 @@ Global
 		{4A2E8F61-88B2-4DE5-A4B9-E0B929CEEEFA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4A2E8F61-88B2-4DE5-A4B9-E0B929CEEEFA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4A2E8F61-88B2-4DE5-A4B9-E0B929CEEEFA}.Release|Any CPU.Build.0 = Release|Any CPU
-		{5B70C395-1E99-431D-BAC2-9655D1A78B2F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{5B70C395-1E99-431D-BAC2-9655D1A78B2F}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{5B70C395-1E99-431D-BAC2-9655D1A78B2F}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{5B70C395-1E99-431D-BAC2-9655D1A78B2F}.Release|Any CPU.Build.0 = Release|Any CPU
 		{6FB5CD12-7D50-4C94-806C-6A2881C194F2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{6FB5CD12-7D50-4C94-806C-6A2881C194F2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6FB5CD12-7D50-4C94-806C-6A2881C194F2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6FB5CD12-7D50-4C94-806C-6A2881C194F2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{821787D2-46C0-49B4-864B-34CC253F4ECE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{821787D2-46C0-49B4-864B-34CC253F4ECE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{821787D2-46C0-49B4-864B-34CC253F4ECE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{821787D2-46C0-49B4-864B-34CC253F4ECE}.Release|Any CPU.Build.0 = Release|Any CPU
 		{96055562-AE1E-475D-B7E3-0501251D0F6D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{96055562-AE1E-475D-B7E3-0501251D0F6D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{96055562-AE1E-475D-B7E3-0501251D0F6D}.Release|Any CPU.ActiveCfg = Release|Any CPU
