@@ -17,7 +17,7 @@ namespace LuaCP.Lua.Tree
 		IValue Globals { get; }
 	}
 
-	public sealed class VariableScope : IVariableScope, IScope
+	public sealed class VariableScope : IVariableScope
 	{
 		public const string GlobalTable = "_ENV";
 

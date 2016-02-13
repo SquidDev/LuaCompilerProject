@@ -23,8 +23,30 @@ let lStr x = Literal(Literal.String x)
 let func x = Function((x, None), tVoid)
 let funcL x y = Function((x, None), (y, None))
 let tabl x = Table(x, OperatorHandling.Empty)
-
 let checker = new TypeChecker()
+
+let a = 
+    let tyRef = new IdentRef<VariableType>(Generic -1)
+    let ty = Reference tyRef
+    
+    let table = 
+        Table
+            ([ { Key = tInt
+                 Value = tInt
+                 ReadOnly = true } ], 
+             OperatorHandling.Singleton (Function(([ ty; ty ], None), ([ Primitives.Boolean ], None))) Operator.Equals)
+    tyRef.Value <- Link table
+    table
+
+let b = 
+    let tyRef = new IdentRef<VariableType>(Generic -1)
+    let ty = Reference tyRef
+    let table = 
+        Table
+            ([], 
+             OperatorHandling.Singleton (Function(([ ty; ty ], None), ([ Primitives.Boolean ], None))) Operator.Equals)
+    tyRef.Value <- Link table
+    table
 
 let ValueSubtypes = 
     [| // Primitive conversions
@@ -83,7 +105,10 @@ let ValueSubtypes =
                           Value = Value
                           ReadOnly = true } ], true)
        // Opcodes
-       Data.Make(tNum, Table([], OperatorHandling.Singleton (funcL [ tNum; tNum ] [ tNum ]) Operator.Add), true) |]
+       Data.Make(tNum, Table([], OperatorHandling.Singleton (funcL [ tNum; tNum ] [ tNum ]) Operator.Add), true)
+       // Recursive types
+       Data.Make(a, b, true)
+       Data.Make(b, a, false) |]
 
 let empty = List.empty<ValueType>
 let emptyTuples = List.empty<TupleType>

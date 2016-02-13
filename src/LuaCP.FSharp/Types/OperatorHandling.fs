@@ -100,6 +100,10 @@ let rec GetOperator (ty : ValueType) (op : Operator) =
         else Nil
     | Table(_, ops) -> ops.[int op]
     | Union items -> Union(List.map (fun x -> GetOperator x op) items)
+    | Reference item ->
+        match item.Value with
+        | Link ty -> GetOperator ty op
+        | _ -> Nil
 
 let GetBinaryOperatory (left : ValueType) (right : ValueType) (op : Operator) = 
     let leftOp = GetOperator left op

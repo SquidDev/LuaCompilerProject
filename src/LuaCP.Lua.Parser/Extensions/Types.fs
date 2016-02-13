@@ -35,11 +35,12 @@ type Types(lang : Language) =
     let named = 
         let namedTypes = 
             Set
-                ([| "nil"; "value"; "any"; "string"; "number"; "num"; "integer"; "boolean"; "readonly"; "meta"; "int"; "bool"; 
-                    "str" |])
-        
+                ([| "nil"; "value"; "any"; "string"; "number"; "num"; "integer"; "boolean"; "readonly"; "meta"; "int"; 
+                    "bool"; "str" |])
         let basic = 
-            identifier (IdentifierOptions(isAsciiIdStart = IdentifierStart, isAsciiIdContinue = IdentifierRemaining)) |> Token
+            identifier (IdentifierOptions(isAsciiIdStart = IdentifierStart, isAsciiIdContinue = IdentifierRemaining)) 
+            |> Token
+        
         let getNamed x = 
             match x with
             | "nil" -> Types.Nil
@@ -86,8 +87,8 @@ type Types(lang : Language) =
         table |>> convert
     
     let func = 
-        let simpleTuple : Parser<TupleType> = named |>> (fun x-> [x], None)
-        let longTuple : Parser<TupleType> =
+        let simpleTuple : Parser<TupleType> = named |>> (fun x -> [ x ], None)
+        let longTuple : Parser<TupleType> = 
             betweenL (Symbol "(") (Symbol ")") (sepBy typeParser (Symbol ",")) "tuple" |>> (fun x -> x, None)
         let tuple = simpleTuple <|> longTuple
         tuple .>> Symbol "->" .>>. tuple |>> ValueType.Function

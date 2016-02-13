@@ -91,6 +91,14 @@ type TypeChecker() =
                             isOperatorsSubtype ops tOpcodes
                         else Failure
                     // These are the 'primitives', cannot be handled anywhere else. 
+                    | (Reference r, _) -> 
+                        match r.Value with
+                        | Link current -> isSubtype current target
+                        | _ -> Failure
+                    | (_, Reference r) -> 
+                        match r.Value with
+                        | Link current -> isSubtype target current
+                        | _ -> Failure
                     | (_, Function(_, _)) | (_, Nil) | (_, Literal _) | (_, Primitive _) | (_, Table(_, _)) -> Failure
                 valueMap.[(current, target)] <- childMatch
                 childMatch
