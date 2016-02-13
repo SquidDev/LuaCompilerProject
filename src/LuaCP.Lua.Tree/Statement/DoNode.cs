@@ -1,6 +1,7 @@
 using LuaCP.IR.Instructions;
+using LuaCP.Tree;
 
-namespace LuaCP.Tree.Statement
+namespace LuaCP.Lua.Tree.Statement
 {
 	public class DoNode : Node
 	{

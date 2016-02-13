@@ -1,4 +1,4 @@
-using LuaCP.IR;
+﻿using LuaCP.IR;
 using LuaCP.Reporting;
 
 namespace LuaCP.Tree
@@ -16,6 +16,7 @@ namespace LuaCP.Tree
 	}
 
 	public delegate BlockBuilder Assigner(BlockBuilder assignBuilder, IValue value);
+
 	public interface IAssignable : IValueNode
 	{
 		BlockBuilder Assign(BlockBuilder setupBuilder, out Assigner value);

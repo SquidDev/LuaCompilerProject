@@ -1,6 +1,7 @@
 using LuaCP.IR;
+using LuaCP.Tree;
 
-namespace LuaCP.Tree.Expression
+namespace LuaCP.Lua.Tree.Expression
 {
 	public class ParenthesisNode : ValueNode
 	{

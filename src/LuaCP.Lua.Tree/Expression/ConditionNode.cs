@@ -2,8 +2,9 @@ using LuaCP.IR;
 using LuaCP.IR.Instructions;
 using System.Collections.Generic;
 using LuaCP.IR.Components;
+using LuaCP.Tree;
 
-namespace LuaCP.Tree.Expression
+namespace LuaCP.Lua.Tree.Expression
 {
 	public class ConditionNode : ValueNode
 	{

@@ -3,8 +3,10 @@ using System.Linq;
 
 using LuaCP.IR;
 using LuaCP.IR.Instructions;
+using LuaCP.Lua.Tree;
+using LuaCP.Tree;
 
-namespace LuaCP.Tree.Expression
+namespace LuaCP.Lua.Tree.Expression
 {
 	public class FunctionNode : ValueNode
 	{

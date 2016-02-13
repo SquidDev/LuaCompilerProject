@@ -2,7 +2,9 @@
 
 open LuaCP.Tree
 open LuaCP.Tree.Expression
-open LuaCP.Tree.Statement
+open LuaCP.Lua.Tree
+open LuaCP.Lua.Tree.Expression
+open LuaCP.Lua.Tree.Statement
 open LuaCP.IR
 open LuaCP.IR.Instructions
 

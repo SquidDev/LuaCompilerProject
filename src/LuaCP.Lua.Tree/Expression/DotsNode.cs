@@ -3,26 +3,10 @@ using LuaCP.IR.Components;
 using LuaCP.Reporting;
 using LuaCP.IR.Instructions;
 using System.Linq;
+using LuaCP.Tree;
 
-namespace LuaCP.Tree.Expression
+namespace LuaCP.Lua.Tree.Expression
 {
-	public class ConstantNode : ValueNode
-	{
-		public static readonly ConstantNode Nil = new ConstantNode(Literal.Nil);
-		public readonly Literal Value;
-
-		public ConstantNode(Literal value)
-		{
-			Value = value;
-		}
-
-		public override BlockBuilder Build(BlockBuilder builder, out IValue result)
-		{
-			result = builder.Constants[Value];
-			return builder;
-		}
-	}
-
 	public class DotsNode : ValueNode
 	{
 		public override BlockBuilder Build(BlockBuilder builder, out IValue result)

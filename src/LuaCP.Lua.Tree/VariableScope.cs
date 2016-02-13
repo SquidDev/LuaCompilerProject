@@ -2,31 +2,37 @@ using System;
 using System.Collections.Generic;
 using LuaCP.IR;
 using LuaCP.IR.Components;
+using LuaCP.Tree;
 
-namespace LuaCP.Tree
+namespace LuaCP.Lua.Tree
 {
-	public 	interface IVariableScope
+	public 	interface IVariableScope : IScope
 	{
 		bool Defined(string name);
+
 		bool TryGet(string name, out IValue value);
+
 		void Declare(string name, IValue value);
+
+		IValue Globals { get; }
 	}
 
-	public sealed class VariableScope : IVariableScope
+	public sealed class VariableScope : IVariableScope, IScope
 	{
 		public const string GlobalTable = "_ENV";
 
 		private readonly Dictionary<string, IValue> variables = new Dictionary<string, IValue>();
 		private readonly IVariableScope parent;
-        
+
 		public VariableScope()
 		{
 		}
+
 		public VariableScope(IVariableScope parent)
 		{
 			this.parent = parent;
 		}
-        
+
 		public bool Defined(string name)
 		{
 			return variables.ContainsKey(name) || (parent != null && parent.Defined(name));
@@ -41,7 +47,12 @@ namespace LuaCP.Tree
 		{
 			variables[name] = value;
 		}
-        
+
+		public IScope CreateChild()
+		{
+			return new VariableScope(this);
+		}
+
 		public IValue Globals
 		{
 			get
@@ -52,13 +63,13 @@ namespace LuaCP.Tree
 			} 
 		}
 	}
-	
+
 	public sealed class FunctionVariableScope : IVariableScope
 	{
 		private readonly IVariableScope parent;
 		private readonly Dictionary<string, IValue> variables = new Dictionary<string, IValue>();
 		private readonly FunctionBuilder function;
-		
+
 		public FunctionVariableScope(IVariableScope parent, FunctionBuilder function)
 		{
 			this.parent = parent;
@@ -69,7 +80,7 @@ namespace LuaCP.Tree
 		{
 			return parent.Defined(name);
 		}
-		
+
 		public bool TryGet(string name, out IValue value)
 		{
 			if (variables.TryGetValue(name, out value)) return true;
@@ -87,10 +98,17 @@ namespace LuaCP.Tree
 			
 			return false;
 		}
-		
+
 		public void Declare(string name, IValue value)
 		{
 			throw new InvalidOperationException("Cannot declare in function scope");
+		}
+
+		public IValue Globals { get { return parent.Globals; } }
+
+		public IScope CreateChild()
+		{
+			return new VariableScope(this);
 		}
 	}
 }

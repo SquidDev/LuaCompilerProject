@@ -3,6 +3,7 @@
 open LuaCP.IR.Instructions
 open LuaCP.Parser
 open LuaCP.Tree
+open LuaCP.Lua.Tree
 
 let private revBin opcode x y = Nodes.BinOp opcode y x
 let private conditional t x y : IValueNode = upcast new Expression.ConditionNode(t, x, y)

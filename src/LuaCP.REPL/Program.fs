@@ -6,6 +6,7 @@ open LuaCP.IR.Components
 open LuaCP.Parser
 open LuaCP.Passes
 open LuaCP.Tree
+open LuaCP.Lua.Tree
 open LuaCP.CodeGen.Bytecode
 open System.Text
 open LuaCP.CodeGen

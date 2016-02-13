@@ -50,21 +50,22 @@
     <Compile Include="Statement\LocalNode.cs" />
     <Compile Include="Statement\ReturnNode.cs" />
     <Compile Include="Statement\WhileNode.cs" />
-    <Compile Include="BlockBuilder.cs" />
     <Compile Include="IdentifierNode.cs" />
-    <Compile Include="INode.cs" />
     <Compile Include="Statement\RepeatNode.cs" />
     <Compile Include="Statement\ForNumNode.cs" />
     <Compile Include="Statement\ForInNode.cs" />
     <Compile Include="VariableScope.cs" />
-    <Compile Include="Expression\BasicNodes.cs" />
-    <Compile Include="Node.cs" />
+    <Compile Include="Expression\DotsNode.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
     <ProjectReference Include="..\LuaCP.Core\LuaCP.Core.csproj">
       <Project>{9E0538BF-B68A-463F-8067-4621AEB2363E}</Project>
       <Name>LuaCP.Core</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\LuaCP.FSharp\LuaCP.FSharp.fsproj">
+      <Project>{020F1454-9CE4-4A9A-BCA8-BC3F74307DDD}</Project>
+      <Name>LuaCP.FSharp</Name>
     </ProjectReference>
   </ItemGroup>
 </Project>

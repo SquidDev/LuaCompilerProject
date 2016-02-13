@@ -1,6 +1,7 @@
 using LuaCP.IR.Instructions;
+using LuaCP.Tree;
 
-namespace LuaCP.Tree.Statement
+namespace LuaCP.Lua.Tree.Statement
 {
 	public class GoToNode : Node
 	{
@@ -10,28 +11,28 @@ namespace LuaCP.Tree.Statement
 		{
 			Name = name;
 		}
-		
+
 		public override BlockBuilder Build(BlockBuilder builder)
 		{
-			builder.Block.AddLast(new Branch(builder.Labels.Get(Name, this)));
+			builder.Block.AddLast(new Branch(builder.Get<LabelScope>().Get(Name, this)));
 			return builder.Continue();
 		}
 	}
-	
+
 	public class LabelNode : Node
 	{
 		public readonly string Name;
-		
+
 		public LabelNode(string name)
 		{
 			Name = name;
 		}
-		
+
 		public override BlockBuilder Build(BlockBuilder builder)
 		{
 			BlockBuilder next = builder.Continue();
 			builder.Block.AddLast(new Branch(next.Block));
-			next.Labels.Declare(Name, next);
+			next.Get<LabelScope>().Declare(Name, next);
 			return next;
 		}
 	}

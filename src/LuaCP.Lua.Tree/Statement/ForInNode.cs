@@ -4,8 +4,9 @@ using LuaCP.IR;
 using LuaCP.IR.Components;
 using System.Collections.Generic;
 using System.Linq;
+using LuaCP.Tree;
 
-namespace LuaCP.Tree.Statement
+namespace LuaCP.Lua.Tree.Statement
 {
 	public class ForInNode : Node
 	{

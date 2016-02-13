@@ -3,8 +3,9 @@ using System.Linq;
 using LuaCP.IR;
 using LuaCP.IR.Components;
 using LuaCP.IR.Instructions;
+using LuaCP.Tree;
 
-namespace LuaCP.Tree
+namespace LuaCP.Lua.Tree
 {
 	public class FunctionBuilder
 	{
@@ -16,24 +17,28 @@ namespace LuaCP.Tree
 		{
 			Function = module.EntryPoint;
 			EntryPoint = new BlockBuilder(Function);
-			EntryPoint.Variables.Declare(VariableScope.GlobalTable, new Upvalue(Function, true));
+			EntryPoint.Scopes.Add<IVariableScope>(new VariableScope());
+			EntryPoint.Scopes.Add(new LabelScope(Function));
+			EntryPoint.Get<IVariableScope>().Declare(VariableScope.GlobalTable, new Upvalue(Function, true));
 		}
 
 		public FunctionBuilder(BlockBuilder builder, IEnumerable<string> args, bool dots)
 		{
 			Function = new Function(builder.Block.Function.Module, args, dots);
-			EntryPoint = new BlockBuilder(
-				Function.EntryPoint, 
-				null, 
-				new VariableScope(new FunctionVariableScope(builder.Variables, this)),
-				new LabelScope(Function), null
-			);
+
+			ScopeDictionary scopeDictionary = new ScopeDictionary(null)
+			{
+				(IVariableScope)new VariableScope(new FunctionVariableScope(builder.Get<IVariableScope>(), this)),
+				new LabelScope(Function),
+			};
+
+			EntryPoint = new BlockBuilder(Function.EntryPoint, null, scopeDictionary, null);
 			
 			int i = 0;
 			foreach (string arg in args)
 			{
 				ReferenceNew rNew = EntryPoint.Block.AddLast(new ReferenceNew(Function.Arguments[i]));
-				EntryPoint.Variables.Declare(arg, rNew);
+				EntryPoint.Get<IVariableScope>().Declare(arg, rNew);
 				i++;
 			}
 		}
@@ -47,7 +52,7 @@ namespace LuaCP.Tree
 				builder.Block.AddLast(new Return(value));
 			}
 
-			EntryPoint.Labels.Validate();
+			EntryPoint.Get<LabelScope>().Validate();
 
 			return builder;
 		}

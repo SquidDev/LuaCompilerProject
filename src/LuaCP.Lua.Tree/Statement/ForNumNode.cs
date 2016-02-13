@@ -1,8 +1,9 @@
 using LuaCP.IR;
 using LuaCP.IR.Components;
 using LuaCP.IR.Instructions;
+using LuaCP.Tree;
 
-namespace LuaCP.Tree.Statement
+namespace LuaCP.Lua.Tree.Statement
 {
 	public class ForNumNode : Node
 	{

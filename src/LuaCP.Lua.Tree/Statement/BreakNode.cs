@@ -1,7 +1,8 @@
 using LuaCP.IR.Instructions;
 using LuaCP.Reporting;
+using LuaCP.Tree;
 
-namespace LuaCP.Tree.Statement
+namespace LuaCP.Lua.Tree.Statement
 {
 	public class BreakNode : Node
 	{

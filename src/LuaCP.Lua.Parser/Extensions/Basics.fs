@@ -9,7 +9,7 @@ open LuaCP.Parser.Pattern
 open LuaCP.Parser
 open LuaCP.IR.Instructions
 open LuaCP.Tree
-open LuaCP.Tree.Expression
+open LuaCP.Lua.Tree.Expression
 open System.Collections.Generic
 
 type Adt(lang : Language) = 

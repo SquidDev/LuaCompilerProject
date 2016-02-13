@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using LuaCP.IR.Components;
 using LuaCP.IR.Instructions;
 using LuaCP.Reporting;
+using LuaCP.Tree;
 
-namespace LuaCP.Tree
+namespace LuaCP.Lua.Tree
 {
-	public sealed class LabelScope
+	public sealed class LabelScope : IScope
 	{
 		private class LabelNode
 		{
@@ -109,6 +110,11 @@ namespace LuaCP.Tree
 			}
 
 			foreach (LabelScope scope in children) scope.Validate();
+		}
+
+		public IScope CreateChild()
+		{
+			return new LabelScope(this);
 		}
 	}
 }

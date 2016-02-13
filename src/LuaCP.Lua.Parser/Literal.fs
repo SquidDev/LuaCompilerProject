@@ -8,6 +8,8 @@ open LuaCP.Parser
 open LuaCP
 open LuaCP.Tree
 open LuaCP.Tree.Expression
+open LuaCP.Lua.Tree
+open LuaCP.Lua.Tree.Expression
 open LuaCP.IR
 
 type Literal(lang : Language) = 

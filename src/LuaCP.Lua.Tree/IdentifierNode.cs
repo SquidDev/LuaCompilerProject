@@ -1,7 +1,8 @@
 using LuaCP.IR;
 using LuaCP.IR.Instructions;
+using LuaCP.Tree;
 
-namespace LuaCP.Tree
+namespace LuaCP.Lua.Tree
 {
 	public class IdentifierNode : ValueNode, IAssignable, IDeclarable
 	{
@@ -19,9 +20,9 @@ namespace LuaCP.Tree
 			assigner = (builder, value) =>
 			{
 				IValue reference;
-				if (!setupBuilder.Variables.TryGet(Name, out reference))
+				if (!setupBuilder.Get<IVariableScope>().TryGet(Name, out reference))
 				{
-					IValue globals = builder.Block.AddLast(new ReferenceGet(builder.Variables.Globals));
+					IValue globals = builder.Block.AddLast(new ReferenceGet(builder.Get<IVariableScope>().Globals));
 					builder.Block.AddLast(new TableSet(globals, builder.Constants[new Literal.String(Name)], value));
 				}
 				else
@@ -36,15 +37,15 @@ namespace LuaCP.Tree
 
 		public virtual BlockBuilder Declare(BlockBuilder builder, IValue value)
 		{
-			builder.Variables.Declare(Name, builder.Block.AddLast(new ReferenceNew(value)));
+			builder.Get<IVariableScope>().Declare(Name, builder.Block.AddLast(new ReferenceNew(value)));
 			return builder;
 		}
 
 		public override BlockBuilder Build(BlockBuilder builder, out IValue result)
 		{
-			if (!builder.Variables.TryGet(Name, out result))
+			if (!builder.Get<IVariableScope>().TryGet(Name, out result))
 			{
-				IValue globals = builder.Block.AddLast(new ReferenceGet(builder.Variables.Globals));
+				IValue globals = builder.Block.AddLast(new ReferenceGet(builder.Get<IVariableScope>().Globals));
 				TableGet tableGet = new TableGet(globals, builder.Constants[new Literal.String(Name)]);
 				builder.Block.AddLast(tableGet);
 				result = tableGet;

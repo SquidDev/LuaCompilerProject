@@ -1,27 +1,53 @@
 using System;
 using System.Collections.Generic;
+using System.Collections;
 
 namespace LuaCP.Collections
 {
-	public sealed class TypeDictionary<T>
+	public class TypeDictionary<T, TItem> : IEnumerable<TItem>
 	{
-		private readonly Dictionary<Type, object> items = new Dictionary<Type, object>();
-		private readonly T instance;
+		protected readonly Dictionary<Type, TItem> Items = new Dictionary<Type, TItem>();
+		protected readonly T Instance;
 
 		public TypeDictionary(T instance)
 		{
-			this.instance = instance;
+			Instance = instance;
 		}
 
 		public TVal Get<TVal>(Func<T, TVal> getter)
+			where TVal : TItem
 		{
-			Object cached;
+			TItem cached;
 			Type type = typeof(TVal);
-			if (items.TryGetValue(type, out cached)) return (TVal)cached;
+			if (Items.TryGetValue(type, out cached)) return (TVal)cached;
 
-			TVal item = getter(instance);
-			items.Add(type, item);
+			TVal item = getter(Instance);
+			Items.Add(type, item);
 			return item;
+		}
+
+		public void Add<TVal>(TVal val)
+			where TVal : TItem
+		{
+			Items.Add(typeof(TVal), val);
+		}
+
+		public IEnumerator<TItem> GetEnumerator()
+		{
+			return Items.Values.GetEnumerator();
+		}
+
+		IEnumerator IEnumerable.GetEnumerator()
+		{
+			return Items.Values.GetEnumerator();
+		}
+	}
+
+	public sealed class TypeDictionary<T> : TypeDictionary<T, object>
+	{
+		public TypeDictionary(T instance)
+			: base(instance)
+		{
 		}
 	}
 }

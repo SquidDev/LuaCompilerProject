@@ -1,7 +1,8 @@
 using LuaCP.IR;
 using LuaCP.IR.Instructions;
+using LuaCP.Tree;
 
-namespace LuaCP.Tree.Expression
+namespace LuaCP.Lua.Tree.Expression
 {
 	public class IndexNode : ValueNode, IAssignable
 	{

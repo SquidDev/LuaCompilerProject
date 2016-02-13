@@ -4,6 +4,8 @@ open System
 open FParsec
 open LuaCP
 open LuaCP.Tree
+open LuaCP.Tree.Expression
+open LuaCP.Lua.Tree.Expression
 open LuaCP.Parser.Parsers
 open LuaCP.Parser.Primitives
 
@@ -71,7 +73,7 @@ type Statement(lang : Language) =
                 | (expr, false) -> Nodes.Assign [expr :?> IAssignable] [func]
                 | (expr, true) -> 
                     match func with
-                    | :? Tree.Expression.FunctionNode as func -> 
+                    | :? Lua.Tree.Expression.FunctionNode as func -> 
                         Nodes.Assign [expr :?> IAssignable]
                             [Nodes.Function ("self" :: Seq.toList func.Arguments) func.Dots func.Body]
                     | _ -> raise (ArgumentException "Expected function"))
@@ -86,7 +88,7 @@ type Statement(lang : Language) =
     let callStmt = 
         let validate (x : IValueNode) : Parser<INode> = 
             match x with
-            | :? Tree.Expression.CallNode as func -> preturn (upcast func)
+            | :? Lua.Tree.Expression.CallNode as func -> preturn (upcast func)
             | _ -> fail "Expected call statement"
         lang.Expression >>= validate |> refL "call statement"
     

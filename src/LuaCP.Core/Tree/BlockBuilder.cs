@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using LuaCP.IR.Instructions;
 using LuaCP.IR.Components;
 using LuaCP.Reporting;
@@ -7,29 +7,25 @@ namespace LuaCP.Tree
 {
 	public class BlockBuilder
 	{
-		public readonly VariableScope Variables;
-		public readonly LabelScope Labels;
-
 		public ConstantPool Constants { get { return Block.Function.Module.Constants; } }
 
+		public readonly ScopeDictionary Scopes;
 		public readonly BlockBuilder Parent;
 		public readonly Block Block;
 		public readonly LoopState LoopState;
 
 		public BlockBuilder(Function function)
 		{
-			Variables = new VariableScope();
+			Scopes = new ScopeDictionary(this);
 			Block = function.EntryPoint;
-			Labels = new LabelScope(function);
 		}
 
-		internal BlockBuilder(Block block, BlockBuilder parent, VariableScope variables, LabelScope labels, LoopState state)
+		public BlockBuilder(Block block, BlockBuilder parent, ScopeDictionary scope, LoopState state)
 		{
 			Parent = parent;
 			Block = block;
 			LoopState = state;
-			Variables = variables;
-			Labels = labels;
+			Scopes = scope;
 		}
 
 		/// <summary>
@@ -41,8 +37,7 @@ namespace LuaCP.Tree
 			return new BlockBuilder(
 				new Block(Block.Function), 
 				this,
-				Variables,
-				Labels,
+				Scopes,
 				LoopState
 			);
 		}
@@ -52,8 +47,7 @@ namespace LuaCP.Tree
 			return new BlockBuilder(
 				new Block(Block.Function), 
 				this, 
-				new VariableScope(Variables),
-				new LabelScope(Labels),
+				Scopes.CreateChild(),
 				state
 			);
 		}
@@ -63,8 +57,7 @@ namespace LuaCP.Tree
 			return new BlockBuilder(
 				this.Block, 
 				this, 
-				new VariableScope(Variables), 
-				new LabelScope(Labels),
+				Scopes.CreateChild(),
 				LoopState
 			);
 		}
@@ -74,31 +67,14 @@ namespace LuaCP.Tree
 			return new BlockBuilder(
 				new Block(Block.Function),
 				this, 
-				new VariableScope(Variables), 
-				new LabelScope(Labels),
+				Scopes.CreateChild(),
 				LoopState
 			);
 		}
-	}
 
-	public sealed class LoopState
-	{
-		/// <summary>
-		/// Where the test occurs
-		/// (to skip to for a "continue" statement)
-		/// </summary>
-		public readonly BlockBuilder Test;
-
-		/// <summary>
-		/// The exit point of the current loop
-		/// (to skip to for a "break" statement)
-		/// </summary>
-		public readonly BlockBuilder End;
-
-		public LoopState(BlockBuilder test, BlockBuilder end)
+		public T Get<T>()  where T : IScope
 		{
-			Test = test;
-			End = end;
+			return Scopes.Get<T>();
 		}
 	}
 
@@ -123,7 +99,7 @@ namespace LuaCP.Tree
 		}
 
 		public T Add<T>(T value)
-            where T : Instruction
+			where T : Instruction
 		{
 			if (value.Position == null) value.Position = range;
 			return block.AddLast(value);

@@ -11,6 +11,8 @@ open LuaCP.Parser
 open LuaCP.IR.Instructions
 open LuaCP.Tree
 open LuaCP.Tree.Expression
+open LuaCP.Lua.Tree
+open LuaCP.Lua.Tree.Expression
 open LuaCP.Types
 open LuaCP.IR
 open System.Collections.Generic
@@ -19,7 +21,7 @@ type TypedDeclaration(name : string, ty : option<ValueType>) =
     inherit IdentifierNode(name)
     override this.Declare(builder : BlockBuilder, value : IValue) : BlockBuilder = 
         let ref = builder.Block.AddLast(ReferenceNew(value))
-        builder.Variables.Declare(this.Name, ref)
+        builder.Get<IVariableScope>().Declare(this.Name, ref)
         builder
 
 type FieldType = 
@@ -33,7 +35,7 @@ type Types(lang : Language) =
     let named = 
         let namedTypes = 
             Set
-                ([| "nil"; "value"; "any"; "string"; "number"; "integer"; "boolean"; "readonly"; "meta"; "int"; "bool"; 
+                ([| "nil"; "value"; "any"; "string"; "number"; "num"; "integer"; "boolean"; "readonly"; "meta"; "int"; "bool"; 
                     "str" |])
         
         let basic = 
@@ -44,7 +46,7 @@ type Types(lang : Language) =
             | "value" -> Types.Value
             | "any" -> Types.Dynamic
             | "string" | "str" -> Primitives.String
-            | "number" -> Primitives.Number
+            | "number" | "num" -> Primitives.Number
             | "integer" | "int" -> Primitives.Integer
             | "boolean" | "bool" -> Primitives.Boolean
             | _ -> raise (Exception("Unexpected type " + x))
@@ -56,8 +58,8 @@ type Types(lang : Language) =
                 Field { Key = y
                         Value = y
                         ReadOnly = true }) 
-            <|> pipe2 (Keyword "readonly" >>. IdentifierBase) (Symbol ":" >>. typeParser) 
-                    (fun x y -> Meta(Enum.Parse(typeof<Operator>, x) :?> Operator, y)) 
+            <|> pipe2 (Keyword "meta" >>. IdentifierBase) (Symbol ":" >>. typeParser) 
+                    (fun x y -> Meta(Enum.Parse(typeof<Operator>, x, true) :?> Operator, y)) 
             <|> pipe2 (typeParser) (Symbol ":" >>. typeParser) (fun x y -> 
                     Field { Key = y
                             Value = y

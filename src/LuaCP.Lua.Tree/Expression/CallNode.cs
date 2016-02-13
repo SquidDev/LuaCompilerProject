@@ -2,8 +2,9 @@ using LuaCP.IR;
 using System.Collections.Generic;
 using System.Linq;
 using LuaCP.IR.Instructions;
+using LuaCP.Tree;
 
-namespace LuaCP.Tree.Expression
+namespace LuaCP.Lua.Tree.Expression
 {
 	public class CallNode : ValueNode
 	{

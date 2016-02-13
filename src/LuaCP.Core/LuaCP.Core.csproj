@@ -91,6 +91,12 @@
     <Compile Include="Collections\ValidDictionary.cs" />
     <Compile Include="Passes\Analysis\IRVerifier.cs" />
     <Compile Include="Passes\PassManager.cs" />
+    <Compile Include="Tree\Node.cs" />
+    <Compile Include="Tree\INode.cs" />
+    <Compile Include="Tree\BlockBuilder.cs" />
+    <Compile Include="Tree\LoopState.cs" />
+    <Compile Include="Tree\Scope.cs" />
+    <Compile Include="Tree\Expression\ConstantNode.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -99,5 +105,7 @@
     <Folder Include="Passes\" />
     <Folder Include="Passes\Tools\" />
     <Folder Include="Passes\Analysis\" />
+    <Folder Include="Tree\" />
+    <Folder Include="Tree\Expression\" />
   </ItemGroup>
 </Project>
