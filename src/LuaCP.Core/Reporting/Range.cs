@@ -4,45 +4,49 @@ namespace LuaCP.Reporting
 {
 	public class Range : IEquatable<Range>
 	{
-		private readonly Position start;
-		private readonly Position end;
-		private readonly string source;
+		public readonly Position Start;
+		public readonly Position End;
+		public readonly string Source;
 
 		public Range(string source, Position start, Position end)
 		{
-			this.source = String.IsNullOrEmpty(source) ? "<stdin>" : source;
-			this.start = start;
-			this.end = end;
+			Source = String.IsNullOrEmpty(source) ? "<stdin>" : source;
+			Start = start;
+			End = end;
 		}
-
-		public Position Start { get { return start; } }
-
-		public Position End { get { return end; } }
-
-		public string Source { get { return source; } }
 
 		public override string ToString()
 		{
-			return source + ": " + start + "-" + end;
+			return Source + ": " + Start + "-" + End;
 		}
 
 		public override int GetHashCode()
 		{
-			int hash = source.GetHashCode();
-			hash = hash * 31 + start.GetHashCode();
-			hash = hash * 31 + end.GetHashCode();
+			int hash = Source.GetHashCode();
+			hash = hash * 31 + Start.GetHashCode();
+			hash = hash * 31 + End.GetHashCode();
 			return hash;
 		}
 
 		public override bool Equals(object obj)
 		{
-			if (obj is Range) return Equals((Range)obj);
-			return false;
+			var range = obj as Range;
+			return range != null && Equals(range);
 		}
 
 		public bool Equals(Range other)
 		{
-			return source == other.source && start.Equals(other.start) && end.Equals(other.end);
+			return Source == other.Source && Start == other.Start && End == other.End;
+		}
+
+		public static bool operator==(Range left, Range right)
+		{
+			return left.Equals(right);
+		}
+
+		public static bool operator!=(Range left, Range right)
+		{
+			return !left.Equals(right);
 		}
 	}
 }

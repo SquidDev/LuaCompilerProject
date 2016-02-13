@@ -5,13 +5,13 @@ open System
 open System.Text
 open LuaCP.IR
 open LuaCP.Types
-open LuaCP.Types.TypeChecker
+open LuaCP.Types
 
 let AssertSubtype func current target = 
-    if not (func current target) then Assert.Fail(sprintf "Should be able to convert %A to %A" current target)
+    if (func current target) <> Success then Assert.Fail(sprintf "Should be able to convert %A to %A" current target)
 
 let AssertNotSubtype func current target = 
-    if func current target then Assert.Fail(sprintf "Should not be able to convert %A to %A" current target)
+    if func current target <> Failure then Assert.Fail(sprintf "Should not be able to convert %A to %A" current target)
 
 type Data() = 
     // This works as a member function, but not a let binding.
@@ -23,6 +23,8 @@ let lStr x = Literal(Literal.String x)
 let func x = Function((x, None), tVoid)
 let funcL x y = Function((x, None), (y, None))
 let tabl x = Table(x, OperatorHandling.Empty)
+
+let checker = new TypeChecker()
 
 let ValueSubtypes = 
     [| // Primitive conversions
@@ -118,19 +120,19 @@ let Functions =
 [<Test>]
 [<TestCaseSource("ValueSubtypes")>]
 let ``Value subtypes`` (current : ValueType) (target : ValueType) (pass : bool) = 
-    if pass then AssertSubtype IsSubtype current target
-    else AssertNotSubtype IsSubtype current target
+    if pass then AssertSubtype checker.IsSubtype current target
+    else AssertNotSubtype checker.IsSubtype current target
 
 [<Test>]
 [<TestCaseSource("TupleSubtypes")>]
 let ``Tuple subtypes`` (current : TupleType) (target : TupleType) (pass : bool) = 
-    if pass then AssertSubtype IsTupleSubtype current target
-    else AssertNotSubtype IsTupleSubtype current target
+    if pass then AssertSubtype checker.IsTupleSubtype current target
+    else AssertNotSubtype checker.IsTupleSubtype current target
 
 [<Test>]
 [<TestCaseSource("Functions")>]
 let ``Best functions`` (func : ValueType) (args : TupleType) (eFunc : option<ValueType>) (eAlt : ValueType list) = 
-    let aFunc, aAlt = FindBestFunction func args
+    let aFunc, aAlt = checker.FindBestFunction func args
     Assert.AreEqual
         (eFunc, aFunc, 
          sprintf "Function %A with %O: expected %A, got %A + %A" func (ValueType.FormatTuple args) eFunc aFunc aAlt)

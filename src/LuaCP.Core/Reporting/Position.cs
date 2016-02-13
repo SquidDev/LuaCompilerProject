@@ -4,22 +4,16 @@ namespace LuaCP.Reporting
 {
 	public struct Position : IComparable<Position>, IEquatable<Position>
 	{
-		private readonly int line;
-		private readonly int column;
-		private readonly int offset;
+		public readonly int Line;
+		public readonly int Column;
+		public readonly int Offset;
 
 		public Position(int line, int column, int offset)
 		{
-			this.line = line;
-			this.column = column;
-			this.offset = offset;
+			Line = line;
+			Column = column;
+			Offset = offset;
 		}
-
-		public int Line { get { return line; } }
-
-		public int Column { get { return column; } }
-
-		public int Offset { get { return offset; } }
 
 		public override string ToString()
 		{
@@ -28,7 +22,7 @@ namespace LuaCP.Reporting
 
 		public override int GetHashCode()
 		{
-			return offset;
+			return Offset;
 		}
 
 		public override bool Equals(object obj)
@@ -39,17 +33,27 @@ namespace LuaCP.Reporting
 
 		public int CompareTo(Position other)
 		{
-			return offset.CompareTo(other.offset);
+			return Offset.CompareTo(other.Offset);
 		}
 
 		public bool Equals(Position other)
 		{
-			return offset == other.offset;
+			return Offset == other.Offset;
 		}
 
 		public bool Equals(ref Position other)
 		{
-			return offset == other.offset;
+			return Offset == other.Offset;
+		}
+
+		public static bool operator==(Position left, Position right)
+		{
+			return left.Offset == right.Offset;
+		}
+
+		public static bool operator!=(Position left, Position right)
+		{
+			return left.Offset != right.Offset;
 		}
 	}
 }
