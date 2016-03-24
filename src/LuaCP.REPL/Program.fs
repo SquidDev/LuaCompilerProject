@@ -21,7 +21,7 @@ let main argv =
     language.Get(fun x -> new Extensions.Adt(x)) |> ignore
     language.Get(fun x -> new Extensions.Lambda(x)) |> ignore
     language.Get(fun x -> new Extensions.OpEquals(x)) |> ignore
-    language.Get(fun x -> new LuaCP.Lua.Parser.Extensions.Types(x)) |> ignore
+    // language.Get(fun x -> new LuaCP.Lua.Parser.Extensions.Types(x)) |> ignore
     let rec parse str : INode option = 
         if String.IsNullOrWhiteSpace str then None
         else if str.StartsWith "=" then parse ("return " + str.Substring(1))
@@ -67,6 +67,8 @@ let main argv =
                 (new FunctionBuilder(modu)).Accept(item) |> ignore
                 try 
                     PassManager.Run(modu, PassExtensions.Default, true)
-                with :? VerificationException as e -> Console.WriteLine("Cannot verify: " + e.ToString())
+                with 
+                | :? VerificationException as e -> Console.WriteLine("Cannot verify: " + e.ToString())
+                | e -> raise e
                 (new Exporter(Console.Out)).ModuleLong(modu)
     0

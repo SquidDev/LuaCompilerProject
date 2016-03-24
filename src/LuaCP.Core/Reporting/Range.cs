@@ -41,6 +41,8 @@ namespace LuaCP.Reporting
 
 		public static bool operator==(Range left, Range right)
 		{
+			if (Object.ReferenceEquals(left, right)) return true;
+			if (Object.ReferenceEquals(left, null)) return false;
 			return left.Equals(right);
 		}
 

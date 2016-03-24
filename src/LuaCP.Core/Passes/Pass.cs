@@ -23,6 +23,7 @@ namespace LuaCP.Passes
 				ConstantFolding.Runner.AsFunction(),
 				FunctionInliner.Runner,
 				TupleInliner.Runner.AsFunction(),
+				BranchToValue.Runner.AsFunction(),
 				IdenticalValues.CheckPhis.AsFunction(),
 				IdenticalValues.CheckUpvalues,
 			}.Group().Repeat().AsModule(),
@@ -45,21 +46,21 @@ namespace LuaCP.Passes
 				bool changed = false;
 				foreach (Pass<T> pass in passes)
 				{
-					if (pass(data, x)) changed = true;
+					changed |= pass(data, x);
 				}
 
 				return changed;
 			};
 		}
 
-		public static Pass<U> Select<T, U>(this Pass<T> pass, Func<U, IEnumerable<T>> selector)
+		public static Pass<TOut> Select<TIn, TOut>(this Pass<TIn> pass, Func<TOut, IEnumerable<TIn>> selector)
 		{
 			return (data, x) =>
 			{
 				bool changed = false;
-				foreach (T item in selector(x))
+				foreach (TIn item in selector(x))
 				{
-					if (pass(data, item)) changed = true;
+					changed |= pass(data, item);
 				}
 				return changed;
 			};

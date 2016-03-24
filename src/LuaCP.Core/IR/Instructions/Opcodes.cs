@@ -34,8 +34,8 @@ namespace LuaCP.IR.Instructions
 		// Branch
 		Branch,
 		BranchCondition,
-		ValueCondition,
 		Return,
+		ValueCondition,
 
 		// Table access
 		TableGet,

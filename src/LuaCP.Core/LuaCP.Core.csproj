@@ -97,6 +97,7 @@
     <Compile Include="Tree\LoopState.cs" />
     <Compile Include="Tree\Scope.cs" />
     <Compile Include="Tree\Expression\ConstantNode.cs" />
+    <Compile Include="Passes\Optimisation\BranchToValue.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
