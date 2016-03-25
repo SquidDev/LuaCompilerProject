@@ -23,6 +23,11 @@ namespace LuaCP.Collections
 			return Object.ReferenceEquals(x, y);
 		}
 
+		public bool Equals(object x, object y)
+		{
+			return Object.ReferenceEquals(x, y);
+		}
+
 		public int GetHashCode(T obj)
 		{
 			return RuntimeHelpers.GetHashCode(obj);
