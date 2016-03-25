@@ -22,6 +22,9 @@ type TypedDeclaration(name : string, ty : option<ValueType>) =
     override this.Declare(builder : BlockBuilder, value : IValue) : BlockBuilder = 
         let ref = builder.Block.AddLast(ReferenceNew(value))
         builder.Get<IVariableScope>().Declare(this.Name, ref)
+        match ty with
+        | Some x -> builder.Get<TypeScope>().Set(ref, x)
+        | None -> ()
         builder
 
 type FieldType = 

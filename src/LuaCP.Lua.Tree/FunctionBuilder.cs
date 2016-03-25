@@ -4,6 +4,7 @@ using LuaCP.IR;
 using LuaCP.IR.Components;
 using LuaCP.IR.Instructions;
 using LuaCP.Tree;
+using LuaCP.Types;
 
 namespace LuaCP.Lua.Tree
 {
@@ -18,6 +19,7 @@ namespace LuaCP.Lua.Tree
 			EntryPoint = new BlockBuilder(Function);
 			EntryPoint.Scopes.Add<IVariableScope>(new VariableScope());
 			EntryPoint.Scopes.Add(new LabelScope(Function));
+			EntryPoint.Scopes.Add(new TypeScope(new TypeManager(), Function));
 			EntryPoint.Get<IVariableScope>().Declare(VariableScope.GlobalTable, new Upvalue(Function, true));
 		}
 
@@ -26,12 +28,16 @@ namespace LuaCP.Lua.Tree
 			Function = new Function(builder.Block.Function.Module, args, dots);
 			ScopeDictionary scopeDictionary = builder.Scopes.CreateFunctionChild(Function);
 			IVariableScope variables = scopeDictionary.Get<IVariableScope>();
-			foreach (Argument arg in Function.Arguments)
-			{
-				if (arg.Kind == ValueKind.Value) variables.Declare(arg.Name, arg);
-			}
 
 			EntryPoint = new BlockBuilder(Function.EntryPoint, null, scopeDictionary, null);
+
+			foreach (Argument arg in Function.Arguments)
+			{
+				if (arg.Kind == ValueKind.Value)
+				{
+					variables.Declare(arg.Name, EntryPoint.Block.AddLast(new ReferenceNew(arg)));
+				}
+			}
 		}
 
 		public BlockBuilder Accept(INode node)

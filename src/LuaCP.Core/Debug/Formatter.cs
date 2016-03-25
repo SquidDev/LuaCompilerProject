@@ -78,7 +78,7 @@ namespace LuaCP.Debug
 			writer.Write(numberer.PrettyGetBlock(block));
 		}
 
-		public TextWriter InstructionLong(Instruction insn, TextWriter writer, NodeNumberer numberer)
+		public void InstructionLong(Instruction insn, TextWriter writer, NodeNumberer numberer)
 		{
 			writer.Write(numberer.PrettyGetInstruction(insn));
 			writer.Write(": ");
@@ -253,14 +253,12 @@ namespace LuaCP.Debug
 						break;
 				}
 			}
-            
-			return writer;
 		}
 	}
 
 	public class IRFormatProvider : IFormatProvider, ICustomFormatter
 	{
-		public readonly NodeNumberer numberer;
+		private readonly NodeNumberer numberer;
 
 		public IRFormatProvider(NodeNumberer numberer)
 		{

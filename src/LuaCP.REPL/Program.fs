@@ -11,6 +11,7 @@ open LuaCP.CodeGen.Bytecode
 open System.Text
 open LuaCP.CodeGen
 open LuaCP.Passes.Analysis
+open LuaCP.Types
 open FParsec
 
 [<EntryPoint>]
@@ -40,6 +41,7 @@ let main argv =
                     None
     
     let mutable modu = null
+    let mutable builder : FunctionBuilder = null
     while true do
         printf "> "
         let line = Console.ReadLine()
@@ -60,15 +62,23 @@ let main argv =
                     use x = new LasmBytecodeWriter(builder, VarargType.Exists)
                     (new BytecodeCodegen(x, modu.EntryPoint)).Write()
                     Console.WriteLine(builder)
+                | "types" -> 
+                    let manager = builder.EntryPoint.Scopes.Get<TypeScope>()
+                    let numberer = new NodeNumberer(builder.Function)
+                    for pair in manager.Known do
+                        Formatter.Default.Value(pair.Key, Console.Out, numberer)
+                        printfn " : %A" pair.Value
                 | line -> Console.WriteLine("Unknown command " + line)
         else 
             match parse line with
             | None -> ()
             | Some(item) -> 
                 modu <- new Module()
-                (new FunctionBuilder(modu)).Accept(item) |> ignore
+                builder <- new FunctionBuilder(modu)
+                builder.Accept(item) |> ignore
                 try 
-                    PassManager.Run(modu, PassExtensions.Default, true)
+                    // PassManager.Run(modu, PassExtensions.Default, true)
+                    ()
                 with
                 | :? VerificationException as e -> Console.WriteLine("Cannot verify: " + e.ToString())
                 | e -> raise e
