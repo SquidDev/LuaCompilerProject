@@ -30,6 +30,12 @@ type SubtypeResult =
                 | Failure | InProgress -> exec items
             else Failure
         exec (items.GetEnumerator())
+    
+    member this.ToBoolean() = 
+        match this with
+        | Success -> true
+        | Failure -> false
+        | InProgress -> raise (InvalidOperationException "InProgress")
 
 type TypeChecker() = 
     let valueMap = new Dictionary<ValueType * ValueType, SubtypeResult>()
@@ -153,15 +159,17 @@ type TypeChecker() =
         Seq.zip current target |> SubtypeResult.ForAll(fun (x, y) -> isOperatorSubtype x y)
     
     member this.IsBaseSubtype current target = isBaseSubtype current target
-    member this.IsSubtype current target = isSubtype current target
-    member this.IsTupleSubtype current target = isTupleSubtype current target
+    member this.IsTypeEqual current target =
+        (isSubtype current target).ToBoolean() && (isSubtype target current).ToBoolean()
+    member this.IsSubtype current target = (isSubtype current target).ToBoolean()
+    member this.IsTupleSubtype current target = (isTupleSubtype current target).ToBoolean()
     member this.FindBestFunction (func : ValueType) (args : TupleType) = 
         let rec findBest (func : ValueType) (best : ValueType list) = 
             match func with
             | FunctionIntersection funcs -> findBests funcs best
             | Function(fArgs, _) -> 
-                if this.IsTupleSubtype args fArgs <> Failure then 
-                    if this.IsTupleSubtype fArgs args <> Failure then Some(func), []
+                if isTupleSubtype args fArgs <> Failure then 
+                    if isTupleSubtype fArgs args <> Failure then Some(func), []
                     else None, func :: best
                 else None, best
             | Nil -> None, best

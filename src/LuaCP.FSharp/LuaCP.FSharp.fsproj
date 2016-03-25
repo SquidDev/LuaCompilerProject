@@ -35,6 +35,7 @@
     <Compile Include="Types\ValueTypes.fs" />
     <Compile Include="Types\OperatorHandling.fs" />
     <Compile Include="Types\TypeChecker.fs" />
+    <Compile Include="Types\TypeFactory.fs" />
     <Compile Include="Types\TypeManager.fs" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.1\Framework\v4.0\Microsoft.FSharp.Targets" />

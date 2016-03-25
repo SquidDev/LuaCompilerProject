@@ -35,14 +35,6 @@ namespace LuaCP.Lua.Tree
 			};
 
 			EntryPoint = new BlockBuilder(Function.EntryPoint, null, scopeDictionary, null);
-			
-			int i = 0;
-			foreach (string arg in args)
-			{
-				ReferenceNew rNew = EntryPoint.Block.AddLast(new ReferenceNew(Function.Arguments[i]));
-				EntryPoint.Get<IVariableScope>().Declare(arg, rNew);
-				i++;
-			}
 		}
 
 		public BlockBuilder Accept(INode node)

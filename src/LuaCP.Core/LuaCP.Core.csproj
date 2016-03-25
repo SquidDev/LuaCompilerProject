@@ -98,6 +98,7 @@
     <Compile Include="Tree\Scope.cs" />
     <Compile Include="Tree\Expression\ConstantNode.cs" />
     <Compile Include="Passes\Optimisation\BranchToValue.cs" />
+    <Compile Include="Collections\IdentityComparer.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

@@ -5,13 +5,13 @@ open System
 open System.Text
 open LuaCP.IR
 open LuaCP.Types
-open LuaCP.Types
+open LuaCP.Types.TypeFactory
 
 let AssertSubtype func current target = 
-    if (func current target) <> Success then Assert.Fail(sprintf "Should be able to convert %A to %A" current target)
+    if not (func current target) then Assert.Fail(sprintf "Should be able to convert %A to %A" current target)
 
 let AssertNotSubtype func current target = 
-    if func current target <> Failure then Assert.Fail(sprintf "Should not be able to convert %A to %A" current target)
+    if func current target then Assert.Fail(sprintf "Should not be able to convert %A to %A" current target)
 
 type Data() = 
     // This works as a member function, but not a let binding.
@@ -142,6 +142,17 @@ let Functions =
        Data.Make(FunctionIntersection [ func [ tStr ]
                                         func [ tNum ] ], [ lStr "bar" ], None, Some(func [ tStr ]), empty) |]
 
+let Unions = 
+    [| Data.Make([ tStr; tStr ], tStr)
+       Data.Make([ tStr
+                   lStr "foo" ], tStr)
+       Data.Make([ lStr "foo"
+                   tStr ], tStr)
+       Data.Make([ lStr "foo"
+                   tStr
+                   tNum
+                   Nil ], Union [ tStr; tNum; Nil ]) |]
+
 [<Test>]
 [<TestCaseSource("ValueSubtypes")>]
 let ``Value subtypes`` (current : ValueType) (target : ValueType) (pass : bool) = 
@@ -165,3 +176,11 @@ let ``Best functions`` (func : ValueType) (args : TupleType) (eFunc : option<Val
         (eAlt, aAlt, 
          sprintf "Function %A with %O: expected alternatives of %A, got %A + %A" func (ValueType.FormatTuple args) eAlt 
              aFunc aAlt)
+
+[<Test>]
+[<TestCaseSource("Unions")>]
+let ``Union simplification`` (current : ValueType list) (expected : ValueType) = 
+    let aCurrent = checker.MakeUnion current
+    Assert.True
+        (checker.IsTypeEqual expected aCurrent, 
+         sprintf "Union %A: expected %A, got %A" (Union current) expected aCurrent)

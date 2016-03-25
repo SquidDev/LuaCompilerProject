@@ -113,7 +113,7 @@ type Types(lang : Language) =
     do 
         rootRef.Parsers.Add(Symbol "(" >>. intersection .>> Symbol ")")
         typeRef := intersection
-        lang.Declaration <- pipe2 IdentifierBase (Symbol ":" >>. intersection) 
-                                (fun x y -> TypedDeclaration(x, Some(y)) :> IDeclarable)
+        lang.Declaration <- pipe2 IdentifierBase (Symbol ":" >>. intersection |> opt) 
+                                (fun x y -> TypedDeclaration(x, y) :> IDeclarable)
     
     member val Type = typeParser

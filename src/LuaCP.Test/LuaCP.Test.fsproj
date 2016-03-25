@@ -27,10 +27,10 @@
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
     <Reference Include="nunit.framework">
-      <HintPath>..\..\packages\NUnit.3.0.1\lib\net45\nunit.framework.dll</HintPath>
+      <HintPath>..\..\packages\NUnit.3.2.0\lib\net45\nunit.framework.dll</HintPath>
     </Reference>
     <Reference Include="nunitlite">
-      <HintPath>..\..\packages\NUnitLite.3.0.1\lib\net45\nunitlite.dll</HintPath>
+      <HintPath>..\..\packages\NUnitLite.3.2.0\lib\net45\nunitlite.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -40,9 +40,6 @@
     <Compile Include="Program.fs" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.1\Framework\v4.0\Microsoft.FSharp.Targets" />
-  <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
   <ItemGroup>
     <Folder Include="Types\" />
     <Folder Include="Passes\" />
@@ -56,5 +53,10 @@
       <Project>{020F1454-9CE4-4A9A-BCA8-BC3F74307DDD}</Project>
       <Name>LuaCP.FSharp</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+    <None Include="Program.cs" />
+    <None Include="Program.vb" />
   </ItemGroup>
 </Project>
