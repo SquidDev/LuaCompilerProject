@@ -26,12 +26,15 @@ namespace LuaCP.Lua.Tree.Expression
 			FunctionBuilder function = new FunctionBuilder(builder, Arguments, Dots);
 			function.Accept(Body);
         	
-			List<IValue> values = new List<IValue>(function.Upvalues.Count);
-			foreach (IValue upvalue in function.Upvalues)
+			IVariableScope scope = function.EntryPoint.Scopes.Get<IVariableScope>();
+			FunctionVariableScope fScope = null;
+			while (scope != null && fScope == null)
 			{
-				values.Add(upvalue);
+				fScope = scope as FunctionVariableScope;
+				scope = scope.Parent;
 			}
-        	
+
+			List<IValue> values = fScope == null ? new List<IValue>() : fScope.Upvalues;
 			using (BlockWriter writer = new BlockWriter(builder, this))
 			{
 				result = writer.Add(new ClosureNew(function.Function, values, Enumerable.Empty<IValue>()));

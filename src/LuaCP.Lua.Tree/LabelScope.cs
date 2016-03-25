@@ -116,5 +116,10 @@ namespace LuaCP.Lua.Tree
 		{
 			return new LabelScope(this);
 		}
+			
+		public IScope CreateFunctionChild(Function func)
+		{
+			return new LabelScope(func);
+		}
 	}
 }

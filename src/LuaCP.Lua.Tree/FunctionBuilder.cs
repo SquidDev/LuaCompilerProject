@@ -11,7 +11,6 @@ namespace LuaCP.Lua.Tree
 	{
 		public readonly BlockBuilder EntryPoint;
 		public readonly Function Function;
-		public readonly List<IValue> Upvalues = new List<IValue>();
 
 		public FunctionBuilder(Module module)
 		{
@@ -19,20 +18,18 @@ namespace LuaCP.Lua.Tree
 			EntryPoint = new BlockBuilder(Function);
 			EntryPoint.Scopes.Add<IVariableScope>(new VariableScope());
 			EntryPoint.Scopes.Add(new LabelScope(Function));
-			EntryPoint.Scopes.Add(new TypeScope());
 			EntryPoint.Get<IVariableScope>().Declare(VariableScope.GlobalTable, new Upvalue(Function, true));
 		}
 
 		public FunctionBuilder(BlockBuilder builder, IEnumerable<string> args, bool dots)
 		{
 			Function = new Function(builder.Block.Function.Module, args, dots);
-
-			ScopeDictionary scopeDictionary = new ScopeDictionary(null)
+			ScopeDictionary scopeDictionary = builder.Scopes.CreateFunctionChild(Function);
+			IVariableScope variables = scopeDictionary.Get<IVariableScope>();
+			foreach (Argument arg in Function.Arguments)
 			{
-				(IVariableScope)new VariableScope(new FunctionVariableScope(builder.Get<IVariableScope>(), this)),
-				new LabelScope(Function),
-				new TypeScope(builder.Get<TypeScope>()),
-			};
+				if (arg.Kind == ValueKind.Value) variables.Declare(arg.Name, arg);
+			}
 
 			EntryPoint = new BlockBuilder(Function.EntryPoint, null, scopeDictionary, null);
 		}

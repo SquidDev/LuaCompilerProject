@@ -54,7 +54,7 @@ type ValueType =
         | Reference ref -> 
             match ref.Value with
             | Generic id -> alloc.[id]
-            | Unbound(id, _) -> "'" + alloc.[id] + "0x" + ref.GetHashCode().ToString("X8")
+            | Unbound -> "'0x" + ref.GetHashCode().ToString("X8")
             | Link ty -> "'a0x" + ref.GetHashCode().ToString("X8")
     
     static member FormatTuple (this : TupleType) (alloc : StringAllocator<int>) : string = 
@@ -67,7 +67,7 @@ type ValueType =
     member this.AsString = this.ToString()
 
 and VariableType = 
-    | Unbound of int * int
+    | Unbound
     | Link of ValueType
     | Generic of int
 

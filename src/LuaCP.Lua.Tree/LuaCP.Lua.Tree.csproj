@@ -56,7 +56,6 @@
     <Compile Include="Statement\ForInNode.cs" />
     <Compile Include="VariableScope.cs" />
     <Compile Include="Expression\DotsNode.cs" />
-    <Compile Include="TypeScope.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

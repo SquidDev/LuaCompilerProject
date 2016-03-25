@@ -8,6 +8,8 @@ namespace LuaCP.Lua.Tree
 {
 	public 	interface IVariableScope : IScope
 	{
+		IVariableScope Parent { get; }
+
 		bool Defined(string name);
 
 		bool TryGet(string name, out IValue value);
@@ -33,6 +35,8 @@ namespace LuaCP.Lua.Tree
 			this.parent = parent;
 		}
 
+		public IVariableScope Parent { get { return parent; } }
+
 		public bool Defined(string name)
 		{
 			return variables.ContainsKey(name) || (parent != null && parent.Defined(name));
@@ -53,6 +57,11 @@ namespace LuaCP.Lua.Tree
 			return new VariableScope(this);
 		}
 
+		public IScope CreateFunctionChild(Function func)
+		{
+			return new VariableScope(new FunctionVariableScope(this, func));
+		}
+
 		public IValue Globals
 		{
 			get
@@ -68,13 +77,17 @@ namespace LuaCP.Lua.Tree
 	{
 		private readonly IVariableScope parent;
 		private readonly Dictionary<string, IValue> variables = new Dictionary<string, IValue>();
-		private readonly FunctionBuilder function;
+		private readonly Function function;
 
-		public FunctionVariableScope(IVariableScope parent, FunctionBuilder function)
+		public readonly List<IValue> Upvalues = new List<IValue>();
+
+		public FunctionVariableScope(IVariableScope parent, Function function)
 		{
 			this.parent = parent;
 			this.function = function;
 		}
+
+		public IVariableScope Parent { get { return parent; } }
 
 		public bool Defined(string name)
 		{
@@ -88,9 +101,9 @@ namespace LuaCP.Lua.Tree
 			IValue parentVariable;
 			if (parent.TryGet(name, out parentVariable))
 			{
-				Upvalue upvalue = new Upvalue(function.Function, false);
+				Upvalue upvalue = new Upvalue(function, false);
 				value = upvalue;
-				function.Upvalues.Add(parentVariable);
+				Upvalues.Add(parentVariable);
 				variables.Add(name, upvalue);
 				
 				return true;
@@ -109,6 +122,11 @@ namespace LuaCP.Lua.Tree
 		public IScope CreateChild()
 		{
 			return new VariableScope(this);
+		}
+
+		public IScope CreateFunctionChild(Function func)
+		{
+			return new VariableScope(new FunctionVariableScope(this, func));
 		}
 	}
 }
