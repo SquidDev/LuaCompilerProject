@@ -136,9 +136,7 @@ let Functions =
        Data.Make(FunctionIntersection [ func [ tStr ]
                                         func [ lStr "foo" ] ], [ lStr "bar" ], None, Some(func [ tStr ]), empty)
        Data.Make(FunctionIntersection [ func [ tStr ]
-                                        func [ Value ] ], [ lStr "bar" ], None, None, 
-                 [ func [ tStr ]
-                   func [ Value ] ])
+                                        func [ Value ] ], [ lStr "bar" ], None, Some(func [ tStr ]), empty)
        Data.Make(FunctionIntersection [ func [ tStr ]
                                         func [ tNum ] ], [ lStr "bar" ], None, Some(func [ tStr ]), empty) |]
 
