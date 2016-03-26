@@ -4,13 +4,16 @@ open System
 open LuaCP.IR
 open LuaCP.Collections
 
-/// <summary>A reference that does not implement</summary>
+/// <summary>A reference that does not implement </summary>
 type IdentRef<'t>(value : 't) = 
     let mutable x = value
     
     member this.Value 
         with get () = x
         and set (value) = x <- value
+
+module Matching = 
+    let inline (|IdentRef|) (ref : IdentRef<'t>) = ref.Value
 
 [<StructuredFormatDisplay("{AsString}")>]
 type ValueType = 
@@ -54,8 +57,8 @@ type ValueType =
         | Reference ref -> 
             match ref.Value with
             | Generic id -> alloc.[id]
-            | Unbound -> "'0x" + ref.GetHashCode().ToString("X8")
-            | Link ty -> "'a0x" + ref.GetHashCode().ToString("X8")
+            | Unbound -> "'0x" + ref.GetHashCode().ToString("X8") + "?"
+            | Link ty -> "'0x" + ref.GetHashCode().ToString("X8")
     
     static member FormatTuple (this : TupleType) (alloc : StringAllocator<int>) : string = 
         let format x = ValueType.Format x alloc
@@ -65,6 +68,10 @@ type ValueType =
     
     override this.ToString() = ValueType.Format this (new StringAllocator<int>())
     member this.AsString = this.ToString()
+    member this.WithLabel() = 
+        match this with
+        | Reference(Matching.IdentRef(Link item)) -> this.ToString() + " : " + item.ToString()
+        | _ -> this.ToString()
 
 and VariableType = 
     | Unbound

@@ -16,7 +16,9 @@ let Singleton (x : ValueType) (op : Operator) =
     ops.[int op] <- x
     ops
 
-let private concat = BinOp(Union [ Primitives.Number; Primitives.String ])
+let private concat = 
+    let union = Union [ Primitives.Number; Primitives.String ]
+    Function(([ union; union ], None), ([ Primitives.String ], None))
 
 let Number = 
     let un, bin, cmp = UnOp Primitives.Number, BinOp Primitives.Number, Compare Primitives.Number
@@ -34,15 +36,13 @@ let Number =
 let Integer = 
     let un, bin, cmp = UnOp Primitives.Integer, BinOp Primitives.Integer, Compare Primitives.Number
     
-    let unJoint, binJoint = 
-        FunctionIntersection [ un
-                               UnOp Primitives.Number ], 
+    let binJoint = 
         FunctionIntersection [ bin
                                BinOp Primitives.Number ]
     
     let ops : ValueType [] = Array.create lastIndex Nil
     // Add everything
-    ops.[int Operator.UnaryMinus] <- unJoint
+    ops.[int Operator.UnaryMinus] <- un
     ops.[int Operator.BNot] <- un
     for i = int Operator.Add to int Operator.Modulus do
         ops.[i] <- binJoint
@@ -100,9 +100,10 @@ let rec GetOperator (ty : ValueType) (op : Operator) =
         else Nil
     | Table(_, ops) -> ops.[int op]
     | Union items -> Union(List.map (fun x -> GetOperator x op) items)
-    | Reference item ->
+    | Reference item -> 
         match item.Value with
-        | Link ty -> GetOperator ty op
+        // TODO: handle infinite loops correctly
+        | Link child when ty <> child -> GetOperator child op
         | _ -> Nil
 
 let GetBinaryOperatory (left : ValueType) (right : ValueType) (op : Operator) = 

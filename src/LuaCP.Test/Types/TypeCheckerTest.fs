@@ -23,7 +23,7 @@ let lStr x = Literal(Literal.String x)
 let func x = Function((x, None), tVoid)
 let funcL x y = Function((x, None), (y, None))
 let tabl x = Table(x, OperatorHandling.Empty)
-let checker = new TypeChecker()
+let checker = new RelationshipChecker()
 
 let a = 
     let tyRef = new IdentRef<VariableType>(Generic -1)

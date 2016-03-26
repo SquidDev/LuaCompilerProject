@@ -67,7 +67,7 @@ let main argv =
                     let numberer = new NodeNumberer(builder.Function)
                     for pair in manager.Known do
                         Formatter.Default.Value(pair.Key, Console.Out, numberer)
-                        printfn " : %A" pair.Value
+                        printfn " : %s" (pair.Value.WithLabel())
                 | line -> Console.WriteLine("Unknown command " + line)
         else 
             match parse line with
@@ -76,11 +76,12 @@ let main argv =
                 modu <- new Module()
                 builder <- new FunctionBuilder(modu)
                 builder.Accept(item) |> ignore
+                let scope = builder.EntryPoint.Scopes.Get<TypeScope>()
+                Infer.inferTypes (scope)
+                scope.Simplify()
                 try 
-                    // PassManager.Run(modu, PassExtensions.Default, true)
                     ()
-                with
-                | :? VerificationException as e -> Console.WriteLine("Cannot verify: " + e.ToString())
-                | e -> raise e
+                // PassManager.Run(modu, PassExtensions.Default, true)
+                with :? VerificationException as e -> printfn "Cannot verify: %A" e
                 (new Exporter(Console.Out)).ModuleLong(modu)
     0

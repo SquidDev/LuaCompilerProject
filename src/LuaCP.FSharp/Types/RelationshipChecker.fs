@@ -37,7 +37,7 @@ type SubtypeResult =
         | Failure -> false
         | InProgress -> raise (InvalidOperationException "InProgress")
 
-type TypeChecker() = 
+type RelationshipChecker() = 
     let valueMap = new Dictionary<ValueType * ValueType, SubtypeResult>()
     let tupleMap = new Dictionary<TupleType * TupleType, SubtypeResult>()
     
@@ -159,7 +159,7 @@ type TypeChecker() =
         Seq.zip current target |> SubtypeResult.ForAll(fun (x, y) -> isOperatorSubtype x y)
     
     member this.IsBaseSubtype current target = isBaseSubtype current target
-    member this.IsTypeEqual current target =
+    member this.IsTypeEqual current target = 
         (isSubtype current target).ToBoolean() && (isSubtype target current).ToBoolean()
     member this.IsSubtype current target = (isSubtype current target).ToBoolean()
     member this.IsTupleSubtype current target = (isTupleSubtype current target).ToBoolean()
@@ -185,5 +185,28 @@ type TypeChecker() =
         
         let func, bests = findBest func []
         match func, bests with
+        | (Some _, _) | (None, []) -> func, bests
         | (None, [ item ]) -> Some item, []
-        | _ -> func, bests
+        | (None, _) -> 
+            // Strip constants
+            let literalToPrim x = 
+                match x with
+                | Literal x -> Primitive x.Kind
+                | x -> x
+            
+            let args, remainder = args
+            
+            let mapped : TupleType = 
+                (List.map literalToPrim args), 
+                match remainder with
+                | Some x -> Some(literalToPrim x)
+                | None -> None
+            
+            let equal (func : ValueType) = 
+                match func with
+                | Function(fArgs, _) -> isTupleSubtype fArgs mapped <> Failure
+                | _ -> raise (ArgumentException(sprintf "Expected function type, got %A" func, "func"))
+            
+            match List.tryFind equal bests with
+            | Some x -> Some x, []
+            | None -> func, bests
