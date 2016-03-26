@@ -7,3 +7,5 @@ install:
 script:
   - xbuild /p:Configuration=Release LuaCP.sln
   - mono ./src/bin/Release/test/LuaCP.Test.exe
+env:
+  - XBUILD_COLORS=errors=red,warnings=yellow,events=brightcyan
