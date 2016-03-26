@@ -5,30 +5,30 @@ namespace LuaCP.IR.Instructions
 	public enum Opcode
 	{
 		// Unary operators
-		Not,
-		UnaryMinus,
-		BNot,
-		Length,
+		Not = 0,
+		UnaryMinus = 1,
+		BNot = 2,
+		Length = 3,
 
 		// Binary operators
-		Add,
-		Subtract,
-		Multiply,
-		Divide,
-		IntegerDivide,
-		Power,
-		Modulus,
-		Concat,
-		BAnd,
-		BOr,
-		BXor,
-		LShift,
-		RShift,
+		Add = 4,
+		Subtract = 5,
+		Multiply = 6,
+		Divide = 7,
+		IntegerDivide = 8,
+		Power = 9,
+		Modulus = 10,
+		Concat = 11,
+		BAnd = 12,
+		BOr = 13,
+		BXor = 14,
+		LShift = 15,
+		RShift = 16,
 
 		// Comparison
-		Equals,
-		NotEquals,
-		LessThan,
+		Equals = 17,
+		NotEquals = 18,
+		LessThan = 19,
 		LessThanEquals,
 
 		// Branch

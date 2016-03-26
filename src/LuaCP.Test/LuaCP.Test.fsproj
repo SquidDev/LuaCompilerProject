@@ -36,6 +36,7 @@
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Types\TypeCheckerTest.fs" />
+    <Compile Include="Types\OperatorCheck.fs" />
     <Compile Include="Passes\ReferenceToValueTest.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>

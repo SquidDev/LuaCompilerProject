@@ -18,7 +18,7 @@ type Operator =
     | Concat = 10
     | BAnd = 11
     | BOr = 12
-    | BXor =13
+    | BXor = 13
     | LShift = 14
     | RShift = 15
     | Equals = 16
@@ -32,8 +32,7 @@ module OperatorExtensions =
     
     let ToOpcode(x : Operator) = 
         match x with
-        | Operator.UnaryMinus -> Opcode.UnaryMinus
-        | x when x >= Operator.BNot && x <= Operator.Equals -> enum<Opcode> ((int x) - 1)
+        | x when x >= Operator.UnaryMinus && x <= Operator.Equals -> enum<Opcode> ((int x) + 1)
         | Operator.LessThan -> Opcode.LessThan
         | Operator.Index -> Opcode.TableGet
         | Operator.NewIndex -> Opcode.TableSet
@@ -41,15 +40,14 @@ module OperatorExtensions =
     
     let ToOperator(x : Opcode) = 
         match x with
-        | Opcode.UnaryMinus -> Operator.UnaryMinus
-        | x when x >= Opcode.BNot && x <= Opcode.Equals -> enum<Operator> ((int x) + 1)
+        | x when x >= Opcode.UnaryMinus && x <= Opcode.Equals -> enum<Operator> ((int x) - 1)
         | Opcode.LessThan -> Operator.LessThan
         | Opcode.TableGet -> Operator.Index
         | Opcode.TableSet -> Operator.NewIndex
         | _ -> raise (ArgumentException("Unknown opcode " + x.ToString(), "x"))
     
     type Operator with
-        member x.ToOpcode() = ToOpcode x
+        member x.AsOpcode = ToOpcode x
     
     type Opcode with
-        member x.ToOperator() = ToOperator x
+        member x.AsOperator = ToOperator x
