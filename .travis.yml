@@ -1,0 +1,9 @@
+language: csharp
+sudo: false
+notifications:
+  email: false
+install:
+  - nuget restore  LuaCP.sln
+script:
+  - xbuild /p:Configuration=Release LuaCP.sln
+  - mono ./src/bin/Release/test/LuaCP.Test.exe
