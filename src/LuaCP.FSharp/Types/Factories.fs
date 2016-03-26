@@ -5,7 +5,7 @@ open System.Collections.Generic
 open LuaCP.Collections
 open LuaCP.Types
 
-type RelationshipChecker with
+type TypeProvider with
     member this.MakeUnion(ty : ValueType list) = 
         let add (ty : ValueType) (types : ValueType list) = 
             let filtered = List.filter (fun x -> not (this.IsSubtype x ty)) types

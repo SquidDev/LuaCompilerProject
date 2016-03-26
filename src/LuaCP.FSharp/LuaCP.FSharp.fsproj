@@ -33,8 +33,8 @@
     <Compile Include="IR\InstructionMatching.fs" />
     <Compile Include="Types\Operators.fs" />
     <Compile Include="Types\ValueTypes.fs" />
-    <Compile Include="Types\OperatorHandling.fs" />
-    <Compile Include="Types\RelationshipChecker.fs" />
+    <Compile Include="Types\OperatorHelpers.fs" />
+    <Compile Include="Types\TypeProvider.fs" />
     <Compile Include="Types\Factories.fs" />
     <Compile Include="Types\TypeManager.fs" />
     <Compile Include="Types\Inferance.fs" />

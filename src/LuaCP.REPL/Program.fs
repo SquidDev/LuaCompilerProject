@@ -77,7 +77,7 @@ let main argv =
                 builder <- new FunctionBuilder(modu)
                 builder.Accept(item) |> ignore
                 let scope = builder.EntryPoint.Scopes.Get<TypeScope>()
-                Infer.inferTypes (scope)
+                Infer.InferTypes (scope)
                 scope.Simplify()
                 try 
                     ()

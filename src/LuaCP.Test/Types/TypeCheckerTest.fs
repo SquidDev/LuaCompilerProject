@@ -22,8 +22,8 @@ let tVoid = [], None
 let lStr x = Literal(Literal.String x)
 let func x = Function((x, None), tVoid)
 let funcL x y = Function((x, None), (y, None))
-let tabl x = Table(x, OperatorHandling.Empty)
-let checker = new RelationshipChecker()
+let tabl x = Table(x, OperatorHelpers.Empty)
+let checker = new TypeProvider()
 
 let a = 
     let tyRef = new IdentRef<VariableType>(Generic -1)
@@ -34,7 +34,7 @@ let a =
             ([ { Key = tInt
                  Value = tInt
                  ReadOnly = true } ], 
-             OperatorHandling.Singleton (Function(([ ty; ty ], None), ([ Primitives.Boolean ], None))) Operator.Equals)
+             OperatorHelpers.Singleton (Function(([ ty; ty ], None), ([ Primitives.Boolean ], None))) Operator.Equals)
     tyRef.Value <- Link table
     table
 
@@ -44,7 +44,7 @@ let b =
     let table = 
         Table
             ([], 
-             OperatorHandling.Singleton (Function(([ ty; ty ], None), ([ Primitives.Boolean ], None))) Operator.Equals)
+             OperatorHelpers.Singleton (Function(([ ty; ty ], None), ([ Primitives.Boolean ], None))) Operator.Equals)
     tyRef.Value <- Link table
     table
 
@@ -105,7 +105,7 @@ let ValueSubtypes =
                           Value = Value
                           ReadOnly = true } ], true)
        // Opcodes
-       Data.Make(tNum, Table([], OperatorHandling.Singleton (funcL [ tNum; tNum ] [ tNum ]) Operator.Add), true)
+       Data.Make(tNum, Table([], OperatorHelpers.Singleton (funcL [ tNum; tNum ] [ tNum ]) Operator.Add), true)
        // Recursive types
        Data.Make(a, b, true)
        Data.Make(b, a, false) |]

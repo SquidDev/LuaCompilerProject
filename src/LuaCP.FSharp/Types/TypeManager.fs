@@ -10,7 +10,7 @@ open LuaCP.Types.TypeFactory
 
 type TypeManager() = 
     let functions = new Dictionary<Function, TypeScope>()
-    let checker = new RelationshipChecker()
+    let checker = new TypeProvider()
     
     member this.Create(func : Function) = 
         let exists, scope = functions.TryGetValue(func)
@@ -53,10 +53,13 @@ and TypeScope(manager : TypeManager, func : Function) =
     member this.Known : IReadOnlyDictionary<IValue, ValueType> = upcast values
     
     member this.Simplify() = 
+        let modify = new List<KeyValuePair<IValue, ValueType>>()
         for pair in values do
             match pair.Value with
-            | Union items -> values.[pair.Key] <- this.Checker.MakeUnion items
+            | Union items -> modify.Add (new KeyValuePair<_, _>(pair.Key, this.Checker.MakeUnion items))
             | _ -> ()
+        for pair in modify do
+            values.[pair.Key] <- pair.Value
     
     interface IScope with
         member this.CreateChild() = upcast this

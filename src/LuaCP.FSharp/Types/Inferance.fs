@@ -11,9 +11,27 @@ open LuaCP.Types
 open LuaCP.Types.Matching
 open LuaCP.Types.OperatorExtensions
 open LuaCP.Types.TypeFactory
-open LuaCP.Types.OperatorHandling
 
 type ValueType with
+    
+    member this.HasUnbound = 
+        let rec hasUnbound (ty : ValueType) = 
+            match ty with
+            | Reference(IdentRef Unbound) -> true
+            | Reference(_) -> true // TODO: Handle correctly
+            | Primitive _ | Literal _ | Nil | Dynamic | Value -> false
+            | FunctionIntersection items | Union items -> List.exists hasUnbound items
+            | Table(tbl, ops) -> List.exists fieldUnbound tbl || Array.exists hasUnbound ops
+            | Function(args, ret) -> tupleUnbound args || tupleUnbound ret
+        
+        and fieldUnbound (pair : TableField) = hasUnbound pair.Key || hasUnbound pair.Value
+        
+        and tupleUnbound ((items, remainder) : TupleType) = 
+            List.exists hasUnbound items || match remainder with
+                                            | None -> false
+                                            | Some x -> hasUnbound x
+        hasUnbound this
+    
     member this.IsUnbound = 
         match this with
         | Reference(IdentRef Unbound) -> true
@@ -22,36 +40,36 @@ type ValueType with
 type OperatorException(message : string) = 
     inherit Exception(message)
 
-let extractFirst (ty : TupleType) = 
+let private extractFirst (ty : TupleType) = 
     match ty with
     | (ty :: _, _) -> ty
     | (_, Some ty) -> ty
     | _ -> raise (Exception(sprintf "Cannot extract return from %A" ty))
 
-let extractReturn (ty : ValueType) = 
+let private extractReturn (ty : ValueType) = 
     match ty with
     | Function(args, ret) -> extractFirst ret
     | _ -> raise (Exception(sprintf "Cannot extract function from %A" ty))
 
-let inferType (scope : TypeScope) (value : IValue) = 
+let InferType (scope : TypeScope) (value : IValue) = 
     let known, result = scope.Known.TryGetValue value
-    if known && not result.IsUnbound then result
+    if known && not result.IsUnbound then Some result
     else 
         match value with
-        | :? Upvalue | :? Argument | :? Constant -> scope.Get value
+        | :? Upvalue | :? Argument | :? Constant -> Some(scope.Get value)
         | :? Instruction as insn -> 
             match insn with
-            | ReferenceGet ref -> scope.Get ref.Reference
-            | ReferenceNew ref -> scope.Get ref.Value
+            | ReferenceGet ref -> Some(scope.Get ref.Reference)
+            | ReferenceNew ref -> Some(scope.Get ref.Value)
             | UnaryOp insn -> 
                 let ty = scope.Get insn.Operand
-                if ty.IsUnbound then scope.Get insn
+                if ty.HasUnbound then None
                 else 
                     let operator = insn.Opcode.AsOperator
-                    let operatorApply = GetOperator ty operator
+                    let operatorApply = scope.Checker.GetOperator ty operator
                     match operatorApply with
                     | Nil -> raise (OperatorException(sprintf "No known operator %A for %A" operator ty))
-                    | Function(args, ret) -> extractFirst ret
+                    | Function(args, ret) -> Some(extractFirst ret)
                     | _ -> 
                         raise 
                             (OperatorException
@@ -59,40 +77,46 @@ let inferType (scope : TypeScope) (value : IValue) =
             | BinaryOp insn -> 
                 let tyLeft = scope.Get insn.Left
                 let tyRight = scope.Get insn.Right
-                if tyLeft.IsUnbound || tyRight.IsUnbound then scope.Get insn
+                if tyLeft.HasUnbound || tyRight.HasUnbound then None
                 else 
                     let operator = insn.Opcode.AsOperator
-                    let operatorApply = GetBinaryOperatory tyLeft tyRight operator
+                    let operatorApply = scope.Checker.GetBinaryOperatory tyLeft tyRight operator
                     match operatorApply with
                     | Nil -> 
                         raise (OperatorException(sprintf "No known operator %A for %A and %A" operator tyLeft tyRight))
-                    | Function(args, ret) -> extractFirst ret
+                    | Function(args, ret) -> Some(extractFirst ret)
                     | FunctionIntersection _ -> 
                         match scope.Checker.FindBestFunction operatorApply ([ tyLeft; tyRight ], None) with
-                        | Some func, _ -> extractReturn func
+                        | Some func, _ -> Some(extractReturn func)
                         | None, [] -> 
                             raise 
                                 (OperatorException(sprintf "No known operator %A for %A and %A" operator tyLeft tyRight))
-                        | None, bests -> scope.Checker.MakeUnion(List.map extractReturn bests)
+                        | None, bests -> Some(scope.Checker.MakeUnion(List.map extractReturn bests))
                     | _ -> 
                         raise 
                             (OperatorException
                                  (sprintf "No known operator %A for %A and %A (got %A)" insn.Opcode tyLeft tyRight 
                                       operatorApply))
-            | TupleNew _ | TupleGet _ -> Nil
+            | TupleNew _ | TupleGet _ -> None
             | _ -> raise (ArgumentException(sprintf "Cannot handle %A" insn))
         | _ -> raise (ArgumentException(sprintf "Cannot handle %A" value))
 
-let inferTypes (scope : TypeScope) = 
+let InferTypes(scope : TypeScope) = 
     let visitBlock (block : Block) = 
         for phi in block.PhiNodes do
             let items = Seq.map scope.Get phi.Source.Values |> Seq.toList
             scope.Set phi (scope.Checker.MakeUnion items)
         for item in block do
-            try 
-                match item with
-                | :? ValueInstruction as insn -> scope.Set insn (inferType scope insn)
-                | _ -> ()
-            with :? OperatorException as e -> scope.Function.Module.Reporter.Report(ReportLevel.Error, e.Message)
+            match item with
+            | :? ValueInstruction as insn -> 
+                try 
+                    match InferType scope insn with
+                    | Some ty -> 
+                        printfn "%A <- %A (originally %A)" insn ty (scope.Get insn)
+                        scope.Set insn ty
+                    | None -> printfn "Got none for %A" insn
+                with :? OperatorException as e -> 
+                    scope.Function.Module.Reporter.Report(ReportLevel.Error, e.Message, insn.Position)
+            | _ -> ()
     for block in scope.Function.EntryPoint.VisitPreorder() do
         visitBlock block

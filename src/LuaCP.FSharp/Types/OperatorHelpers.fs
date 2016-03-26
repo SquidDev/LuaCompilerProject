@@ -1,4 +1,4 @@
-﻿module LuaCP.Types.OperatorHandling
+﻿module LuaCP.Types.OperatorHelpers
 
 open System
 open LuaCP.Types
@@ -88,25 +88,3 @@ let GetPrimitiveLookup(ty : LiteralKind) =
     | _ -> raise (ArgumentException("Unknown primitive " + ty.ToString(), "ty"))
 
 let GetOperatorPrimitive (ty : LiteralKind) (op : Operator) = (GetPrimitiveLookup ty).[int op]
-
-let rec GetOperator (ty : ValueType) (op : Operator) = 
-    match ty with
-    | Primitive prim -> GetOperatorPrimitive prim op
-    | Literal lit -> GetOperatorPrimitive lit.Kind op
-    | Dynamic -> Dynamic.[int op]
-    | Value | Nil -> Nil
-    | Function(_, _) | FunctionIntersection _ -> 
-        if op = Operator.Call then ty
-        else Nil
-    | Table(_, ops) -> ops.[int op]
-    | Union items -> Union(List.map (fun x -> GetOperator x op) items)
-    | Reference item -> 
-        match item.Value with
-        // TODO: handle infinite loops correctly
-        | Link child when ty <> child -> GetOperator child op
-        | _ -> Nil
-
-let GetBinaryOperatory (left : ValueType) (right : ValueType) (op : Operator) = 
-    let leftOp = GetOperator left op
-    if leftOp <> Nil then leftOp
-    else GetOperator right op

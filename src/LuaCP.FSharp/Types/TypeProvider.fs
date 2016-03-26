@@ -5,7 +5,7 @@ open System.Collections.Generic
 open LuaCP.Types
 open LuaCP.IR
 
-type SubtypeResult = 
+type private SubtypeResult = 
     /// <summary>The type is assignable</summary>
     | Success
     /// <summary>The type is recursive and so still being worked on</summary>
@@ -37,9 +37,11 @@ type SubtypeResult =
         | Failure -> false
         | InProgress -> raise (InvalidOperationException "InProgress")
 
-type RelationshipChecker() = 
+type TypeProvider() = 
     let valueMap = new Dictionary<ValueType * ValueType, SubtypeResult>()
     let tupleMap = new Dictionary<TupleType * TupleType, SubtypeResult>()
+    let unaryMap = new Dictionary<Operator * ValueType, ValueType>()
+    let binaryMap = new Dictionary<Operator * ValueType * ValueType, ValueType>()
     
     let isBaseSubtype (current : LiteralKind) (target : LiteralKind) : bool = 
         match (current, target) with
@@ -87,9 +89,9 @@ type RelationshipChecker() =
                                tFields = Failure then Failure
                         else isOperatorsSubtype cOpcodes tOpcodes
                     | (Primitive current, Table(tFields, tOpcodes)) -> 
-                        isOperatorsSubtype (OperatorHandling.GetPrimitiveLookup current) tOpcodes
+                        isOperatorsSubtype (OperatorHelpers.GetPrimitiveLookup current) tOpcodes
                     | (Literal current, Table(tFields, tOpcodes)) -> 
-                        isOperatorsSubtype (OperatorHandling.GetPrimitiveLookup current.Kind) tOpcodes
+                        isOperatorsSubtype (OperatorHelpers.GetPrimitiveLookup current.Kind) tOpcodes
                     | Function(_, _), Table(tFields, tOpcodes) -> 
                         if Seq.isEmpty tFields then 
                             let ops : ValueType [] = Array.create OperatorExtensions.LastIndex Nil
@@ -158,11 +160,42 @@ type RelationshipChecker() =
     and isOperatorsSubtype (current : Operators) (target : Operators) : SubtypeResult = 
         Seq.zip current target |> SubtypeResult.ForAll(fun (x, y) -> isOperatorSubtype x y)
     
+    let rec getOperator (ty : ValueType) (op : Operator) = 
+        let key = op, ty
+        let exists, result = unaryMap.TryGetValue key
+        if exists then result
+        else 
+            let res = 
+                match ty with
+                | Primitive prim -> OperatorHelpers.GetOperatorPrimitive prim op
+                | Literal lit -> OperatorHelpers.GetOperatorPrimitive lit.Kind op
+                | Dynamic -> OperatorHelpers.Dynamic.[int op]
+                | Value | Nil -> Nil
+                | Function(_, _) | FunctionIntersection _ -> 
+                    if op = Operator.Call then ty
+                    else Nil
+                | Table(_, ops) -> ops.[int op]
+                | Union items -> Union(List.map (fun x -> getOperator x op) items)
+                | Reference item -> 
+                    // Push an item to the cache to prevent recursive lookups
+                    // TODO: What happens when a type is converted from an unbound to a link?
+                    let cache = new IdentRef<VariableType>(Unbound)
+                    unaryMap.Add(key, Reference item)
+                    let res = 
+                        match item.Value with
+                        | Link ty -> getOperator ty op
+                        | _ -> Nil
+                    cache.Value <- Link res
+                    res
+            unaryMap.[key] <- res
+            res
+    
     member this.IsBaseSubtype current target = isBaseSubtype current target
-    member this.IsTypeEqual current target = 
-        (isSubtype current target).ToBoolean() && (isSubtype target current).ToBoolean()
+    member this.IsTypeEqual current target = (isBiwaySubtype current target).ToBoolean()
     member this.IsSubtype current target = (isSubtype current target).ToBoolean()
     member this.IsTupleSubtype current target = (isTupleSubtype current target).ToBoolean()
+    
+    /// <summary>Find the best function given a set of arguments</summary>
     member this.FindBestFunction (func : ValueType) (args : TupleType) = 
         let rec findBest (func : ValueType) (best : ValueType list) = 
             match func with
@@ -210,3 +243,9 @@ type RelationshipChecker() =
             match List.tryFind equal bests with
             | Some x -> Some x, []
             | None -> func, bests
+    
+    member this.GetOperator (ty : ValueType) (op : Operator) = getOperator ty op
+    member this.GetBinaryOperatory (left : ValueType) (right : ValueType) (op : Operator) = 
+        let leftOp = getOperator left op
+        if leftOp <> Nil then leftOp
+        else getOperator right op
