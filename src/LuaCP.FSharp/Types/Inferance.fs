@@ -93,13 +93,7 @@ let InferType (scope : TypeScope) (value : IValue) =
                     | Nil -> 
                         raise (OperatorException(sprintf "No known operator %A for %A and %A" operator tyLeft tyRight))
                     | Function(args, ret) -> Some(extractFirst ret)
-                    | FunctionIntersection _ -> 
-                        match scope.Checker.FindBestFunction operatorApply ([ tyLeft; tyRight ], None) with
-                        | Some func, _ -> Some(extractReturn func)
-                        | None, [] -> 
-                            raise 
-                                (OperatorException(sprintf "No known operator %A for %A and %A" operator tyLeft tyRight))
-                        | None, bests -> Some(scope.Checker.MakeUnion(List.map extractReturn bests))
+                    | FunctionIntersection bests -> Some(scope.Checker.MakeUnion(List.map extractReturn bests))
                     | _ -> 
                         raise 
                             (OperatorException
@@ -121,10 +115,8 @@ let InferTypes(scope : TypeScope) =
             | :? ValueInstruction as insn -> 
                 try 
                     match InferType scope insn with
-                    | Some ty -> 
-                        printfn "%A <- %A (originally %A)" insn ty (scope.Known.TryGetValue insn)
-                        scope.Set insn ty
-                    | None -> printfn "Got none for %A" insn
+                    | Some ty -> scope.Set insn ty
+                    | None -> ()
                 with :? OperatorException as e -> 
                     scope.Function.Module.Reporter.Report(ReportLevel.Error, e.Message, insn.Position)
             | _ -> ()

@@ -247,6 +247,21 @@ type TypeProvider() =
     
     member this.GetOperator (ty : ValueType) (op : Operator) = getOperator ty op
     member this.GetBinaryOperatory (left : ValueType) (right : ValueType) (op : Operator) = 
+        let handleRight() = 
+            let rightOp = getOperator right op
+            if rightOp <> Nil then 
+                let best, remainder = this.FindBestFunction rightOp ([ left; right ], None)
+                match best, remainder with
+                | Some x, _ -> x
+                | None, [] -> Nil
+                | None, items -> FunctionIntersection items
+            else Nil
+        
         let leftOp = getOperator left op
-        if leftOp <> Nil then leftOp
-        else getOperator right op
+        if leftOp <> Nil then 
+            let best, remainder = this.FindBestFunction leftOp ([ left; right ], None)
+            match best, remainder with
+            | Some x, _ -> x
+            | None, [] -> handleRight()
+            | None, items -> FunctionIntersection items
+        else handleRight()
