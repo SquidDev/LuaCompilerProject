@@ -51,6 +51,14 @@ let private extractReturn (ty : ValueType) =
     | Function(args, ret) -> extractFirst ret
     | _ -> raise (Exception(sprintf "Cannot extract function from %A" ty))
 
+let rec private makeUnion (scope : TypeScope) (items : IValue list) (builder : ValueType list) = 
+    match items with
+    | [] -> Some builder
+    | value :: remainder -> 
+        let exists, ty = scope.Known.TryGetValue value
+        if not exists || ty.IsUnbound then None
+        else makeUnion scope remainder (ty :: builder)
+
 let InferType (scope : TypeScope) (value : IValue) = 
     let known, result = scope.Known.TryGetValue value
     if known && not result.IsUnbound then Some result
@@ -104,15 +112,17 @@ let InferType (scope : TypeScope) (value : IValue) =
 let InferTypes(scope : TypeScope) = 
     let visitBlock (block : Block) = 
         for phi in block.PhiNodes do
-            let items = Seq.map scope.Get phi.Source.Values |> Seq.toList
-            scope.Set phi (scope.Checker.MakeUnion items)
+            // TODO: Optimise so we don't have to convert to list
+            match makeUnion scope (Seq.toList phi.Source.Values) [] with
+            | None -> ()
+            | Some items -> scope.Set phi (scope.Checker.MakeUnion items)
         for item in block do
             match item with
             | :? ValueInstruction as insn -> 
                 try 
                     match InferType scope insn with
                     | Some ty -> 
-                        printfn "%A <- %A (originally %A)" insn ty (scope.Get insn)
+                        printfn "%A <- %A (originally %A)" insn ty (scope.Known.TryGetValue insn)
                         scope.Set insn ty
                     | None -> printfn "Got none for %A" insn
                 with :? OperatorException as e -> 

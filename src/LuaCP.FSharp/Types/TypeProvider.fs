@@ -54,7 +54,6 @@ type TypeProvider() =
             let (exists, result) = valueMap.TryGetValue((current, target))
             if exists then result
             else 
-                valueMap.Add((current, target), InProgress)
                 let childMatch = 
                     match (current, target) with
                     // Do unions/intersections first:
@@ -101,12 +100,14 @@ type TypeProvider() =
                     // These are the 'primitives', cannot be handled anywhere else. 
                     | (Reference r, _) -> 
                         match r.Value with
-                        | Link current -> isSubtype current target
-                        | _ -> Failure
+                        | Link current -> 
+                            valueMap.Add((current, target), InProgress)
+                            isSubtype current target
+                        | _ -> raise (ArgumentException(sprintf "Cannot check conversion from %A" current))
                     | (_, Reference r) -> 
                         match r.Value with
                         | Link current -> isSubtype target current
-                        | _ -> Failure
+                        | _ -> raise (ArgumentException(sprintf "Cannot check conversion to %A" current))
                     | (_, Function(_, _)) | (_, Nil) | (_, Literal _) | (_, Primitive _) | (_, Table(_, _)) -> Failure
                 valueMap.[(current, target)] <- childMatch
                 childMatch
@@ -177,16 +178,16 @@ type TypeProvider() =
                 | Table(_, ops) -> ops.[int op]
                 | Union items -> Union(List.map (fun x -> getOperator x op) items)
                 | Reference item -> 
-                    // Push an item to the cache to prevent recursive lookups
-                    // TODO: What happens when a type is converted from an unbound to a link?
-                    let cache = new IdentRef<VariableType>(Unbound)
-                    unaryMap.Add(key, Reference item)
-                    let res = 
-                        match item.Value with
-                        | Link ty -> getOperator ty op
-                        | _ -> Nil
-                    cache.Value <- Link res
-                    res
+                    match item.Value with
+                    | Link ty -> 
+                        // Push an item to the cache to prevent recursive lookups
+                        // TODO: What happens when a type is converted from an unbound to a link?
+                        let cache = new IdentRef<VariableType>(Unbound)
+                        unaryMap.Add(key, Reference item)
+                        let res = getOperator ty op
+                        cache.Value <- Link res
+                        res
+                    | _ -> raise (ArgumentException(sprintf "Cannot get operator for %A" ty))
             unaryMap.[key] <- res
             res
     
