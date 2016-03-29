@@ -65,9 +65,12 @@ let main argv =
                 | "types" -> 
                     let manager = builder.EntryPoint.Scopes.Get<TypeScope>()
                     let numberer = new NodeNumberer(builder.Function)
-                    for pair in manager.Known do
+                    for pair in manager.ValueTypes do
                         Formatter.Default.Value(pair.Key, Console.Out, numberer)
                         printfn " : %s" (pair.Value.WithLabel())
+                    for pair in manager.TupleTypes do
+                        Formatter.Default.Value(pair.Key, Console.Out, numberer)
+                        printfn " : %A" (pair.Value)
                 | line -> Console.WriteLine("Unknown command " + line)
         else 
             match parse line with

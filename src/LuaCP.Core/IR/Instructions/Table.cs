@@ -93,7 +93,9 @@ namespace LuaCP.IR.Instructions
 
 		public void Replace(IValue original, IValue replace)
 		{
-			throw new NotImplementedException();
+			if (table == original) Table = replace;
+			if (key == original) Key = replace;
+			if (val == original) Value = replace;
 		}
 
 		public override void ForceDestroy()

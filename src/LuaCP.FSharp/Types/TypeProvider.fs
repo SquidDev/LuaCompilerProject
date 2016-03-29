@@ -265,3 +265,4 @@ type TypeProvider() =
             | None, [] -> handleRight()
             | None, items -> FunctionIntersection items
         else handleRight()
+

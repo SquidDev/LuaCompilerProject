@@ -92,3 +92,31 @@ module Primitives =
     let Integer = Primitive LiteralKind.Integer
     let String = Primitive LiteralKind.String
     let Boolean = Primitive LiteralKind.Boolean
+
+module Extensions = 
+    open Matching
+    
+    type ValueType with
+        
+        member this.HasUnbound = 
+            let rec hasUnbound (ty : ValueType) = 
+                match ty with
+                | Reference(IdentRef Unbound) -> true
+                | Reference(_) -> true // TODO: Handle correctly
+                | Primitive _ | Literal _ | Nil | Dynamic | Value -> false
+                | FunctionIntersection items | Union items -> List.exists hasUnbound items
+                | Table(tbl, ops) -> List.exists fieldUnbound tbl || Array.exists hasUnbound ops
+                | Function(args, ret) -> tupleUnbound args || tupleUnbound ret
+            
+            and fieldUnbound (pair : TableField) = hasUnbound pair.Key || hasUnbound pair.Value
+            
+            and tupleUnbound ((items, remainder) : TupleType) = 
+                List.exists hasUnbound items || match remainder with
+                                                | None -> false
+                                                | Some x -> hasUnbound x
+            hasUnbound this
+        
+        member this.IsUnbound = 
+            match this with
+            | Reference(IdentRef Unbound) -> true
+            | _ -> false
