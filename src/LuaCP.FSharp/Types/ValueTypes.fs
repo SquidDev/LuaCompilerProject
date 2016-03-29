@@ -3,17 +3,7 @@
 open System
 open LuaCP.IR
 open LuaCP.Collections
-
-/// <summary>A reference that does not implement </summary>
-type IdentRef<'t>(value : 't) = 
-    let mutable x = value
-    
-    member this.Value 
-        with get () = x
-        and set (value) = x <- value
-
-module Matching = 
-    let inline (|IdentRef|) (ref : IdentRef<'t>) = ref.Value
+open LuaCP.Collections.Matching
 
 [<StructuredFormatDisplay("{AsString}")>]
 type ValueType = 
@@ -26,7 +16,7 @@ type ValueType =
     | Table of TableField list * Operators
     | Union of ValueType list
     | FunctionIntersection of ValueType list
-    | Reference of IdentRef<VariableType>
+    | Reference of IdentRef<VariableType<ValueType>>
     
     static member Format (this : ValueType) (alloc : StringAllocator<int>) = 
         let format x = ValueType.Format x alloc
@@ -39,7 +29,7 @@ type ValueType =
         | Union(items) -> (String.concat " | " (Seq.map format items))
         | FunctionIntersection(items) -> (String.concat " & " (Seq.map format items))
         | Function(args, ret) -> 
-            let formatTuple x = ValueType.FormatTuple x alloc
+            let formatTuple x = TupleType.Format x alloc
             formatTuple args + "->" + formatTuple ret
         | Table(items, meta) -> 
             let fields = 
@@ -56,29 +46,41 @@ type ValueType =
             "{" + String.concat ", " (Seq.append fields items) + "}"
         | Reference ref -> 
             match ref.Value with
-            | Generic id -> alloc.[id]
             | Unbound -> "'0x" + ref.GetHashCode().ToString("X8") + "?"
             | Link ty -> "'0x" + ref.GetHashCode().ToString("X8")
-    
-    static member FormatTuple (this : TupleType) (alloc : StringAllocator<int>) : string = 
-        let format x = ValueType.Format x alloc
-        match this with
-        | items, Some x -> "(" + (String.concat ", " (Seq.map format items)) + ", " + format x + "...)"
-        | items, None -> "(" + (String.concat ", " (Seq.map format items)) + ")"
     
     override this.ToString() = ValueType.Format this (new StringAllocator<int>())
     member this.AsString = this.ToString()
     member this.WithLabel() = 
         match this with
-        | Reference(Matching.IdentRef(Link item)) -> this.ToString() + " : " + item.ToString()
+        | Reference(IdentRef(Link item)) -> this.ToString() + " : " + item.ToString()
         | _ -> this.ToString()
 
-and VariableType = 
+and VariableType<'t> = 
     | Unbound
-    | Link of ValueType
-    | Generic of int
+    | Link of 't
 
-and TupleType = ValueType list * Option<ValueType>
+and [<StructuredFormatDisplay("{AsString}")>] TupleType = 
+    | Single of ValueType list * Option<ValueType>
+    | TReference of IdentRef<VariableType<TupleType>>
+    static member Empty = Single([], None)
+    
+    static member Format (this : TupleType) (alloc : StringAllocator<int>) : string = 
+        let format x = ValueType.Format x alloc
+        match this with
+        | Single(items, Some x) -> "(" + (String.concat ", " (Seq.map format items)) + ", " + format x + "...)"
+        | Single(items, None) -> "(" + (String.concat ", " (Seq.map format items)) + ")"
+        | TReference ref -> 
+            match ref.Value with
+            | Unbound -> "'0x" + ref.GetHashCode().ToString("X8") + "?"
+            | Link ty -> "'0x" + ref.GetHashCode().ToString("X8")
+    
+    override this.ToString() = TupleType.Format this (new StringAllocator<int>())
+    member this.AsString = this.ToString()
+    member this.WithLabel() = 
+        match this with
+        | TReference(IdentRef(Link item)) -> this.ToString() + " : " + item.ToString()
+        | _ -> this.ToString()
 
 and TableField = 
     { Key : ValueType
@@ -92,31 +94,3 @@ module Primitives =
     let Integer = Primitive LiteralKind.Integer
     let String = Primitive LiteralKind.String
     let Boolean = Primitive LiteralKind.Boolean
-
-module Extensions = 
-    open Matching
-    
-    type ValueType with
-        
-        member this.HasUnbound = 
-            let rec hasUnbound (ty : ValueType) = 
-                match ty with
-                | Reference(IdentRef Unbound) -> true
-                | Reference(_) -> true // TODO: Handle correctly
-                | Primitive _ | Literal _ | Nil | Dynamic | Value -> false
-                | FunctionIntersection items | Union items -> List.exists hasUnbound items
-                | Table(tbl, ops) -> List.exists fieldUnbound tbl || Array.exists hasUnbound ops
-                | Function(args, ret) -> tupleUnbound args || tupleUnbound ret
-            
-            and fieldUnbound (pair : TableField) = hasUnbound pair.Key || hasUnbound pair.Value
-            
-            and tupleUnbound ((items, remainder) : TupleType) = 
-                List.exists hasUnbound items || match remainder with
-                                                | None -> false
-                                                | Some x -> hasUnbound x
-            hasUnbound this
-        
-        member this.IsUnbound = 
-            match this with
-            | Reference(IdentRef Unbound) -> true
-            | _ -> false

@@ -3,7 +3,9 @@
 open System
 open System.Collections.Generic
 open LuaCP.Types
+open LuaCP.Types.Extensions
 open LuaCP.IR
+open LuaCP.Collections
 
 type private SubtypeResult = 
     /// <summary>The type is assignable</summary>
@@ -106,44 +108,57 @@ type TypeProvider() =
                         | _ -> raise (ArgumentException(sprintf "Cannot check conversion from %A" current))
                     | (_, Reference r) -> 
                         match r.Value with
-                        | Link current -> isSubtype target current
+                        | Link current -> 
+                            valueMap.Add((current, target), InProgress)
+                            isSubtype current target
                         | _ -> raise (ArgumentException(sprintf "Cannot check conversion to %A" current))
                     | (_, Function(_, _)) | (_, Nil) | (_, Literal _) | (_, Primitive _) | (_, Table(_, _)) -> Failure
                 valueMap.[(current, target)] <- childMatch
                 childMatch
-    and isTupleSubtype ((current, currentVar) : TupleType) ((target, targetVar) : TupleType) : SubtypeResult = 
-        if current = target && currentVar = targetVar then Success
+    and isTupleSubtype (current : TupleType) (target : TupleType) : SubtypeResult = 
+        if current = target then Success
         else 
-            let tuple = ((current, currentVar), (target, targetVar))
-            let (exists, result) = tupleMap.TryGetValue(tuple)
+            let exists, result = tupleMap.TryGetValue((current, target))
             if exists then result
             else 
-                tupleMap.Add(tuple, InProgress)
-                let extractCurrent (x : Option<ValueType>) = 
-                    if x.IsNone then Nil
-                    else Union [ x.Value; Nil ]
-                
-                let extractTarget (x : Option<ValueType>) = 
-                    if x.IsNone then Union [ Value; Nil ]
-                    else Union [ x.Value; Nil ]
-                
-                let rec check current target = 
+                let result = 
                     match current, target with
-                    | [], [] -> Success // TODO: Ma
-                    | cFirst :: cRem, tFirst :: tRem -> 
-                        if isSubtype cFirst tFirst = Failure then Failure
-                        else check cRem tRem
-                    | [], tRem -> 
-                        let c = extractCurrent currentVar
-                        if SubtypeResult.ForAll (isSubtype c) tRem = Failure then Failure
-                        else isSubtype c (extractTarget targetVar)
-                    | cRem, [] -> 
-                        let t = extractTarget targetVar
-                        if SubtypeResult.ForAll (fun x -> isSubtype x t) cRem = Failure then Failure
-                        else isSubtype (extractCurrent currentVar) t
-                
-                let result = check current target
-                tupleMap.[tuple] <- result
+                    | (TReference r, _) -> 
+                        match r.Value with
+                        | Link current -> 
+                            tupleMap.Add((current, target), InProgress)
+                            isTupleSubtype current target
+                        | _ -> raise (ArgumentException(sprintf "Cannot check conversion from %A" current))
+                    | (_, TReference r) -> 
+                        match r.Value with
+                        | Link current -> isTupleSubtype target current
+                        | _ -> raise (ArgumentException(sprintf "Cannot check conversion to %A" current))
+                    | Single(current, currentVar), Single(target, targetVar) -> 
+                        let extractCurrent (x : Option<ValueType>) = 
+                            if x.IsNone then Nil
+                            else Union [ x.Value; Nil ]
+                        
+                        let extractTarget (x : Option<ValueType>) = 
+                            if x.IsNone then Union [ Value; Nil ]
+                            else Union [ x.Value; Nil ]
+                        
+                        let rec check current target = 
+                            match current, target with
+                            | [], [] -> Success // TODO: Ma
+                            | cFirst :: cRem, tFirst :: tRem -> 
+                                if isSubtype cFirst tFirst = Failure then Failure
+                                else check cRem tRem
+                            | [], tRem -> 
+                                let c = extractCurrent currentVar
+                                if SubtypeResult.ForAll (isSubtype c) tRem = Failure then Failure
+                                else isSubtype c (extractTarget targetVar)
+                            | cRem, [] -> 
+                                let t = extractTarget targetVar
+                                if SubtypeResult.ForAll (fun x -> isSubtype x t) cRem = Failure then Failure
+                                else isSubtype (extractCurrent currentVar) t
+                        
+                        check current target
+                tupleMap.[(current, target)] <- result
                 result
     and isBiwaySubtype (current : ValueType) (target : ValueType) : SubtypeResult = 
         if isSubtype current target = Failure then Failure
@@ -182,7 +197,7 @@ type TypeProvider() =
                     | Link ty -> 
                         // Push an item to the cache to prevent recursive lookups
                         // TODO: What happens when a type is converted from an unbound to a link?
-                        let cache = new IdentRef<VariableType>(Unbound)
+                        let cache = new IdentRef<VariableType<_>>(Unbound)
                         unaryMap.Add(key, Reference item)
                         let res = getOperator ty op
                         cache.Value <- Link res
@@ -228,13 +243,13 @@ type TypeProvider() =
                 | Literal x -> Primitive x.Kind
                 | x -> x
             
-            let args, remainder = args
+            let args, remainder = args.Root
             
             let mapped : TupleType = 
-                (List.map literalToPrim args), 
-                match remainder with
-                | Some x -> Some(literalToPrim x)
-                | None -> None
+                Single((List.map literalToPrim args), 
+                       match remainder with
+                       | Some x -> Some(literalToPrim x)
+                       | None -> None)
             
             let equal (func : ValueType) = 
                 match func with
@@ -250,7 +265,7 @@ type TypeProvider() =
         let handleRight() = 
             let rightOp = getOperator right op
             if rightOp <> Nil then 
-                let best, remainder = this.FindBestFunction rightOp ([ left; right ], None)
+                let best, remainder = this.FindBestFunction rightOp (Single([ left; right ], None))
                 match best, remainder with
                 | Some x, _ -> x
                 | None, [] -> Nil
@@ -259,10 +274,9 @@ type TypeProvider() =
         
         let leftOp = getOperator left op
         if leftOp <> Nil then 
-            let best, remainder = this.FindBestFunction leftOp ([ left; right ], None)
+            let best, remainder = this.FindBestFunction leftOp (Single([ left; right ], None))
             match best, remainder with
             | Some x, _ -> x
             | None, [] -> handleRight()
             | None, items -> FunctionIntersection items
         else handleRight()
-

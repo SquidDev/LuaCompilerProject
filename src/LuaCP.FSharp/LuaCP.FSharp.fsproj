@@ -29,10 +29,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="Collections\Matching.fs" />
     <Compile Include="IR\InstructionUnion.fs" />
     <Compile Include="IR\InstructionMatching.fs" />
     <Compile Include="Types\Operators.fs" />
     <Compile Include="Types\ValueTypes.fs" />
+    <Compile Include="Types\Extensions.fs" />
     <Compile Include="Types\OperatorHelpers.fs" />
     <Compile Include="Types\TypeProvider.fs" />
     <Compile Include="Types\Factories.fs" />
@@ -43,6 +45,7 @@
   <ItemGroup>
     <Folder Include="IR\" />
     <Folder Include="Types\" />
+    <Folder Include="Collections\" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\LuaCP.Core\LuaCP.Core.csproj">

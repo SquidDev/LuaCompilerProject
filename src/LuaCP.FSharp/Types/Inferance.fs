@@ -8,24 +8,13 @@ open LuaCP.IR.Components
 open LuaCP.IR.Instructions
 open LuaCP.IR.Instructions.Matching
 open LuaCP.Types
-open LuaCP.Types.Matching
+open LuaCP.Collections.Matching
 open LuaCP.Types.Extensions
 open LuaCP.Types.OperatorExtensions
 open LuaCP.Types.TypeFactory
 
 type OperatorException(message : string) = 
     inherit Exception(message)
-
-let private extractFirst (ty : TupleType) = 
-    match ty with
-    | (ty :: _, _) -> ty
-    | (_, Some ty) -> ty
-    | _ -> raise (Exception(sprintf "Cannot extract return from %A" ty))
-
-let private extractReturn (ty : ValueType) = 
-    match ty with
-    | Function(args, ret) -> extractFirst ret
-    | _ -> raise (Exception(sprintf "Cannot extract function from %A" ty))
 
 let rec private mapTypes (scope : TypeScope) (items : IValue list) (builder : ValueType list) = 
     // TODO: Optimise so we don't have to convert to list
@@ -52,7 +41,7 @@ let InferType (scope : TypeScope) (insn : ValueInstruction) =
                 let operatorApply = scope.Checker.GetOperator ty operator
                 match operatorApply with
                 | Nil -> raise (OperatorException(sprintf "No known operator %A for %A" operator ty))
-                | Function(args, ret) -> Some(extractFirst ret)
+                | Function(args, ret) -> Some(ret.First)
                 | _ -> 
                     raise 
                         (OperatorException(sprintf "No known operator %A for %A (got %A)" insn.Opcode ty operatorApply))
@@ -65,8 +54,9 @@ let InferType (scope : TypeScope) (insn : ValueInstruction) =
                 let operatorApply = scope.Checker.GetBinaryOperatory tyLeft tyRight operator
                 match operatorApply with
                 | Nil -> raise (OperatorException(sprintf "No known operator %A for %A and %A" operator tyLeft tyRight))
-                | Function(args, ret) -> Some(extractFirst ret)
-                | FunctionIntersection bests -> Some(scope.Checker.MakeUnion(List.map extractReturn bests))
+                | Function(args, ret) -> Some(ret.First)
+                | FunctionIntersection bests -> 
+                    Some(scope.Checker.MakeUnion(List.map (fun (x : ValueType) -> x.Return) bests))
                 | _ -> 
                     raise 
                         (OperatorException
@@ -80,25 +70,27 @@ let InferType (scope : TypeScope) (insn : ValueInstruction) =
                                 |> Seq.map (fun x -> x :> IValue)
                                 |> Seq.toList) []
             match mapped with
-            | Some x -> Some(Function((x, None), ([], None)))
+            | Some x -> Some(Function(Single(x, None), TupleType.Empty))
             | None -> None
         | _ -> raise (ArgumentException(sprintf "Cannot handle %A" insn))
 
 let InferTuple (scope : TypeScope) (insn : ValueInstruction) = 
     if insn.Kind <> ValueKind.Tuple then 
         match InferType scope insn with
-        | Some x -> Some([ x ], None)
+        | Some x -> Some(Single([ x ], None))
         | None -> None
     else 
         match insn with
         | TupleNew insn -> 
             match mapTypes scope (Seq.toList insn.Values) [] with
             | Some x -> 
-                if insn.Remaining.IsNil() then Some(x, None)
+                if insn.Remaining.IsNil() then Some(Single(x, None))
                 else 
                     match scope.TryTupleGet insn.Remaining with
                     | None -> None
-                    | Some(result, remainder) -> Some(List.append x result, remainder)
+                    | Some(ty) -> 
+                        let result, remainder = ty.Root
+                        Some(Single(List.append x result, remainder))
             | None -> None
         | Call insn -> 
             match scope.TryGet insn.Method, scope.TryTupleGet insn.Arguments with

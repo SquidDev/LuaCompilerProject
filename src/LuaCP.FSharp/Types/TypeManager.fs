@@ -4,10 +4,17 @@ open System
 open System.Collections.Generic
 open LuaCP.Types
 open LuaCP.IR
+open LuaCP.Collections
 open LuaCP.IR.Components
 open LuaCP.Tree
 open LuaCP.Types.TypeFactory
 open LuaCP.Types.Extensions
+
+type Constraint = 
+    | Subtype of current : ValueType * target : ValueType
+    | HasBinOp of Operator * left : ValueType * right : ValueType
+    | HasUnOp of Operator * ValueType
+    | TupleSubtype of current : TupleType * target : TupleType
 
 type TypeManager() = 
     let functions = new Dictionary<Function, TypeScope>()
@@ -37,7 +44,7 @@ and TypeScope(manager : TypeManager, func : Function) =
             let exists, ty = values.TryGetValue(value)
             if exists then ty
             else 
-                let ty = Reference(new IdentRef<VariableType>(Unbound))
+                let ty = Reference(new IdentRef<_>(Unbound))
                 values.Add(value, ty)
                 ty
     
@@ -63,17 +70,17 @@ and TypeScope(manager : TypeManager, func : Function) =
     member this.Create(value : IValue) = this.Get value |> ignore
     
     member this.TupleGet(value : IValue) = 
-        if value.IsNil() then [], None
-        elif value.Kind <> ValueKind.Tuple then [ this.Get value ], None
+        if value.IsNil() then Single([], None)
+        elif value.Kind <> ValueKind.Tuple then Single([ this.Get value ], None)
         else tuples.[value]
     
     member this.TryTupleGet(value : IValue) = 
-        if value.IsNil() then Some([], None)
+        if value.IsNil() then Some(Single([], None))
         elif value.Kind <> ValueKind.Tuple then 
             match this.TryGet value with
             | None -> None
             | Some ty when ty.IsUnbound -> None
-            | Some ty -> Some([ ty ], None)
+            | Some ty -> Some(Single(([ ty ], None)))
         else 
             let exists, result = tuples.TryGetValue value
             if exists then Some result

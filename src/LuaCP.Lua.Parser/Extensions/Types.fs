@@ -90,9 +90,9 @@ type Types(lang : Language) =
         table |>> convert
     
     let func = 
-        let simpleTuple : Parser<TupleType> = named |>> (fun x -> [ x ], None)
+        let simpleTuple : Parser<TupleType> = named |>> (fun x -> Single([ x ], None))
         let longTuple : Parser<TupleType> = 
-            betweenL (Symbol "(") (Symbol ")") (sepBy typeParser (Symbol ",")) "tuple" |>> (fun x -> x, None)
+            betweenL (Symbol "(") (Symbol ")") (sepBy typeParser (Symbol ",")) "tuple" |>> (fun x -> Single(x, None))
         let tuple = simpleTuple <|> longTuple
         tuple .>> Symbol "->" .>>. tuple |>> ValueType.Function
     

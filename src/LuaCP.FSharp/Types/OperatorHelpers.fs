@@ -6,9 +6,9 @@ open LuaCP.IR
 open LuaCP.IR.Instructions
 
 let private lastIndex = OperatorExtensions.LastIndex
-let UnOp(x : ValueType) = Function(([ x ], None), ([ x ], None))
-let BinOp(x : ValueType) = Function(([ x; x ], None), ([ x ], None))
-let Compare(x : ValueType) = Function(([ x; x ], None), ([ Primitives.Boolean ], None))
+let UnOp(x : ValueType) = Function(Single([ x ], None), Single([ x ], None))
+let BinOp(x : ValueType) = Function(Single([ x; x ], None), Single([ x ], None))
+let Compare(x : ValueType) = Function(Single([ x; x ], None), Single([ Primitives.Boolean ], None))
 let Empty : Operators = Array.create lastIndex Nil
 
 let Singleton (x : ValueType) (op : Operator) = 
@@ -18,7 +18,7 @@ let Singleton (x : ValueType) (op : Operator) =
 
 let private concat = 
     let union = Union [ Primitives.Number; Primitives.String ]
-    Function(([ union; union ], None), ([ Primitives.String ], None))
+    Function(Single([ union; union ], None), Single([ Primitives.String ], None))
 
 let Number = 
     let un, bin, cmp = UnOp Primitives.Number, BinOp Primitives.Number, Compare Primitives.Number
@@ -56,7 +56,7 @@ let Integer =
 let String = 
     let cmp = Compare Primitives.String
     let ops : ValueType [] = Array.create lastIndex Nil
-    ops.[int Operator.Length] <- Function(([ Primitives.String ], None), ([ Primitives.Integer ], None))
+    ops.[int Operator.Length] <- Function(Single([ Primitives.String ], None), Single([ Primitives.Integer ], None))
     ops.[int Operator.Concat] <- concat
     ops.[int Operator.Equals] <- cmp
     ops.[int Operator.LessThan] <- cmp
@@ -74,8 +74,8 @@ let Dynamic =
     ops.[int Operator.Equals] <- cmp
     ops.[int Operator.LessThan] <- cmp
     ops.[int Operator.Index] <- bin
-    ops.[int Operator.NewIndex] <- Function(([ Dynamic; Dynamic; Dynamic ], None), ([], None))
-    ops.[int Operator.Call] <- Function(([], Some(Dynamic)), ([], Some(Dynamic)))
+    ops.[int Operator.NewIndex] <- Function(Single([ Dynamic; Dynamic; Dynamic ], None), Single([], None))
+    ops.[int Operator.Call] <- Function(Single([], Some(Dynamic)), Single([], Some(Dynamic)))
     ops
 
 let GetPrimitiveLookup(ty : LiteralKind) = 

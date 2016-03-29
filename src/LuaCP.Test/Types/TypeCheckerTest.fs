@@ -4,6 +4,7 @@ open NUnit.Framework
 open System
 open System.Text
 open LuaCP.IR
+open LuaCP.Collections
 open LuaCP.Types
 open LuaCP.Types.TypeFactory
 
@@ -18,15 +19,15 @@ type Data() =
     static member Make([<ParamArray>] args : Object []) = TestCaseData(args).SetName(sprintf "%A" args)
 
 let tStr, tNum, tInt = Primitives.String, Primitives.Number, Primitives.Integer
-let tVoid = [], None
+let tVoid = TupleType.Empty
 let lStr x = Literal(Literal.String x)
-let func x = Function((x, None), tVoid)
-let funcL x y = Function((x, None), (y, None))
+let func x = Function(Single(x, None), tVoid)
+let funcL x y = Function(Single(x, None), Single(y, None))
 let tabl x = Table(x, OperatorHelpers.Empty)
 let checker = new TypeProvider()
 
 let a = 
-    let tyRef = new IdentRef<VariableType>(Generic -1)
+    let tyRef = new IdentRef<_>(Unbound)
     let ty = Reference tyRef
     
     let table = 
@@ -34,17 +35,19 @@ let a =
             ([ { Key = tInt
                  Value = tInt
                  ReadOnly = true } ], 
-             OperatorHelpers.Singleton (Function(([ ty; ty ], None), ([ Primitives.Boolean ], None))) Operator.Equals)
+             OperatorHelpers.Singleton (Function(Single([ ty; ty ], None), Single([ Primitives.Boolean ], None))) 
+                 Operator.Equals)
     tyRef.Value <- Link table
     table
 
 let b = 
-    let tyRef = new IdentRef<VariableType>(Generic -1)
+    let tyRef = new IdentRef<_>(Unbound)
     let ty = Reference tyRef
     let table = 
         Table
             ([], 
-             OperatorHelpers.Singleton (Function(([ ty; ty ], None), ([ Primitives.Boolean ], None))) Operator.Equals)
+             OperatorHelpers.Singleton (Function(Single([ ty; ty ], None), Single([ Primitives.Boolean ], None))) 
+                 Operator.Equals)
     tyRef.Value <- Link table
     table
 
@@ -127,8 +130,10 @@ let TupleSubtypes =
                    Union [ tInt; Nil ] ], None, true) |]
 
 let Functions = 
-    [| Data.Make(Function(([ tStr ], None), tVoid), [ tStr ], None, Some(Function(([ tStr ], None), tVoid)), empty)
-       Data.Make(Function(([ tStr ], None), tVoid), [ tNum ], None, None, empty)
+    [| Data.Make
+           (Function(Single([ tStr ], None), tVoid), [ tStr ], None, Some(Function(Single([ tStr ], None), tVoid)), 
+            empty)
+       Data.Make(Function(Single([ tStr ], None), tVoid), [ tNum ], None, None, empty)
        Data.Make(FunctionIntersection [ func [ tStr ]
                                         func [ lStr "foo" ] ], [ tStr ], None, Some(func [ tStr ]), empty)
        Data.Make(FunctionIntersection [ func [ tStr ]
@@ -159,21 +164,22 @@ let ``Value subtypes`` (current : ValueType) (target : ValueType) (pass : bool) 
 
 [<Test>]
 [<TestCaseSource("TupleSubtypes")>]
-let ``Tuple subtypes`` (current : TupleType) (target : TupleType) (pass : bool) = 
+let ``Tuple subtypes`` (current : ValueType list) (currentRem : ValueType option) (target : ValueType list) 
+    (targetRem : ValueType option) (pass : bool) = 
+    let current = Single(current, currentRem)
+    let target = Single(target, targetRem)
     if pass then AssertSubtype checker.IsTupleSubtype current target
     else AssertNotSubtype checker.IsTupleSubtype current target
 
 [<Test>]
 [<TestCaseSource("Functions")>]
-let ``Best functions`` (func : ValueType) (args : TupleType) (eFunc : option<ValueType>) (eAlt : ValueType list) = 
+let ``Best functions`` (func : ValueType) (args : ValueType list) (argsRem : ValueType option) 
+    (eFunc : option<ValueType>) (eAlt : ValueType list) = 
+    let args = Single(args, argsRem)
     let aFunc, aAlt = checker.FindBestFunction func args
-    Assert.AreEqual
-        (eFunc, aFunc, 
-         sprintf "Function %A with %O: expected %A, got %A + %A" func (ValueType.FormatTuple args) eFunc aFunc aAlt)
+    Assert.AreEqual(eFunc, aFunc, sprintf "Function %A with %O: expected %A, got %A + %A" func args eFunc aFunc aAlt)
     CollectionAssert.AreEquivalent
-        (eAlt, aAlt, 
-         sprintf "Function %A with %O: expected alternatives of %A, got %A + %A" func (ValueType.FormatTuple args) eAlt 
-             aFunc aAlt)
+        (eAlt, aAlt, sprintf "Function %A with %O: expected alternatives of %A, got %A + %A" func args eAlt aFunc aAlt)
 
 [<Test>]
 [<TestCaseSource("Unions")>]
