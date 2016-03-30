@@ -56,7 +56,7 @@ let InferType (scope : TypeScope) (insn : ValueInstruction) =
                 | Nil -> raise (OperatorException(sprintf "No known operator %A for %A and %A" operator tyLeft tyRight))
                 | Function(args, ret) -> Some(ret.First)
                 | FunctionIntersection bests -> 
-                    Some(scope.Checker.MakeUnion(List.map (fun (x : ValueType) -> x.Return) bests))
+                    Some(scope.Checker.Union(List.map (fun (x : ValueType) -> x.Return) bests))
                 | _ -> 
                     raise 
                         (OperatorException
@@ -112,7 +112,7 @@ let InferTypes(scope : TypeScope) =
         for phi in block.PhiNodes do
             match mapTypes scope (Seq.toList phi.Source.Values) [] with
             | None -> ()
-            | Some items -> scope.Set phi (scope.Checker.MakeUnion items)
+            | Some items -> scope.Set phi (scope.Checker.Union items)
         for item in block do
             match item with
             | :? ValueInstruction as insn -> 

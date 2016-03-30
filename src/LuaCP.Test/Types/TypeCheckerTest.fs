@@ -18,7 +18,7 @@ type Data() =
     // This works as a member function, but not a let binding.
     static member Make([<ParamArray>] args : Object []) = TestCaseData(args).SetName(sprintf "%A" args)
 
-let tStr, tNum, tInt = Primitives.String, Primitives.Number, Primitives.Integer
+let tStr, tNum, tInt, tBoo = Primitives.String, Primitives.Number, Primitives.Integer, Primitives.Boolean
 let tVoid = TupleType.Empty
 let lStr x = Literal(Literal.String x)
 let func x = Function(Single(x, None), tVoid)
@@ -35,8 +35,7 @@ let a =
             ([ { Key = tInt
                  Value = tInt
                  ReadOnly = true } ], 
-             OperatorHelpers.Singleton (Function(Single([ ty; ty ], None), Single([ Primitives.Boolean ], None))) 
-                 Operator.Equals)
+             OperatorHelpers.Singleton (Function(Single([ ty; ty ], None), Single([ tBoo ], None))) Operator.Equals)
     tyRef.Value <- Link table
     table
 
@@ -45,9 +44,15 @@ let b =
     let ty = Reference tyRef
     let table = 
         Table
-            ([], 
-             OperatorHelpers.Singleton (Function(Single([ ty; ty ], None), Single([ Primitives.Boolean ], None))) 
-                 Operator.Equals)
+            ([], OperatorHelpers.Singleton (Function(Single([ ty; ty ], None), Single([ tBoo ], None))) Operator.Equals)
+    tyRef.Value <- Link table
+    table
+
+let addable = 
+    let tyRef = new IdentRef<_>(Unbound)
+    let ty = Reference tyRef
+    let table = 
+        Table([], OperatorHelpers.Singleton (Function(Single([ ty; ty ], None), Single([ ty ], None))) Operator.Add)
     tyRef.Value <- Link table
     table
 
@@ -111,7 +116,12 @@ let ValueSubtypes =
        Data.Make(tNum, Table([], OperatorHelpers.Singleton (funcL [ tNum; tNum ] [ tNum ]) Operator.Add), true)
        // Recursive types
        Data.Make(a, b, true)
-       Data.Make(b, a, false) |]
+       Data.Make(b, a, false)
+       // With operators
+       Data.Make(tNum, a, false)
+       Data.Make(tNum, b, true)
+       Data.Make(tNum, addable, true)
+       Data.Make(addable, tNum, false) |]
 
 let empty = List.empty<ValueType>
 let emptyTuples = List.empty<TupleType>
@@ -156,6 +166,14 @@ let Unions =
                    tNum
                    Nil ], Union [ tStr; tNum; Nil ]) |]
 
+let Constraints = 
+    [| Data.Make(tStr, tStr, Some tStr)
+       Data.Make(tStr, tNum, None)
+       Data.Make(Union [ tStr; tNum ], tStr, Some tStr)
+       Data.Make(Union [ tStr; tNum ], Nil, None)
+       Data.Make(Union [ Nil; tStr; tNum ], addable, Some tNum)
+       Data.Make(Union [ tStr; tNum; Nil ], Union [ tStr; Nil ], Some(Union [ tStr; Nil ])) |]
+
 [<Test>]
 [<TestCaseSource("ValueSubtypes")>]
 let ``Value subtypes`` (current : ValueType) (target : ValueType) (pass : bool) = 
@@ -184,7 +202,20 @@ let ``Best functions`` (func : ValueType) (args : ValueType list) (argsRem : Val
 [<Test>]
 [<TestCaseSource("Unions")>]
 let ``Union simplification`` (current : ValueType list) (expected : ValueType) = 
-    let aCurrent = checker.MakeUnion current
+    let aCurrent = checker.Union current
     Assert.True
         (checker.IsTypeEqual expected aCurrent, 
          sprintf "Union %A: expected %A, got %A" (Union current) expected aCurrent)
+
+[<Test>]
+[<TestCaseSource("Constraints")>]
+let ``Type constraints`` (ty : ValueType) (constrain : ValueType) (expected : ValueType option) = 
+    let aCurrent = checker.Constrain ty constrain
+    match (expected, aCurrent) with
+    | None, None -> ()
+    | Some _, None | None, Some _ -> 
+        raise (AssertionException(sprintf "%A <: %A: expected %A, got %A" constrain ty expected aCurrent))
+    | Some expected, Some aCurrent -> 
+        Assert.True
+            (checker.IsTypeEqual expected aCurrent, 
+             sprintf "%A <: %A: expected %A, got %A" constrain ty expected aCurrent)

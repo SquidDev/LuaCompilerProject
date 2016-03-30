@@ -37,7 +37,7 @@ type private SubtypeResult =
         match this with
         | Success -> true
         | Failure -> false
-        | InProgress -> raise (InvalidOperationException "InProgress")
+        | InProgress -> raise (InvalidOperationException "Cannot convert InProgress to boolean")
 
 type TypeProvider() = 
     let valueMap = new Dictionary<ValueType * ValueType, SubtypeResult>()
@@ -56,7 +56,7 @@ type TypeProvider() =
             let (exists, result) = valueMap.TryGetValue((current, target))
             if exists then result
             else 
-                let childMatch = 
+                let result = 
                     match (current, target) with
                     // Do unions/intersections first:
                     | (Union contents, _) -> SubtypeResult.ForAll (fun v -> isSubtype v target) contents
@@ -90,31 +90,42 @@ type TypeProvider() =
                                tFields = Failure then Failure
                         else isOperatorsSubtype cOpcodes tOpcodes
                     | (Primitive current, Table(tFields, tOpcodes)) -> 
-                        isOperatorsSubtype (OperatorHelpers.GetPrimitiveLookup current) tOpcodes
+                        if List.isEmpty tFields then 
+                            isOperatorsSubtype (OperatorHelpers.GetPrimitiveLookup current) tOpcodes
+                        else Failure
                     | (Literal current, Table(tFields, tOpcodes)) -> 
-                        isOperatorsSubtype (OperatorHelpers.GetPrimitiveLookup current.Kind) tOpcodes
+                        if List.isEmpty tFields then 
+                            isOperatorsSubtype (OperatorHelpers.GetPrimitiveLookup current.Kind) tOpcodes
+                        else Failure
                     | Function(_, _), Table(tFields, tOpcodes) -> 
-                        if Seq.isEmpty tFields then 
+                        if List.isEmpty tFields then 
                             let ops : ValueType [] = Array.create OperatorExtensions.LastIndex Nil
                             ops.[int Operator.Call] <- current
                             isOperatorsSubtype ops tOpcodes
                         else Failure
-                    // These are the 'primitives', cannot be handled anywhere else. 
+                    // Reference types
                     | (Reference r, _) -> 
                         match r.Value with
-                        | Link current -> 
+                        | Link rTarget -> 
                             valueMap.Add((current, target), InProgress)
                             isSubtype current target
                         | _ -> raise (ArgumentException(sprintf "Cannot check conversion from %A" current))
                     | (_, Reference r) -> 
                         match r.Value with
-                        | Link current -> 
+                        | Link rCurrent -> 
                             valueMap.Add((current, target), InProgress)
-                            isSubtype current target
+                            isSubtype rCurrent target
                         | _ -> raise (ArgumentException(sprintf "Cannot check conversion to %A" current))
+                    // These are the 'primitives', cannot be handled anywhere else. 
                     | (_, Function(_, _)) | (_, Nil) | (_, Literal _) | (_, Primitive _) | (_, Table(_, _)) -> Failure
-                valueMap.[(current, target)] <- childMatch
-                childMatch
+                
+                let result = 
+                    match result with
+                    | InProgress -> Success
+                    | x -> x
+                
+                valueMap.[(current, target)] <- result
+                result
     and isTupleSubtype (current : TupleType) (target : TupleType) : SubtypeResult = 
         if current = target then Success
         else 
@@ -125,13 +136,15 @@ type TypeProvider() =
                     match current, target with
                     | (TReference r, _) -> 
                         match r.Value with
-                        | Link current -> 
+                        | Link rCurrent -> 
                             tupleMap.Add((current, target), InProgress)
                             isTupleSubtype current target
                         | _ -> raise (ArgumentException(sprintf "Cannot check conversion from %A" current))
                     | (_, TReference r) -> 
                         match r.Value with
-                        | Link current -> isTupleSubtype target current
+                        | Link rTarget -> 
+                            tupleMap.Add((current, target), InProgress)
+                            isTupleSubtype current rTarget
                         | _ -> raise (ArgumentException(sprintf "Cannot check conversion to %A" current))
                     | Single(current, currentVar), Single(target, targetVar) -> 
                         let extractCurrent (x : Option<ValueType>) = 
@@ -158,6 +171,12 @@ type TypeProvider() =
                                 else isSubtype (extractCurrent currentVar) t
                         
                         check current target
+                
+                let result = 
+                    match result with
+                    | InProgress -> Success
+                    | x -> x
+                
                 tupleMap.[(current, target)] <- result
                 result
     and isBiwaySubtype (current : ValueType) (target : ValueType) : SubtypeResult = 

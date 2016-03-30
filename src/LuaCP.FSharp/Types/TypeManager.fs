@@ -94,7 +94,7 @@ and TypeScope(manager : TypeManager, func : Function) =
         let modify = new List<KeyValuePair<IValue, ValueType>>()
         for pair in values do
             match pair.Value with
-            | Union items -> modify.Add(new KeyValuePair<_, _>(pair.Key, this.Checker.MakeUnion items))
+            | Union items -> modify.Add(new KeyValuePair<_, _>(pair.Key, this.Checker.Union items))
             | _ -> ()
         for pair in modify do
             values.[pair.Key] <- pair.Value
