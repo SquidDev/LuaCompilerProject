@@ -32,6 +32,11 @@ namespace LuaCP.Lua.Tree.Statement
 				else
 				{
 					builder = node.BuildAsTuple(builder, out remainder);
+					if (remainder.Kind != ValueKind.Tuple)
+					{
+						values.Add(remainder);
+						remainder = builder.Constants.Nil;
+					}
 				}
 
 				index++;

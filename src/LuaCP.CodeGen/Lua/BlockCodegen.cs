@@ -175,7 +175,7 @@ namespace LuaCP.CodeGen.Lua
 								builder.Append(", ");
 							}
 
-							foreach (KeyValuePair<IValue, IValue> pair in tblNew.hashPart)
+							foreach (KeyValuePair<IValue, IValue> pair in tblNew.HashPart)
 							{
 								string value = Format(pair.Value);
 								builder.Append(FormatKey(pair.Key));

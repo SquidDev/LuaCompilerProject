@@ -54,6 +54,7 @@ let main argv =
                     Console.WriteLine("!dump:  Dump the previous source")
                     Console.WriteLine("!graph: Plot the CFG of the previous source")
                     Console.WriteLine("!lasm:  Dump LASM code of the module")
+                    Console.WriteLine("!types: Dump the types and constraints of all values")
                 | "dump" -> (new Exporter(Console.Out)).ModuleLong(modu)
                 | "graph" -> DotExporter.Write(modu)
                 | "code" -> (new FunctionCodegen(modu.EntryPoint, new IndentedTextWriter(Console.Out))).Write()
@@ -63,14 +64,12 @@ let main argv =
                     (new BytecodeCodegen(x, modu.EntryPoint)).Write()
                     Console.WriteLine(builder)
                 | "types" -> 
-                    let manager = builder.EntryPoint.Scopes.Get<TypeScope>()
-                    let numberer = new NodeNumberer(builder.Function)
-                    for pair in manager.ValueTypes do
-                        Formatter.Default.Value(pair.Key, Console.Out, numberer)
-                        printfn " : %s" (pair.Value.WithLabel())
-                    for pair in manager.TupleTypes do
-                        Formatter.Default.Value(pair.Key, Console.Out, numberer)
-                        printfn " : %A" (pair.Value)
+                    let scope = builder.EntryPoint.Scopes.Get<TypeScope>()
+                    for func in modu.Functions do
+                        let numberer = new NodeNumberer(builder.Function)
+                        scope.DumpFunction numberer
+                    scope.DumpConstraints()
+
                 | line -> Console.WriteLine("Unknown command " + line)
         else 
             match parse line with
@@ -80,8 +79,8 @@ let main argv =
                 builder <- new FunctionBuilder(modu)
                 builder.Accept(item) |> ignore
                 let scope = builder.EntryPoint.Scopes.Get<TypeScope>()
-                Infer.InferTypes (scope)
-                scope.Simplify()
+                for func in modu.Functions do
+                    Infer.InferTypes scope func
                 try 
                     ()
                 // PassManager.Run(modu, PassExtensions.Default, true)

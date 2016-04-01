@@ -23,7 +23,9 @@ type TypedDeclaration(name : string, ty : option<ValueType>) =
         let ref = builder.Block.AddLast(ReferenceNew(value))
         builder.Get<IVariableScope>().Declare(this.Name, ref)
         match ty with
-        | Some x -> builder.Get<TypeScope>().Set ref x
+        | Some x -> 
+            let scope = builder.Get<TypeScope>()
+            scope.Constraint(ValueEqual(scope.Get ref, x))
         | None -> ()
         builder
 

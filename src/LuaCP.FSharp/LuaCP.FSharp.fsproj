@@ -30,6 +30,7 @@
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Collections\Matching.fs" />
+    <Compile Include="Collections\Helpers.fs" />
     <Compile Include="IR\InstructionUnion.fs" />
     <Compile Include="IR\InstructionMatching.fs" />
     <Compile Include="Types\Operators.fs" />

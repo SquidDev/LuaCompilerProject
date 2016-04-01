@@ -19,7 +19,7 @@ namespace LuaCP.Lua.Tree
 			EntryPoint = new BlockBuilder(Function);
 			EntryPoint.Scopes.Add<IVariableScope>(new VariableScope());
 			EntryPoint.Scopes.Add(new LabelScope(Function));
-			EntryPoint.Scopes.Add(new TypeScope(new TypeManager(), Function));
+			EntryPoint.Scopes.Add(new TypeScope());
 			EntryPoint.Get<IVariableScope>().Declare(VariableScope.GlobalTable, new Upvalue(Function, true));
 		}
 

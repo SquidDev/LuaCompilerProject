@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -115,7 +114,7 @@ namespace LuaCP.IR.Instructions
 		public readonly int AdditionalHash;
 		
 		private readonly UsingList<IValue> arrayPart;
-		public readonly UsingDictionary<IValue, IValue, TableNew> hashPart;
+		private readonly UsingDictionary<IValue, IValue, TableNew> hashPart;
 
 		public IList<IValue> ArrayPart { get { return arrayPart; } }
 

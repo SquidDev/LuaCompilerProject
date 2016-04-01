@@ -1,6 +1,9 @@
 ﻿module LuaCP.Types.Infer
 
 open System
+open System.Collections.Generic
+open LuaCP.Collections
+open LuaCP.Collections.Matching
 open LuaCP.Graph
 open LuaCP.Reporting
 open LuaCP.IR
@@ -8,7 +11,6 @@ open LuaCP.IR.Components
 open LuaCP.IR.Instructions
 open LuaCP.IR.Instructions.Matching
 open LuaCP.Types
-open LuaCP.Collections.Matching
 open LuaCP.Types.Extensions
 open LuaCP.Types.OperatorExtensions
 open LuaCP.Types.TypeFactory
@@ -16,117 +18,58 @@ open LuaCP.Types.TypeFactory
 type OperatorException(message : string) = 
     inherit Exception(message)
 
-let rec private mapTypes (scope : TypeScope) (items : IValue list) (builder : ValueType list) = 
-    // TODO: Optimise so we don't have to convert to list
-    match items with
-    | [] -> Some builder
-    | value :: remainder -> 
-        match scope.TryGet value with
-        | None -> None
-        | Some ty when ty.IsUnbound -> None
-        | Some ty -> mapTypes scope remainder (ty :: builder)
-
-let InferType (scope : TypeScope) (insn : ValueInstruction) = 
-    let known, result = scope.ValueTypes.TryGetValue insn
-    if known && not result.IsUnbound then None
-    else 
-        match insn with
-        | ReferenceGet ref -> Some(scope.Get ref.Reference)
-        | ReferenceNew ref -> Some(scope.Get ref.Value)
-        | UnaryOp insn -> 
-            let ty = scope.Get insn.Operand
-            if ty.HasUnbound then None
-            else 
-                let operator = insn.Opcode.AsOperator
-                let operatorApply = scope.Checker.GetOperator ty operator
-                match operatorApply with
-                | Nil -> raise (OperatorException(sprintf "No known operator %A for %A" operator ty))
-                | Function(args, ret) -> Some(ret.First)
-                | _ -> 
-                    raise 
-                        (OperatorException(sprintf "No known operator %A for %A (got %A)" insn.Opcode ty operatorApply))
-        | BinaryOp insn -> 
-            let tyLeft = scope.Get insn.Left
-            let tyRight = scope.Get insn.Right
-            if tyLeft.HasUnbound || tyRight.HasUnbound then None
-            else 
-                let operator = insn.Opcode.AsOperator
-                let operatorApply = scope.Checker.GetBinaryOperatory tyLeft tyRight operator
-                match operatorApply with
-                | Nil -> raise (OperatorException(sprintf "No known operator %A for %A and %A" operator tyLeft tyRight))
-                | Function(args, ret) -> Some(ret.First)
-                | FunctionIntersection bests -> 
-                    Some(scope.Checker.Union(List.map (fun (x : ValueType) -> x.Return) bests))
-                | _ -> 
-                    raise 
-                        (OperatorException
-                             (sprintf "No known operator %A for %A and %A (got %A)" insn.Opcode tyLeft tyRight 
-                                  operatorApply))
-        | ClosureNew insn -> 
-            let func = insn.Function
-            
-            let mapped = 
-                mapTypes scope (Seq.filter (fun (x : Argument) -> x.Kind = ValueKind.Value) insn.Function.Arguments
+let InferType (scope : TypeScope) (insn : Instruction) = 
+    match insn with
+    | BinaryOp insn -> scope.VConstraint(WithBinOp(insn.Opcode.AsOperator, insn.Left, insn.Right, upcast insn))
+    | UnaryOp insn -> scope.VConstraint(WithUnOp(insn.Opcode.AsOperator, insn.Operand, upcast insn))
+    | ValueCondition insn -> 
+        scope.Constraint(ValueEqual(Union [ scope.Get insn.Success
+                                            scope.Get insn.Failure ], scope.Get insn))
+    | Return insn -> scope.Constraint(TupleSubtype(scope.TupleGet insn.Values, scope.ReturnGet insn.Block.Function))
+    | TableGet insn -> 
+        scope.Constraint(ValueSubtype(Table([ { Key = scope.Get insn.Key
+                                                Value = scope.Get insn
+                                                ReadOnly = true } ], OperatorHelpers.Empty), scope.Get insn.Table))
+    | TableSet insn -> 
+        scope.Constraint(ValueSubtype(Table([ { Key = scope.Get insn.Key
+                                                Value = scope.Get insn.Value
+                                                ReadOnly = false } ], OperatorHelpers.Empty), scope.Get insn.Table))
+    | TableNew insn -> 
+        let keys = 
+            Seq.map (fun (x : KeyValuePair<_, _>) -> 
+                { Key = scope.Get x.Key
+                  Value = scope.Get x.Value
+                  ReadOnly = false }) insn.HashPart
+            |> Seq.toList
+        // TODO: Handle array part
+        scope.Constraint(ValueSubtype(Table(keys, OperatorHelpers.Empty), scope.Get insn))
+    | Call insn -> 
+        scope.Constraint
+            (ValueSubtype(scope.Get insn.Method, Function(scope.TupleGet insn.Arguments, scope.TupleGet insn)))
+    | TupleNew insn when insn.Remaining.IsNil() -> 
+        scope.Constraint(TupleEqual(scope.TupleGet insn, Single(Seq.map scope.Get insn.Values |> Seq.toList, None)))
+    | ReferenceGet insn -> scope.VConstraint(ValueEqual(insn.Reference, upcast insn))
+    | ReferenceSet insn -> scope.VConstraint(ValueSubtype(insn.Value, insn.Reference))
+    | ReferenceNew insn -> scope.VConstraint(ValueSubtype(insn.Value, upcast insn))
+    | ClosureNew insn -> 
+        Seq.iteri (fun i (x : IValue) -> scope.VConstraint(ValueEqual(x, upcast insn.Function.OpenUpvalues.[i]))) 
+            insn.OpenUpvalues
+        Seq.iteri (fun i (x : IValue) -> scope.VConstraint(ValueSubtype(x, upcast insn.Function.ClosedUpvalues.[i]))) 
+            insn.ClosedUpvalues
+        let mapped = 
+            List.map scope.Get (Seq.filter (fun (x : Argument) -> x.Kind = ValueKind.Value) insn.Function.Arguments
                                 |> Seq.map (fun x -> x :> IValue)
-                                |> Seq.toList) []
-            match mapped with
-            | Some x -> Some(Function(Single(x, None), TupleType.Empty))
-            | None -> None
-        | _ -> raise (ArgumentException(sprintf "Cannot handle %A" insn))
+                                |> Seq.toList)
+        scope.Constraint(ValueEqual(Function(Single(mapped, None), scope.ReturnGet insn.Function), scope.Get insn))
+    | Branch _ | BranchCondition _ -> ()
+    | _ -> printfn "Cannot handle %A" insn
 
-let InferTuple (scope : TypeScope) (insn : ValueInstruction) = 
-    if insn.Kind <> ValueKind.Tuple then 
-        match InferType scope insn with
-        | Some x -> Some(Single([ x ], None))
-        | None -> None
-    else 
-        match insn with
-        | TupleNew insn -> 
-            match mapTypes scope (Seq.toList insn.Values) [] with
-            | Some x -> 
-                if insn.Remaining.IsNil() then Some(Single(x, None))
-                else 
-                    match scope.TryTupleGet insn.Remaining with
-                    | None -> None
-                    | Some(ty) -> 
-                        let result, remainder = ty.Root
-                        Some(Single(List.append x result, remainder))
-            | None -> None
-        | Call insn -> 
-            match scope.TryGet insn.Method, scope.TryTupleGet insn.Arguments with
-            | Some func, Some result -> 
-                match scope.Checker.FindBestFunction func result with
-                | Some(Function(args, ret)), _ -> Some ret
-                | Some(x), _ -> raise (InvalidOperationException(sprintf "Unexpected function type %A" x))
-                | None, [] -> 
-                    raise (OperatorException(sprintf "No known function for %A (with arguments %A)" func result))
-                | None, items -> 
-                    raise 
-                        (OperatorException
-                             (sprintf "Multiple overloads for %A (with arguments %A): %A" func result items))
-            | _ -> None
-        | _ -> raise (ArgumentException(sprintf "Cannot handle %A" insn))
-
-let InferTypes(scope : TypeScope) = 
-    let visitBlock (block : Block) = 
+let InferTypes (scope : TypeScope) (func : Function) = 
+    for block in func.EntryPoint.VisitPreorder() do
         for phi in block.PhiNodes do
-            match mapTypes scope (Seq.toList phi.Source.Values) [] with
-            | None -> ()
-            | Some items -> scope.Set phi (scope.Checker.Union items)
+            match phi.Kind with
+            | ValueKind.Value -> 
+                scope.Constraint(ValueEqual(Union(Seq.map scope.Get phi.Source.Values |> Seq.toList), scope.Get phi))
+            | ValueKind.Tuple -> () // TODO: Handle this
         for item in block do
-            match item with
-            | :? ValueInstruction as insn -> 
-                try 
-                    if insn.Kind = ValueKind.Tuple then 
-                        match InferTuple scope insn with
-                        | Some ty -> scope.TupleSet insn ty
-                        | None -> ()
-                    else 
-                        match InferType scope insn with
-                        | Some ty -> scope.Set insn ty
-                        | None -> ()
-                with :? OperatorException as e -> 
-                    scope.Function.Module.Reporter.Report(ReportLevel.Error, e.Message, insn.Position)
-            | _ -> ()
-    for block in scope.Function.EntryPoint.VisitPreorder() do
-        visitBlock block
+            InferType scope item

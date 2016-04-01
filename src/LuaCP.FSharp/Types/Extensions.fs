@@ -24,13 +24,28 @@ and tupleUnbound (ty : TupleType) =
 
 and tableUnbound (ty : TableField) = hasUnbound ty.Key || hasUnbound ty.Value
 
-let rec private first (ty : TupleType) = 
+let rec private nth ty rem n = 
+    match n with
+    | 0 -> 
+        match ty, rem with
+        | [], Some x -> Union [ x; Nil ]
+        | [], None -> Nil
+        | item :: _, _ -> item
+    | n -> 
+        match ty, rem with
+        | [], Some x -> Union [ x; Nil ]
+        | [], None -> Nil
+        | _ :: rest, _ -> nth rest rem (n - 1)
+
+let rec private root (ty : TupleType) = 
     match ty with
-    | Single([], Some x) -> Union [ x; Nil ]
-    | Single([], None) -> Nil
-    | Single(item :: rem, _) -> item
-    | TReference(IdentRef Unbound) -> raise (ArgumentException("Cannot get return of unbound"))
-    | TReference(IdentRef(Link x)) -> first ty
+    | TReference(IdentRef Unbound) -> raise (ArgumentException("Cannot get root of unbound"))
+    | TReference(IdentRef(Link x)) -> root ty
+    | Single(args, rem) -> args, rem
+
+let rec private first (ty : TupleType) = 
+    let ty, rem = root ty
+    nth ty rem 0
 
 type ValueType with
     member this.HasUnbound = hasUnbound this
@@ -59,14 +74,11 @@ type TableField with
 type TupleType with
     member this.First = first this
     
-    member this.Root = 
-        let rec root (ty : TupleType) = 
-            match ty with
-            | TReference(IdentRef Unbound) -> raise (ArgumentException("Cannot get root of unbound"))
-            | TReference(IdentRef(Link x)) -> root ty
-            | Single(args, rem) -> args, rem
-        root this
+    member this.Nth n = 
+        let ty, rem = root this
+        nth ty rem n
     
+    member this.Root = root this
     member this.HasUnbound = tupleUnbound this
     member this.IsUnbound = 
         match this with
