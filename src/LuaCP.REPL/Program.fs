@@ -79,8 +79,9 @@ let main argv =
                 builder <- new FunctionBuilder(modu)
                 builder.Accept(item) |> ignore
                 let scope = builder.EntryPoint.Scopes.Get<TypeScope>()
+                scope.Constraint(ValueSubtype(scope.Get (builder.EntryPoint.Scopes.Get<IVariableScope>().Globals), StandardLibraries.Base))
                 for func in modu.Functions do
-                    Infer.InferTypes scope func
+                    ConstraintGenerator.InferTypes scope func
                 try 
                     ()
                 // PassManager.Run(modu, PassExtensions.Default, true)

@@ -39,8 +39,9 @@
     <Compile Include="Types\OperatorHelpers.fs" />
     <Compile Include="Types\TypeProvider.fs" />
     <Compile Include="Types\Factories.fs" />
-    <Compile Include="Types\TypeManager.fs" />
-    <Compile Include="Types\Inferance.fs" />
+    <Compile Include="Types\TypeScope.fs" />
+    <Compile Include="Types\ConstraintGenerator.fs" />
+    <Compile Include="Types\StandardLibraries.fs" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.1\Framework\v4.0\Microsoft.FSharp.Targets" />
   <ItemGroup>

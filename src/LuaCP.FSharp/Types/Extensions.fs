@@ -1,28 +1,31 @@
 ﻿module LuaCP.Types.Extensions
 
 open System
+open System.Collections.Generic
+open LuaCP.Collections
 open LuaCP.Types
 open LuaCP.Collections.Matching
 
-let rec private hasUnbound (ty : ValueType) = 
+let rec private hasUnbound (visited : HashSet<Object>) (ty : ValueType) = 
     match ty with
     | Reference(IdentRef Unbound) -> true
-    | Reference(_) -> true // TODO: Handle correctly
+    | Reference(IdentRef(Link(item)) as ref) -> visited.Add(ref :> Object) && hasUnbound visited item
     | Primitive _ | Literal _ | Nil | Dynamic | Value -> false
-    | FunctionIntersection items | Union items -> List.exists hasUnbound items
-    | Table(tbl, ops) -> List.exists tableUnbound tbl || Array.exists hasUnbound ops
-    | Function(args, ret) -> tupleUnbound args || tupleUnbound ret
+    | FunctionIntersection items | Union items -> List.exists (hasUnbound visited) items
+    | Table(tbl, ops) -> List.exists (tableUnbound visited) tbl || Array.exists (hasUnbound visited) ops
+    | Function(args, ret) -> (tupleUnbound visited) args || tupleUnbound visited ret
 
-and tupleUnbound (ty : TupleType) = 
+and tupleUnbound (visited : HashSet<Object>) (ty : TupleType) = 
     match ty with
     | Single(items, remainder) -> 
-        List.exists hasUnbound items || match remainder with
-                                        | None -> false
-                                        | Some x -> hasUnbound x
+        List.exists (hasUnbound visited) items || match remainder with
+                                                  | None -> false
+                                                  | Some x -> (hasUnbound visited) x
     | TReference(IdentRef Unbound) -> true
-    | TReference(_) -> false // TODO: Handle corretly
+    | TReference(IdentRef(Link(item)) as ref) -> visited.Add(ref :> Object) && tupleUnbound visited item
 
-and tableUnbound (ty : TableField) = hasUnbound ty.Key || hasUnbound ty.Value
+and tableUnbound (visited : HashSet<Object>) (ty : TableField) = 
+    hasUnbound visited ty.Key || hasUnbound visited ty.Value
 
 let rec private nth ty rem n = 
     match n with
@@ -48,7 +51,7 @@ let rec private first (ty : TupleType) =
     nth ty rem 0
 
 type ValueType with
-    member this.HasUnbound = hasUnbound this
+    member this.HasUnbound = hasUnbound (new HashSet<_>()) this
     
     member this.IsUnbound = 
         match this with
@@ -69,7 +72,7 @@ type ValueType with
         | _ -> raise (Exception(sprintf "Cannot extract function from %A" this))
 
 type TableField with
-    member this.HasUnbound = tableUnbound this
+    member this.HasUnbound = tableUnbound (new HashSet<_>()) this
 
 type TupleType with
     member this.First = first this
@@ -79,7 +82,7 @@ type TupleType with
         nth ty rem n
     
     member this.Root = root this
-    member this.HasUnbound = tupleUnbound this
+    member this.HasUnbound = tupleUnbound (new HashSet<_>()) this
     member this.IsUnbound = 
         match this with
         | TReference(IdentRef Unbound) -> true

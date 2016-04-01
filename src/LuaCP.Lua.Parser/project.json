@@ -1,0 +1,34 @@
+{
+	"version": "1.0.0-*",
+	"dependencies": {
+		"Microsoft.FSharp.Core.netcore": "1.0.0-alpha-151221",
+		"NETStandard.Library": "1.0.0-rc2-23811",
+		"FParsec": "1.0.2",
+		"LuaCP.Core": "1.0.0-*",
+		"LuaCP.Lua.Tree": "1.0.0-*",
+		"LuaCP.Parser.Extensions": "1.0.0-*",
+		"LuaCP.FSharp": "1.0.0-*"
+	},
+	"compilerName": "fsc",
+	"compileFiles": [
+		"AssemblyInfo.fs",
+		"Nodes.fs",
+		"Pattern.fs",
+		"Utils.fs",
+		"Operators.fs",
+		"Parsers.fs",
+		"Primitives.fs",
+		"Language.fs",
+		"Literal.fs",
+		"Function.fs",
+		"Expression.fs",
+		"Statement.fs",
+		"Extensions\\Basics.fs",
+		"Extensions\\Types.fs",
+	],
+	"frameworks": {
+		"dnxcore50": {
+			"imports": "portable-net45+win8"
+		}
+	}
+}

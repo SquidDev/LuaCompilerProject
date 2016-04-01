@@ -1,4 +1,4 @@
-﻿module LuaCP.Types.Infer
+﻿module LuaCP.Types.ConstraintGenerator
 
 open System
 open System.Collections.Generic

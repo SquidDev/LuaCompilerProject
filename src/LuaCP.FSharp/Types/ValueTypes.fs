@@ -68,6 +68,7 @@ and [<StructuredFormatDisplay("{AsString}")>] TupleType =
     static member Format (this : TupleType) (alloc : StringAllocator<int>) : string = 
         let format x = ValueType.Format x alloc
         match this with
+        | Single([], Some x) -> "(" + format x + "...)"
         | Single(items, Some x) -> "(" + (String.concat ", " (Seq.map format items)) + ", " + format x + "...)"
         | Single(items, None) -> "(" + (String.concat ", " (Seq.map format items)) + ")"
         | TReference ref -> 

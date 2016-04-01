@@ -1,0 +1,27 @@
+{
+	"version": "1.0.0-*",
+	"compilationOptions": {
+		"emitEntryPoint": true
+	},
+	"dependencies": {
+		"Microsoft.FSharp.Core.netcore": "1.0.0-alpha-151221",
+		"NETStandard.Library": "1.0.0-rc2-23811",
+		"LuaCP.Core": "1.0.0-*",
+		"LuaCP.FSharp": "1.0.0-*",
+		"NUnit": "3.0.1",
+		"NUnitLite": "3.0.1"
+	},
+	"compilerName": "fsc",
+	"compileFiles": [
+		"AssemblyInfo.fs",
+		"Types\\TypeCheckerTest.fs",
+		"Types\\OperatorCheck.fs",
+		"Passes\\ReferenceToValueTest.fs",
+		"Program.Core.fs"
+	],
+	"frameworks": {
+		"dnxcore50": {
+			"imports": "portable-net45+win8"
+		}
+	}
+}
