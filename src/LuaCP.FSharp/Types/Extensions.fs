@@ -40,11 +40,14 @@ let rec private nth ty rem n =
         | [], None -> Nil
         | _ :: rest, _ -> nth rest rem (n - 1)
 
-let rec private root (ty : TupleType) = 
-    match ty with
-    | TReference(IdentRef Unbound) -> raise (ArgumentException("Cannot get root of unbound"))
-    | TReference(IdentRef(Link x)) -> root ty
-    | Single(args, rem) -> args, rem
+let private root (this : TupleType) = 
+    let rec doRoot ty = 
+        match ty with
+        | TReference(IdentRef Unbound) -> raise (ArgumentException("Cannot get root of unbound"))
+        | TReference(IdentRef(Link x)) when x = this -> raise (ArgumentException("Cycle in type"))
+        | TReference(IdentRef(Link x)) -> doRoot ty
+        | Single(args, rem) -> args, rem
+    doRoot this
 
 let rec private first (ty : TupleType) = 
     let ty, rem = root ty
@@ -62,6 +65,7 @@ type ValueType with
         let rec root (ty : ValueType) = 
             match ty with
             | Reference(IdentRef Unbound) -> raise (ArgumentException("Cannot get root of unbound"))
+            | Reference(IdentRef(Link x)) when x = this -> raise (ArgumentException("Cycle in type"))
             | Reference(IdentRef(Link x)) -> root ty
             | ty -> ty
         root this
