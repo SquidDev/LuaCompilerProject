@@ -26,6 +26,7 @@ namespace LuaCP.Passes
 				BranchToValue.Runner.AsFunction(),
 				IdenticalValues.CheckPhis.AsFunction(),
 				IdenticalValues.CheckUpvalues,
+				ClosureLifting.Runner,
 			}.Group().Repeat().AsModule(),
 		}.Group().Repeat();
 

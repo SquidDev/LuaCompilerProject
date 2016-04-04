@@ -100,6 +100,7 @@
     <Compile Include="Passes\Optimisation\BranchToValue.cs" />
     <Compile Include="Collections\IdentityComparer.cs" />
     <Compile Include="Collections\IdentRef.cs" />
+    <Compile Include="Passes\Optimisation\ClosureLifting.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

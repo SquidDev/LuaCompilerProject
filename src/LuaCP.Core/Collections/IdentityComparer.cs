@@ -23,7 +23,7 @@ namespace LuaCP.Collections
 			return Object.ReferenceEquals(x, y);
 		}
 
-		public bool Equals(object x, object y)
+		public new bool Equals(object x, object y)
 		{
 			return Object.ReferenceEquals(x, y);
 		}

@@ -10,7 +10,7 @@ namespace LuaCP.IR.Components
 		private readonly string name;
 		private readonly ValueKind kind;
 
-		public Argument(Function function, string name, ValueKind kind)
+		internal Argument(Function function, string name, ValueKind kind)
 		{
 			this.function = function;
 			this.name = name;

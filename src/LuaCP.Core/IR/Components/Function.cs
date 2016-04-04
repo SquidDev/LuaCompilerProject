@@ -14,10 +14,10 @@ namespace LuaCP.IR.Components
 		public readonly Module Module;
 
 		private Block entryPoint;
+		private readonly List<Argument> arguments;
 		private readonly CountingSet<IUser<Function>> users = new CountingSet<IUser<Function>>();
 
 		public readonly HashSet<Block> Blocks = new HashSet<Block>();
-		public readonly IReadOnlyList<Argument> Arguments;
 		public readonly Argument Dots;
 		public readonly Valid Dominators;
 
@@ -32,8 +32,7 @@ namespace LuaCP.IR.Components
 			module.Functions.Add(this);
 			EntryPoint = new Block(this);
 
-			List<Argument> arguments = args.Select(x => Argument.Arg(this, x)).ToList();
-			Arguments = arguments;
+			arguments = args.Select(x => Argument.Arg(this, x)).ToList();
 			if (dots)
 			{
 				Dots = Argument.Dots(this);
@@ -50,6 +49,20 @@ namespace LuaCP.IR.Components
 				entryPoint = value;
 			}
 		}
+
+		public Argument AddArgument(int index, string name)
+		{
+			Argument argument = Argument.Arg(this, name);
+			arguments.Insert(index, argument);
+			return argument;
+		}
+
+		public void AddArguments(int index, IEnumerable<string> names)
+		{
+			arguments.InsertRange(index, names.Select(name => Argument.Arg(this, name)));
+		}
+
+		public IReadOnlyList<Argument> Arguments { get { return arguments; } }
 
 		public CountingSet<IUser<Function>> Users { get { return users; } }
 
@@ -68,12 +81,20 @@ namespace LuaCP.IR.Components
 				node.DominanceFrontier.Clear();
 			}
 		}
-        
+
 		public IEnumerable<Call> Callers
 		{
 			get
 			{
-				return users.OfType<ClosureNew>().SelectMany(x => x.Users.OfType<Call>());
+				return Closures.SelectMany(x => x.Users.OfType<Call>());
+			}
+		}
+
+		public IEnumerable<ClosureNew> Closures
+		{
+			get
+			{
+				return users.OfType<ClosureNew>();
 			}
 		}
 	}

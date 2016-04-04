@@ -1,4 +1,5 @@
 using LuaCP.IR.Instructions;
+using LuaCP.IR;
 
 namespace LuaCP.Passes.Optimisation
 {
@@ -26,8 +27,6 @@ namespace LuaCP.Passes.Optimisation
 							}
 							else
 							{
-								System.Console.WriteLine(tuple + " inlining with " + target + " at " + (index - target.Values.Count));
-
 								TupleGet inlined = new TupleGet(target.Remaining, index - target.Values.Count);
 								tuple.Block.AddAfter(tuple, inlined);
 								tuple.ReplaceWithAndRemove(inlined);
@@ -44,6 +43,17 @@ namespace LuaCP.Passes.Optimisation
 							tuple.ReplaceWithAndRemove(tuple.Remaining);
 							return true;
 						}
+						else if(tuple.Remaining is TupleNew)
+						{
+							TupleNew remainder = (TupleNew)tuple.Remaining;
+							foreach (IValue value in remainder.Values)
+							{
+								tuple.Values.Add(value);
+							}
+							tuple.Remaining = remainder.Remaining;
+							return true;
+						}
+						// TODO: TupleRemainder
 
 						return false;
 					}
