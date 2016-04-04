@@ -15,7 +15,7 @@ namespace LuaCP.IR.Instructions
 
 		internal LinkedListNode<Instruction> node;
 
-		public Instruction Previous { get { return node != null && node.Next != null ? node.Previous.Value : null; } }
+		public Instruction Previous { get { return node != null && node.Previous != null ? node.Previous.Value : null; } }
 
 		public Instruction Next { get { return node != null && node.Next != null ? node.Next.Value : null; } }
 

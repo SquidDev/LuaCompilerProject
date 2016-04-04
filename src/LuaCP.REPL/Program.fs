@@ -54,10 +54,11 @@ let main argv =
                     Console.WriteLine("!dump:  Dump the previous source")
                     Console.WriteLine("!graph: Plot the CFG of the previous source")
                     Console.WriteLine("!lasm:  Dump LASM code of the module")
+                    Console.WriteLine("!lua:   Dump Lua code of the module")
                     Console.WriteLine("!types: Dump the types and constraints of all values")
                 | "dump" -> (new Exporter(Console.Out)).ModuleLong(modu)
                 | "graph" -> DotExporter.Write(modu)
-                | "code" -> (new FunctionCodegen(modu.EntryPoint, new IndentedTextWriter(Console.Out))).Write()
+                | "lua" -> (new FunctionCodegen(modu.EntryPoint, new IndentedTextWriter(Console.Out))).Write()
                 | "lasm" -> 
                     let builder = new StringBuilder()
                     use x = new LasmBytecodeWriter(builder, VarargType.Exists)

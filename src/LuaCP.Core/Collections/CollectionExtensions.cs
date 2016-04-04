@@ -95,6 +95,11 @@ namespace LuaCP.Collections
 			for (int i = 0; i < count; i++) output[i] = item;
 			return output;
 		}
+
+		public static HashSet<T> ToSet<T>(this IEnumerable<T> items)
+		{
+			return new HashSet<T>(items);
+		}
 	}
 }
 

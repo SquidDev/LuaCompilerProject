@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace LuaCP.Collections
 {
@@ -43,6 +44,12 @@ namespace LuaCP.Collections
 			get { return items.Values; }
 		}
 
+		public IEnumerable<TValue> GetEnumerable(TKey key)
+		{
+			ISet<TValue> value;
+			return items.TryGetValue(key, out value) ? value : Enumerable.Empty<TValue>();
+		}
+
 		public void Add(KeyValuePair<TKey, ISet<TValue>> item)
 		{
 			Add(item.Key, item.Value);
@@ -56,7 +63,7 @@ namespace LuaCP.Collections
 				current.Add(value);
 			}
 		}
-		
+
 		public void Add(TKey key, TValue value)
 		{
 			this[key].Add(value);
@@ -70,13 +77,13 @@ namespace LuaCP.Collections
 		public bool Contains(KeyValuePair<TKey, ISet<TValue>> item)
 		{
 			ISet<TValue> current;
-			return items.TryGetValue(item.Key, out current) ? item.Value.IsSubsetOf(current) : false;
+			return items.TryGetValue(item.Key, out current) && item.Value.IsSubsetOf(current);
 		}
-		
+
 		public bool Contains(TKey key, TValue value)
 		{
 			ISet<TValue> current;
-			return items.TryGetValue(key, out current) ? current.Contains(value) : false;
+			return items.TryGetValue(key, out current) && current.Contains(value);
 		}
 
 		public bool ContainsKey(TKey key)
@@ -110,7 +117,7 @@ namespace LuaCP.Collections
 		{
 			return items.Remove(key);
 		}
-		
+
 		public bool Remove(TKey key, TValue value)
 		{
 			ISet<TValue> current;

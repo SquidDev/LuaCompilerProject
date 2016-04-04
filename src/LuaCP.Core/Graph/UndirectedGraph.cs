@@ -8,12 +8,12 @@ namespace LuaCP.Graph
 	/// <summary>
 	/// A basic undirected graph
 	/// </summary>
-	public sealed class Graph
+	public sealed class UndirectedGraph
 	{
 		private readonly bool[,] neighbours;
 		private readonly int nodes;
 
-		public Graph(int nodes)
+		public UndirectedGraph(int nodes)
 		{
 			this.nodes = nodes;
 			this.neighbours = new bool[nodes, nodes];
@@ -53,7 +53,7 @@ namespace LuaCP.Graph
 
 		public int Size { get { return nodes; } }
 
-		public ColourerResult Solve()
+		public ColourerResult Colour()
 		{
 			int[] mappings = (-1).Repeat(Size);
 

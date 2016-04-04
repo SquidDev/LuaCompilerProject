@@ -13,6 +13,13 @@ namespace LuaCP.Debug
 	{
 		public static readonly Formatter Default = new Formatter();
 
+		public string Phi(Phi phi, NodeNumberer numberer)
+		{
+			StringWriter writer = new StringWriter();
+			Phi(phi, writer, numberer);
+			return writer.ToString();
+		}
+
 		public void Phi(Phi phi, TextWriter writer, NodeNumberer numberer)
 		{
 			writer.Write(numberer.PrettyGetPhi(phi));
@@ -32,6 +39,13 @@ namespace LuaCP.Debug
 			writer.Write("<unknown: ");
 			writer.Write(obj.GetType().Name);
 			writer.Write(">");
+		}
+
+		public string Value(IValue value, NodeNumberer numberer)
+		{
+			StringWriter writer = new StringWriter();
+			Value(value, writer, numberer);
+			return writer.ToString();
 		}
 
 		public void Value(IValue value, TextWriter writer, NodeNumberer numberer)
@@ -73,9 +87,21 @@ namespace LuaCP.Debug
 			}
 		}
 
+		public string Block(Block block, NodeNumberer numberer)
+		{
+			return numberer.PrettyGetBlock(block);
+		}
+
 		public void Block(Block block, TextWriter writer, NodeNumberer numberer)
 		{
 			writer.Write(numberer.PrettyGetBlock(block));
+		}
+
+		public string InstructionLong(Instruction insn, NodeNumberer numberer)
+		{
+			StringWriter writer = new StringWriter();
+			InstructionLong(insn, writer, numberer);
+			return writer.ToString();
 		}
 
 		public void InstructionLong(Instruction insn, TextWriter writer, NodeNumberer numberer)

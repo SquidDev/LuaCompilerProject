@@ -41,6 +41,7 @@
     <Compile Include="Bytecode\LasmBytecodeWriter.cs" />
     <Compile Include="Bytecode\BytecodeCodegen.cs" />
     <Compile Include="Bytecode\WriterExtensions.cs" />
+    <Compile Include="RegisterAllocation.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

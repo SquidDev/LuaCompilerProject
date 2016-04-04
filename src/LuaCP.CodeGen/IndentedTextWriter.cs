@@ -31,7 +31,7 @@ namespace LuaCP.CodeGen
  
 			set { writer.NewLine = value; }
 		}
- 
+
 		/// <devdoc>
 		///    <para>
 		///       Gets or sets the number of spaces to indent.
@@ -51,13 +51,13 @@ namespace LuaCP.CodeGen
 		}
 
 		public TextWriter InnerWriter { get { return writer; } }
- 
+
 		protected override void Dispose(bool disposing)
 		{
 			writer.Dispose();
 			base.Dispose(disposing);
 		}
- 
+
 
 		public override void Flush()
 		{
@@ -173,7 +173,7 @@ namespace LuaCP.CodeGen
 			writer.WriteLine(value);
 			tabsPending = true;
 		}
- 
+
 		public override void WriteLine(char value)
 		{
 			OutputTabs();
@@ -208,7 +208,7 @@ namespace LuaCP.CodeGen
 			writer.WriteLine(value);
 			tabsPending = true;
 		}
- 
+
 		public override void WriteLine(int value)
 		{
 			OutputTabs();

@@ -59,7 +59,7 @@ namespace LuaCP.Collections
 			throw new InvalidOperationException();
 		}
 
-		bool ICollection<T>.Contains(T item)
+		public bool Contains(T item)
 		{
 			return counts.ContainsKey(item);
 		}
