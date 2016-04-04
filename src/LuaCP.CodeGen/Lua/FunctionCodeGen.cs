@@ -157,21 +157,12 @@ namespace LuaCP.CodeGen.Lua
 			// Write local predeclarations
 			if (used.Count < SlotCount)
 			{
-				Writer.Write("local ");
-				first = true;
+				Writer.Write("local _");
 				for (int i = 0; i < SlotCount; i++)
 				{
 					if (used.Contains(i)) continue;
 
-					if (!first)
-					{
-						Writer.Write(", ");
-					}
-					else
-					{
-						first = false;
-					}
-
+					Writer.Write(", ");
 					Writer.Write(Prefix + i);
 				}
 			}

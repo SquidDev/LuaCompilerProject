@@ -181,6 +181,8 @@ namespace LuaCP.IR
 							Literal.Boolean boolean2 = (Literal.Boolean)obj;
 							return boolean.item == boolean2.item;
 						}
+					case LiteralKind.Nil:
+						return true;
 				}
 			}
 			return false;
@@ -238,7 +240,7 @@ namespace LuaCP.IR
 		{
 			return ((Boolean)literal).Item;
 		}
-        
+
 		public static implicit operator Literal(int literal)
 		{
 			return new Literal.Integer(literal);

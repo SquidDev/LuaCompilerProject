@@ -6,6 +6,7 @@ using System.Linq;
 using LuaCP.IR.Instructions;
 using System.Text;
 using LuaCP.IR.User;
+using LuaCP.Collections;
 
 namespace LuaCP.CodeGen.Lua
 {
@@ -117,42 +118,118 @@ namespace LuaCP.CodeGen.Lua
 			}
 		}
 
-		private String WriteTuple(ValueInstruction insn, IValue previous, String previousContents)
+		private static ArgumentException TupleChain(IValue expected, IValue actual, String contents)
 		{
-			return "";
-//			switch (insn.Opcode)
-//			{
-//				case Opcode.Call:
-//					{
-//						Call call = (Call)insn;
-//						if (call.Arguments != previous) throw new ArgumentException("Invalid tuple chain");
-//						return String.Format("{0}({1})", state.Format(call.Method), previousContents);
-//					}
-//				case Opcode.TupleNew:
-//					{
-//						TupleNew tupNew = (TupleNew)insn;
-//						return FormatTuple(tupNew);
-//					}
-//				case Opcode.TupleRemainder:
-//					{
-//						TupleRemainder getter = (TupleRemainder)insn;
-//						return String.Format("--[[NYI: Tuple Remainder {0}]] nil", state.Temps[getter]);
-//					}
-//				default:
-//					throw new ArgumentException("Expected Value, got " + insn.Opcode);
-//			}
+			throw new ArgumentException("Invalid tuple chain. Expected " + expected + ", got " + actual + " (" + contents + ")");
+		}
+
+		private Instruction WriteTuples(Instruction insn)
+		{
+			IValue previous = insn.Block.Function.Module.Constants.Nil;
+			String previousContents = "";
+			while (true)
+			{
+				switch (insn.Opcode)
+				{
+					case Opcode.Call:
+						{
+							Call call = (Call)insn;
+							if (!call.Arguments.Equals(previous)) throw TupleChain(call.Arguments, previous, previousContents);
+
+							previous = call;
+							previousContents = String.Format("{0}({1})", state.Format(call.Method), previousContents);
+							break;
+						}
+					case Opcode.TupleNew:
+						{
+							TupleNew tupNew = (TupleNew)insn;
+							if (!tupNew.Remaining.Equals(previous)) throw TupleChain(tupNew.Remaining, previous, previousContents);
+
+							previous = tupNew;
+							if (tupNew.Remaining.IsNil())
+							{
+								previousContents = String.Join(", ", tupNew.Values.Select(state.Format));
+							}
+							else
+							{
+								previousContents = String.Join(", ", tupNew.Values.Select(state.Format)) + ", " + previousContents;
+							}
+							break;
+						}
+					case Opcode.TupleRemainder:
+						{
+							TupleRemainder remainder = (TupleRemainder)insn;
+							if (!remainder.Tuple.Equals(previous)) throw TupleChain(remainder.Tuple, previous, previousContents);
+
+							previous = remainder;
+							previousContents = String.Format("select({0}, {1}", remainder.Offset + 1, previousContents);
+							break;
+						}
+					case Opcode.Return:
+						{
+							Return ret = (Return)insn;
+							if (!ret.Values.Equals(previous)) throw TupleChain(ret.Values, previous, previousContents);
+
+							writer.WriteLine("do return {0} end", previousContents);
+							return insn;
+						}
+					case Opcode.TupleGet:
+						{
+							var locals = new List<TupleGet>();
+							var mappings = new List<KeyValuePair<TupleGet, TupleGet>>();
+
+							while (insn != null && insn.Opcode == Opcode.TupleGet)
+							{
+								TupleGet getter = (TupleGet)insn;
+								if (!getter.Tuple.Equals(previous)) throw TupleChain(getter.Tuple, previous, previousContents);
+
+								if (getter.Offset >= locals.Count) locals.Resize(getter.Offset + 1, null);
+								TupleGet current = locals[getter.Offset];
+								if (current == null)
+								{
+									locals[getter.Offset] = getter;
+								}
+								else
+								{
+									mappings.Add(new KeyValuePair<TupleGet, TupleGet>(getter, current));
+								}
+
+								insn = insn.Next;
+							}
+
+							writer.Write(String.Join(", ", locals.Select(x => x == null ? "_" : state.Format(x))));
+							writer.Write(" = ");
+							writer.Write(previousContents);
+							writer.WriteLine(";");
+
+							foreach (var mapping in mappings)
+							{
+								writer.WriteLine("{0} = {1}", state.Format(mapping.Key), state.Format(mapping.Value));
+							}
+
+							return insn == null ? block.Last : insn.Previous;
+						}
+					default:
+						writer.Write(previousContents);
+						writer.WriteLine(";");
+						return insn.Previous;
+				}
+
+				insn = insn.Next;
+			}
 		}
 
 		public void Write()
 		{
 			if (block.Previous.Count() > 1) writer.WriteLine("::{0}::", state.Blocks[block]);
 
-			foreach (Instruction insn in block)
+			Instruction insn = block.First;
+			while (insn != null)
 			{
 				var value = insn as ValueInstruction;
-				if (value != null)
+				if (value != null && value.Kind != ValueKind.Tuple)
 				{
-					if (value.Kind != ValueKind.Tuple) WriteValue(value);
+					WriteValue(value);
 				}
 				else
 				{
@@ -184,12 +261,6 @@ namespace LuaCP.CodeGen.Lua
 								writer.WriteLine("end");
 								break;
 							}
-						case Opcode.Return:
-							{
-								Return ret = (Return)insn;
-								writer.WriteLine("do return {0} end", ""); // FormatTuple(ret.Values)
-								break;
-							}
 						case Opcode.TableSet:
 							{
 								TableSet getter = (TableSet)insn;
@@ -202,10 +273,19 @@ namespace LuaCP.CodeGen.Lua
 								writer.WriteLine("{0} = {1}", state.Format(setter.Reference), state.Format(setter.Value));
 								break;
 							}
+						case Opcode.Call:
+						case Opcode.TupleGet:	
+						case Opcode.TupleNew:	
+						case Opcode.TupleRemainder:	
+						case Opcode.Return:	
+							insn = WriteTuples(insn);
+							break;
 						default:
 							throw new ArgumentException("Unknown opcode " + insn.Opcode);
 					}
 				}
+
+				insn = insn.Next;
 			}
 		}
 

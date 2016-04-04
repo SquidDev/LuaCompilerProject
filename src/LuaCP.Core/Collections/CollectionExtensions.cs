@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace LuaCP.Collections
 {
@@ -99,6 +100,25 @@ namespace LuaCP.Collections
 		public static HashSet<T> ToSet<T>(this IEnumerable<T> items)
 		{
 			return new HashSet<T>(items);
+		}
+
+		public static void Resize<T>(this List<T> list, int size, T filler)
+		{
+			int cur = list.Count;
+			if (size < cur)
+			{
+				list.RemoveRange(size, cur - size);
+			}
+			else if (size > cur)
+			{
+				if (size > list.Capacity) list.Capacity = size;
+				list.AddRange(Enumerable.Repeat(filler, size - cur));
+			}
+		}
+
+		public static void Resize<T>(this List<T> list, int sz) where T : new()
+		{
+			Resize(list, sz, new T());
 		}
 	}
 }
