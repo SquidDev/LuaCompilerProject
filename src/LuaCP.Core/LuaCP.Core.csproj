@@ -101,6 +101,8 @@
     <Compile Include="Collections\IdentityComparer.cs" />
     <Compile Include="Collections\IdentRef.cs" />
     <Compile Include="Passes\Optimisation\ClosureLifting.cs" />
+    <Compile Include="Graph\Graph.cs" />
+    <Compile Include="Graph\Colourer.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
