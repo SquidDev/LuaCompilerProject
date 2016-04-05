@@ -3,11 +3,11 @@ using System.IO;
 using System.Text;
 using System.Globalization;
 
-namespace LuaCP.CodeGen
+namespace LuaCP
 {
 	public sealed class IndentedTextWriter : TextWriter
 	{
-		private TextWriter writer;
+		private readonly TextWriter writer;
 		private int indentLevel;
 		private bool tabsPending;
 		private string tabString;

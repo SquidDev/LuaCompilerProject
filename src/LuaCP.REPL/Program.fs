@@ -1,6 +1,6 @@
 ﻿open LuaCP.Parser
 open System
-open LuaCP.CodeGen.Lua
+open LuaCP
 open LuaCP.Debug
 open LuaCP.IR.Components
 open LuaCP.Parser
@@ -59,7 +59,7 @@ let main argv =
                     Console.WriteLine("!branch: Dump a simplified branching model of the code")
                 | "dump" -> (new Exporter(Console.Out)).ModuleLong(modu)
                 | "graph" -> DotExporter.Write(modu)
-                | "lua" -> (new FunctionCodegen(modu.EntryPoint, new IndentedTextWriter(Console.Out))).Write()
+                | "lua" -> (new Lua.FunctionCodeGen(modu.EntryPoint, new IndentedTextWriter(Console.Out))).Write()
                 | "lasm" -> 
                     let builder = new StringBuilder()
                     use x = new LasmBytecodeWriter(builder, VarargType.Exists)
@@ -72,7 +72,7 @@ let main argv =
                         scope.DumpFunction numberer
                     scope.DumpConstraints()
                 | "branch" -> 
-                    let group = (new LuaCP.CodeGen.BranchGen.BranchAnalysis(modu.EntryPoint)).Group
+                    let group = (new Analysis.BranchAnalysis(modu.EntryPoint)).Group
                     let writer = new IndentedTextWriter(Console.Out)
                     let num = new NodeNumberer(modu.EntryPoint)
                     group.Dump(num, writer)

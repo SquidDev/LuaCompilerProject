@@ -1,35 +1,69 @@
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using LuaCP.Graph;
 using LuaCP.IR;
 using LuaCP.IR.Components;
+using LuaCP.Passes.Analysis;
 
 namespace LuaCP.CodeGen.Lua
 {
-	public sealed partial class FunctionCodegen
+	public sealed partial class FunctionCodeGen
 	{
 		public readonly Function Function;
-		private readonly IReadOnlyDictionary<Upvalue, String> Upvalues;
 
+		/// <summary>
+		/// Mapping of upvalues to names
+		/// </summary>
+		private readonly IReadOnlyDictionary<Upvalue, string> upvalues;
+
+		/// <summary>
+		/// Reference lookup
+		/// </summary>
 		private readonly NameAllocator<IValue> refs;
+
+		/// <summary>
+		/// Jump target lookup
+		/// </summary>
 		private readonly NameAllocator<Block> blocks;
+
+		/// <summary>
+		/// Function prefix lookup
+		/// </summary>
 		private readonly NameAllocator<Function> funcAllocator;
+
+		/// <summary>
+		/// Slot lookup
+		/// </summary>
 		private readonly Dictionary<IValue, int> slots;
-		private readonly String varPrefix;
+
+		/// <summary>
+		/// Prefix for variables
+		/// </summary>
+		private readonly string varPrefix;
+
+		/// <summary>
+		/// Number of temp variables
+		/// </summary>
 		private readonly int slotCount;
+
+		/// <summary>
+		/// The writer
+		/// </summary>
 		private readonly IndentedTextWriter writer;
+
+		/// <summary>
+		/// If this is the root function
+		/// </summary>
 		private readonly bool root;
 
-		private readonly HashSet<Block> visited = new HashSet<Block>();
+		private readonly ControlGroup rootGroup;
 
-		internal FunctionCodegen(Function function, IndentedTextWriter writer, IReadOnlyDictionary<Upvalue, String> upvalues, NameAllocator<Function> funcAllocator, bool root = false)
+		internal FunctionCodeGen(Function function, IndentedTextWriter writer, IReadOnlyDictionary<Upvalue, string> upvalues, NameAllocator<Function> funcAllocator, bool root = false)
 		{
-			Upvalues = upvalues;
+			this.upvalues = upvalues;
 			Function = function;
 			this.funcAllocator = funcAllocator;
 			this.writer = writer;
 			this.root = root;
+			rootGroup = new BranchAnalysis(function).Group;
 
 			string prefix = funcAllocator[function];
 			refs = new NameAllocator<IValue>(prefix + "ref_{0}");
@@ -41,14 +75,14 @@ namespace LuaCP.CodeGen.Lua
 			varPrefix = prefix + "var_";
 		}
 
-		public FunctionCodegen(Function function, IndentedTextWriter writer)
+		public FunctionCodeGen(Function function, IndentedTextWriter writer)
 			: this(function, writer, DefaultUpvalues(function), new NameAllocator<Function>("f{0}_"), true)
 		{
 		}
 
-		private static Dictionary<Upvalue, String> DefaultUpvalues(Function function)
+		private static Dictionary<Upvalue, string> DefaultUpvalues(Function function)
 		{
-			var upvalues = new Dictionary<Upvalue, String>();
+			var upvalues = new Dictionary<Upvalue, string>();
 
 			bool isEnv = function == function.Module.EntryPoint;
 
@@ -68,48 +102,6 @@ namespace LuaCP.CodeGen.Lua
 			}
 
 			return upvalues;
-		}
-
-		#region Format
-
-		public string Format(IValue value)
-		{
-			if (value is Constant) return ((Constant)value).ToString();
-			if (value is Upvalue) return Upvalues[(Upvalue)value];
-			if (value.Kind == ValueKind.Reference) return refs[value];
-			return GetName(value);
-		}
-
-		public string GetName(IValue value)
-		{
-			return varPrefix + slots[value];
-		}
-
-		public string FormatKey(IValue value, bool dot = true)
-		{
-			Constant constant = value as Constant;
-			if (constant != null && constant.Literal.Kind == LiteralKind.String)
-			{
-				string contents = ((Literal.String)constant.Literal).Item;
-				if ((Char.IsLetter(contents[0]) || contents[0] == '_') && contents.All(x => x == '_' || Char.IsLetterOrDigit(x)))
-				{
-					return dot ? "." + contents : contents;
-				}
-			}
-
-			return "[" + Format(value) + "]";
-		}
-
-		#endregion
-
-		#region Block writing
-
-		private void WriteBlocks()
-		{
-			foreach (Block block in Function.EntryPoint.ReachableLazy())
-			{
-				if (!visited.Contains(block)) WriteBlock(block);
-			}
 		}
 
 		public void Write()
@@ -184,7 +176,7 @@ namespace LuaCP.CodeGen.Lua
 				writer.WriteLine();
 			}
 
-			WriteBlocks();
+			WriteGroup(rootGroup, null);
 
 			if (requiresPrototype)
 			{
@@ -195,8 +187,6 @@ namespace LuaCP.CodeGen.Lua
 			if (wrap) writer.Write(")()");
 			writer.WriteLine();
 		}
-
-		#endregion
 	}
 }
 

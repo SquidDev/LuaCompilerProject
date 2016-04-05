@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using LuaCP.Collections;
@@ -8,8 +8,36 @@ using LuaCP.IR.Instructions;
 
 namespace LuaCP.CodeGen.Lua
 {
-	public sealed partial class FunctionCodegen
+	public sealed partial class FunctionCodeGen
 	{
+		public string Format(IValue value)
+		{
+			if (value is Constant) return ((Constant)value).ToString();
+			if (value is Upvalue) return upvalues[(Upvalue)value];
+			if (value.Kind == ValueKind.Reference) return refs[value];
+			return GetName(value);
+		}
+
+		public string GetName(IValue value)
+		{
+			return varPrefix + slots[value];
+		}
+
+		public string FormatKey(IValue value, bool dot = true)
+		{
+			Constant constant = value as Constant;
+			if (constant != null && constant.Literal.Kind == LiteralKind.String)
+			{
+				string contents = ((Literal.String)constant.Literal).Item;
+				if ((Char.IsLetter(contents[0]) || contents[0] == '_') && contents.All(x => x == '_' || Char.IsLetterOrDigit(x)))
+				{
+					return dot ? "." + contents : contents;
+				}
+			}
+
+			return "[" + Format(value) + "]";
+		}
+
 		private void WriteValue(ValueInstruction insn)
 		{
 			if (insn.Opcode.IsBinaryOperator())
@@ -85,7 +113,7 @@ namespace LuaCP.CodeGen.Lua
 							}
 
 							writer.Write("{0} = ", GetName(insn));
-							new FunctionCodegen(closNew.Function, writer, lookup, funcAllocator).Write();
+							new FunctionCodeGen(closNew.Function, writer, lookup, funcAllocator).Write();
 							break;
 						}
 					case Opcode.ReferenceGet:
@@ -205,97 +233,6 @@ namespace LuaCP.CodeGen.Lua
 				}
 
 				insn = insn.Next;
-			}
-		}
-
-		private void WriteBlock(Block block)
-		{
-			if (!visited.Add(block)) throw new ArgumentException("Already written block");
-
-			if (block.Previous.Count() > 1) writer.WriteLine("::{0}::", blocks[block]);
-
-			Instruction insn = block.First;
-			while (insn != null)
-			{
-				var value = insn as ValueInstruction;
-				if (value != null && value.Kind != ValueKind.Tuple)
-				{
-					WriteValue(value);
-				}
-				else
-				{
-					switch (insn.Opcode)
-					{
-						case Opcode.Branch:
-							{
-								Branch branch = (Branch)insn;
-								WriteJump(block, branch.Target);
-								break;
-							}
-						case Opcode.BranchCondition:
-							{
-								BranchCondition branchCond = (BranchCondition)insn;
-
-								writer.WriteLine("if {0} then", Format(branchCond.Test));
-
-								writer.Indent++;
-								WriteJump(block, branchCond.Success);
-
-								writer.Indent--;
-
-								writer.WriteLine("else");
-
-								writer.Indent++;
-								WriteJump(block, branchCond.Failure);
-								writer.Indent--;
-
-								writer.WriteLine("end");
-								break;
-							}
-						case Opcode.TableSet:
-							{
-								TableSet getter = (TableSet)insn;
-								writer.WriteLine("{0}{1} = {2}", Format(getter.Table), FormatKey(getter.Key), Format(getter.Value));
-								break;
-							}
-						case Opcode.ReferenceSet:
-							{
-								ReferenceSet setter = (ReferenceSet)insn;
-								writer.WriteLine("{0} = {1}", Format(setter.Reference), Format(setter.Value));
-								break;
-							}
-						case Opcode.Call:
-						case Opcode.TupleGet:	
-						case Opcode.TupleNew:	
-						case Opcode.TupleRemainder:	
-						case Opcode.Return:	
-							insn = WriteTuples(insn);
-							break;
-						default:
-							throw new ArgumentException("Unknown opcode " + insn.Opcode);
-					}
-				}
-
-				insn = insn.Next;
-			}
-		}
-
-		private void WriteJump(Block source, Block target)
-		{
-			foreach (Phi phi in target.PhiNodes)
-			{
-				string name = GetName(phi);
-				string sourceName = Format(phi.Source[source]);
-				if (name != sourceName) writer.WriteLine("{0} = {1}", name, sourceName);
-			}
-
-			if (target.Previous.Count() == 1)
-			{
-				WriteBlock(target);
-			}
-			else
-			{
-				writer.WriteLine("goto {0}", blocks[target]);
 			}
 		}
 	}

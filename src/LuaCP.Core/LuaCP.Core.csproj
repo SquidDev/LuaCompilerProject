@@ -105,6 +105,8 @@
     <Compile Include="Graph\UndirectedGraph.cs" />
     <Compile Include="Collections\EqualityMap.cs" />
     <Compile Include="Collections\UniqueQueue.cs" />
+    <Compile Include="Passes\Analysis\BranchAnalysis.cs" />
+    <Compile Include="IndentedTextWriter.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

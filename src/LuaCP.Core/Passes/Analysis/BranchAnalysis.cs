@@ -6,7 +6,7 @@ using System.Linq;
 using LuaCP.IR.Instructions;
 using LuaCP.Debug;
 
-namespace LuaCP.CodeGen.BranchGen
+namespace LuaCP.Passes.Analysis
 {
 	public abstract class ControlNode
 	{
@@ -181,7 +181,7 @@ namespace LuaCP.CodeGen.BranchGen
 	/// Converts a CFG into a series of jumps and if statements
 	/// TODO: Create loops too
 	/// </summary>
-	public class BranchAnalysis
+	public sealed class BranchAnalysis
 	{
 		/*
 		 * Test cases:

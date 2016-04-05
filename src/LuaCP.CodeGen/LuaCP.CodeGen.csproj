@@ -33,7 +33,6 @@
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="NameAllocator.cs" />
-    <Compile Include="IndentedTextWriter.cs" />
     <Compile Include="Lua\FunctionCodeGen.cs" />
     <Compile Include="Bytecode\LuaOpcode.cs" />
     <Compile Include="Bytecode\IBytecodeWriter.cs" />
@@ -41,8 +40,8 @@
     <Compile Include="Bytecode\BytecodeCodegen.cs" />
     <Compile Include="Bytecode\WriterExtensions.cs" />
     <Compile Include="RegisterAllocation.cs" />
-    <Compile Include="Lua\FunctionCodegen.Block.cs" />
-    <Compile Include="BranchGen\BranchAnalysis.cs" />
+    <Compile Include="Lua\FunctionCodeGen.Value.cs" />
+    <Compile Include="Lua\FunctionCodeGen.Block.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
