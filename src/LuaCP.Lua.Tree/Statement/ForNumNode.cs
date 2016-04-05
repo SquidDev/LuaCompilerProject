@@ -45,16 +45,16 @@ namespace LuaCP.Lua.Tree.Statement
 			// However, this should be optimised out most of the time as the step is a constant
 			BlockBuilder lessThan = builder.Continue();
 			{
-				IValue op = lessThan.Block.AddLast(new BinaryOp(Opcode.LessThan, index, end));
+				IValue op = lessThan.Block.AddLast(new BinaryOp(Opcode.LessThanEquals, index, end));
 				lessThan.Block.AddLast(new BranchCondition(op, bodyBlock.Block, continueBlock.Block));
 			}
 			BlockBuilder greaterThan = builder.Continue();
 			{
-				IValue op = greaterThan.Block.AddLast(new BinaryOp(Opcode.LessThan, end, index));
+				IValue op = greaterThan.Block.AddLast(new BinaryOp(Opcode.LessThanEquals, end, index));
 				greaterThan.Block.AddLast(new BranchCondition(op, bodyBlock.Block, continueBlock.Block));
 			}
 			IValue zeroCheck = testBlock.Block.AddLast(new BinaryOp(Opcode.LessThan, builder.Constants[0], step));
-			testBlock.Block.AddLast(new BranchCondition(zeroCheck, lessThan.Block, greaterThan.Block));
+			testBlock.Block.AddLast(new BranchCondition(zeroCheck, greaterThan.Block, lessThan.Block));
         	
 			// <Counter> = Index
 			Counter.Declare(bodyBlock, index);

@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using LuaCP.IR.Components;
 using LuaCP.IR.Instructions;
-using System.Linq;
 using LuaCP.Passes.Optimisation;
 
 namespace LuaCP.Passes

@@ -1,11 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using LuaCP.IR;
 using LuaCP.IR.Components;
 using LuaCP.IR.Instructions;
-using System.Linq;
-using LuaCP.Collections;
 using LuaCP.IR.User;
-using LuaCP.IR;
-using System;
 
 namespace LuaCP.Passes.Analysis
 {
@@ -19,13 +18,30 @@ namespace LuaCP.Passes.Analysis
 		/// <returns>All blocks a value is live in</returns>
 		public static HashSet<Block> LiveBlocks(IValue value, Block definition)
 		{
-			HashSet<Block> blocks = value.Users.OfType<IBelongs<Block>>().Select(x => x.Owner).ToSet();
-			blocks.Add(definition);
-			Queue<Block> worklist = new Queue<Block>(blocks);
+			HashSet<Block> blocks = new HashSet<Block>() { definition };
+			Queue<Block> worklist = new Queue<Block>();
+
+			foreach (Block block in value.Users.OfType<Instruction>().Select(x => x.Block))
+			{
+				if (blocks.Add(block)) worklist.Enqueue(block);
+			}
+
+			foreach (Phi phi in value.Users.OfType<Phi>())
+			{
+				blocks.Add(phi.Block);
+				foreach (var source in phi.Source)
+				{
+					if (source.Value == phi && blocks.Add(source.Key))
+					{
+						worklist.Enqueue(source.Key);
+					}
+				}
+			}
 
 			while (worklist.Count > 0)
 			{
-				foreach (Block previous in worklist.Dequeue().Previous)
+				Block block = worklist.Dequeue();
+				foreach (Block previous in block.Previous)
 				{
 					// Since the reference is live in the current block, the previous items
 					// must either be live or a setting block
@@ -47,9 +63,15 @@ namespace LuaCP.Passes.Analysis
 		{
 			if (!live.Contains(block)) throw new ArgumentException("Block is not live");
 
+			var belongs = value as IBelongs<Block>;
+			Block inital = belongs == null ? null : belongs.Owner;
+
 			// If any succesor is live
 			// FIXME: Handle loops with one block
-			if (block.Next.Any(live.Contains)) return null;
+			foreach (Block successor in block.Next)
+			{
+				if (successor != inital && live.Contains(successor)) return null;
+			}
 
 			Instruction insn = block.Last;
 			while (insn != null)

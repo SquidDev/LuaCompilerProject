@@ -70,7 +70,6 @@ let main argv =
                         let numberer = new NodeNumberer(builder.Function)
                         scope.DumpFunction numberer
                     scope.DumpConstraints()
-
                 | line -> Console.WriteLine("Unknown command " + line)
         else 
             match parse line with
@@ -80,11 +79,13 @@ let main argv =
                 builder <- new FunctionBuilder(modu)
                 builder.Accept(item) |> ignore
                 let scope = builder.EntryPoint.Scopes.Get<TypeScope>()
-                scope.Constraint(ValueSubtype(scope.Get (builder.EntryPoint.Scopes.Get<IVariableScope>().Globals), StandardLibraries.Base))
+                scope.Constraint
+                    (ValueSubtype
+                         (scope.Get(builder.EntryPoint.Scopes.Get<IVariableScope>().Globals), StandardLibraries.Base))
                 // for func in modu.Functions do
                 //    ConstraintGenerator.InferTypes scope func
                 // try 
                 PassManager.Run(modu, PassExtensions.Default, true)
-                // with :? VerificationException as e -> printfn "Cannot verify: %A" e
-                (new Exporter(Console.Out)).ModuleLong(modu)
+                (// with :? VerificationException as e -> printfn "Cannot verify: %A" e
+                 new Exporter(Console.Out)).ModuleLong(modu)
     0

@@ -1,7 +1,7 @@
 using System;
-using LuaCP.IR.Components;
-using LuaCP.Collections;
 using System.IO;
+using LuaCP.Collections;
+using LuaCP.IR.Components;
 using LuaCP.Passes.Analysis;
 
 namespace LuaCP.Passes

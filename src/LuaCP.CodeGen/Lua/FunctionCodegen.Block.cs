@@ -1,39 +1,26 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using LuaCP.Collections;
 using LuaCP.IR;
 using LuaCP.IR.Components;
-using System.Linq;
 using LuaCP.IR.Instructions;
-using System.Text;
-using LuaCP.IR.User;
-using LuaCP.Collections;
 
 namespace LuaCP.CodeGen.Lua
 {
-	public class BlockCodegen
+	public sealed partial class FunctionCodegen
 	{
-		private readonly Block block;
-		private readonly FunctionCodegen state;
-		private readonly IndentedTextWriter writer;
-
-		public BlockCodegen(Block block, FunctionCodegen state, IndentedTextWriter writer)
-		{
-			this.block = block;
-			this.state = state;
-			this.writer = writer;
-		}
-
 		private void WriteValue(ValueInstruction insn)
 		{
 			if (insn.Opcode.IsBinaryOperator())
 			{
 				BinaryOp op = (BinaryOp)insn;
-				writer.WriteLine("{0} = {1} {2} {3}", state.Format(insn), state.Format(op.Left), op.Opcode.GetSymbol(), state.Format(op.Right));
+				writer.WriteLine("{0} = {1} {2} {3}", GetName(insn), Format(op.Left), op.Opcode.GetSymbol(), Format(op.Right));
 			}
 			else if (insn.Opcode.IsUnaryOperator())
 			{
 				UnaryOp op = (UnaryOp)insn;
-				writer.WriteLine("{0} = {1} {2}", state.Format(insn), op.Opcode.GetSymbol(), state.Format(op.Operand));
+				writer.WriteLine("{0} = {1} {2}", GetName(insn), op.Opcode.GetSymbol(), Format(op.Operand));
 			}
 			else
 			{
@@ -45,35 +32,35 @@ namespace LuaCP.CodeGen.Lua
 
 							writer.WriteLine(
 								"if {1} then {0} = {2} else {0} = {3} end", 
-								state.Format(insn), 
-								state.Format(valueCond.Test),
-								state.Format(valueCond.Success),
-								state.Format(valueCond.Failure)
+								GetName(insn), 
+								Format(valueCond.Test),
+								Format(valueCond.Success),
+								Format(valueCond.Failure)
 							);
 							break;
 						}
 					case Opcode.TableGet:
 						{
 							TableGet getter = (TableGet)insn;
-							writer.WriteLine("{0} = {1}{2}", state.Format(insn), state.Format(getter.Table), state.FormatKey(getter.Key));
+							writer.WriteLine("{0} = {1}{2}", GetName(insn), Format(getter.Table), FormatKey(getter.Key));
 							break;
 						}
 					case Opcode.TableNew:
 						{
 							TableNew tblNew = (TableNew)insn;
-							writer.Write("{0} =", state.Format(insn));
+							writer.Write("{0} =", GetName(insn));
 							writer.Write("{");
 							foreach (IValue value in tblNew.ArrayPart)
 							{
-								writer.Write(state.Format(value));
+								writer.Write(Format(value));
 								writer.Write(", ");
 							}
 
 							foreach (KeyValuePair<IValue, IValue> pair in tblNew.HashPart)
 							{
-								writer.Write(state.FormatKey(pair.Key, false));
+								writer.Write(FormatKey(pair.Key, false));
 								writer.Write(" = ");
-								writer.Write(state.Format(pair.Value));
+								writer.Write(Format(pair.Value));
 								writer.Write(", ");
 							}
 
@@ -87,29 +74,29 @@ namespace LuaCP.CodeGen.Lua
 							var lookup = new Dictionary<Upvalue, string>();
 							foreach (Tuple<IValue, Upvalue> closed in Enumerable.Zip(closNew.ClosedUpvalues, closNew.Function.ClosedUpvalues, Tuple.Create))
 							{
-								string name = state.Refs[closed.Item1];
-								writer.Write("local {0} = {1}", name, state.Format(closed.Item1));
+								string name = refs[closed.Item1];
+								writer.Write("local {0} = {1}", name, Format(closed.Item1));
 								lookup.Add(closed.Item2, name);
 							}
 
 							foreach (Tuple<IValue, Upvalue> open in Enumerable.Zip(closNew.OpenUpvalues, closNew.Function.OpenUpvalues, Tuple.Create))
 							{
-								lookup.Add(open.Item2, state.Format(open.Item1));
+								lookup.Add(open.Item2, Format(open.Item1));
 							}
 
-							writer.Write("{0} = ", state.Format(insn));
-							new FunctionCodegen(closNew.Function, writer, lookup, state.FuncAllocator).Write();
+							writer.Write("{0} = ", GetName(insn));
+							new FunctionCodegen(closNew.Function, writer, lookup, funcAllocator).Write();
 							break;
 						}
 					case Opcode.ReferenceGet:
 						{
-							writer.WriteLine("{0} = {1}", state.Format(insn), state.Format(((ReferenceGet)insn).Reference));
+							writer.WriteLine("{0} = {1}", GetName(insn), Format(((ReferenceGet)insn).Reference));
 							break;
 						}
 					case Opcode.ReferenceNew:
 						{
 							ReferenceNew refNew = (ReferenceNew)insn;
-							writer.WriteLine("local {0} = {1}", state.Refs[refNew], state.Format(refNew.Value));
+							writer.WriteLine("local {0} = {1}", refs[refNew], Format(refNew.Value));
 							break;
 						}
 					default:
@@ -125,8 +112,10 @@ namespace LuaCP.CodeGen.Lua
 
 		private Instruction WriteTuples(Instruction insn)
 		{
-			IValue previous = insn.Block.Function.Module.Constants.Nil;
+			Block block = insn.Block;
+			IValue previous = block.Function.Module.Constants.Nil;
 			String previousContents = "";
+
 			while (true)
 			{
 				switch (insn.Opcode)
@@ -137,7 +126,7 @@ namespace LuaCP.CodeGen.Lua
 							if (!call.Arguments.Equals(previous)) throw TupleChain(call.Arguments, previous, previousContents);
 
 							previous = call;
-							previousContents = String.Format("{0}({1})", state.Format(call.Method), previousContents);
+							previousContents = String.Format("{0}({1})", Format(call.Method), previousContents);
 							break;
 						}
 					case Opcode.TupleNew:
@@ -148,11 +137,11 @@ namespace LuaCP.CodeGen.Lua
 							previous = tupNew;
 							if (tupNew.Remaining.IsNil())
 							{
-								previousContents = String.Join(", ", tupNew.Values.Select(state.Format));
+								previousContents = String.Join(", ", tupNew.Values.Select(Format));
 							}
 							else
 							{
-								previousContents = String.Join(", ", tupNew.Values.Select(state.Format)) + ", " + previousContents;
+								previousContents = String.Join(", ", tupNew.Values.Select(Format)) + ", " + previousContents;
 							}
 							break;
 						}
@@ -197,14 +186,14 @@ namespace LuaCP.CodeGen.Lua
 								insn = insn.Next;
 							}
 
-							writer.Write(String.Join(", ", locals.Select(x => x == null ? "_" : state.Format(x))));
+							writer.Write(String.Join(", ", locals.Select(x => x == null ? "_" : Format(x))));
 							writer.Write(" = ");
 							writer.Write(previousContents);
 							writer.WriteLine(";");
 
 							foreach (var mapping in mappings)
 							{
-								writer.WriteLine("{0} = {1}", state.Format(mapping.Key), state.Format(mapping.Value));
+								writer.WriteLine("{0} = {1}", Format(mapping.Key), Format(mapping.Value));
 							}
 
 							return insn == null ? block.Last : insn.Previous;
@@ -219,9 +208,11 @@ namespace LuaCP.CodeGen.Lua
 			}
 		}
 
-		public void Write()
+		private void WriteBlock(Block block)
 		{
-			if (block.Previous.Count() > 1) writer.WriteLine("::{0}::", state.Blocks[block]);
+			if (!visited.Add(block)) throw new ArgumentException("Already written block");
+
+			if (block.Previous.Count() > 1) writer.WriteLine("::{0}::", blocks[block]);
 
 			Instruction insn = block.First;
 			while (insn != null)
@@ -238,24 +229,24 @@ namespace LuaCP.CodeGen.Lua
 						case Opcode.Branch:
 							{
 								Branch branch = (Branch)insn;
-								WriteJump(branch.Target);
+								WriteJump(block, branch.Target);
 								break;
 							}
 						case Opcode.BranchCondition:
 							{
 								BranchCondition branchCond = (BranchCondition)insn;
 
-								writer.WriteLine("if {0} then", state.Format(branchCond.Test));
+								writer.WriteLine("if {0} then", Format(branchCond.Test));
 
 								writer.Indent++;
-								WriteJump(branchCond.Success);
+								WriteJump(block, branchCond.Success);
 
 								writer.Indent--;
 
 								writer.WriteLine("else");
 
 								writer.Indent++;
-								WriteJump(branchCond.Failure);
+								WriteJump(block, branchCond.Failure);
 								writer.Indent--;
 
 								writer.WriteLine("end");
@@ -264,13 +255,13 @@ namespace LuaCP.CodeGen.Lua
 						case Opcode.TableSet:
 							{
 								TableSet getter = (TableSet)insn;
-								writer.WriteLine("{0}{1} = {2}", state.Format(getter.Table), state.FormatKey(getter.Key), state.Format(getter.Value));
+								writer.WriteLine("{0}{1} = {2}", Format(getter.Table), FormatKey(getter.Key), Format(getter.Value));
 								break;
 							}
 						case Opcode.ReferenceSet:
 							{
 								ReferenceSet setter = (ReferenceSet)insn;
-								writer.WriteLine("{0} = {1}", state.Format(setter.Reference), state.Format(setter.Value));
+								writer.WriteLine("{0} = {1}", Format(setter.Reference), Format(setter.Value));
 								break;
 							}
 						case Opcode.Call:
@@ -289,20 +280,22 @@ namespace LuaCP.CodeGen.Lua
 			}
 		}
 
-		private void WriteJump(Block target)
+		private void WriteJump(Block source, Block target)
 		{
 			foreach (Phi phi in target.PhiNodes)
 			{
-				writer.WriteLine("{0} = {1}", state.Phis[phi], state.Format(phi.Source[block]));
+				string name = GetName(phi);
+				string sourceName = Format(phi.Source[source]);
+				if (name != sourceName) writer.WriteLine("{0} = {1}", name, sourceName);
 			}
 
 			if (target.Previous.Count() == 1)
 			{
-				state.WriteBlock(target);
+				WriteBlock(target);
 			}
 			else
 			{
-				writer.WriteLine("goto {0}", state.Blocks[target]);
+				writer.WriteLine("goto {0}", blocks[target]);
 			}
 		}
 	}

@@ -103,6 +103,7 @@
     <Compile Include="Passes\Optimisation\ClosureLifting.cs" />
     <Compile Include="Passes\Analysis\Liveness.cs" />
     <Compile Include="Graph\UndirectedGraph.cs" />
+    <Compile Include="Collections\EqualityMap.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

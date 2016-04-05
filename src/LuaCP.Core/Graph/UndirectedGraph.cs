@@ -53,25 +53,36 @@ namespace LuaCP.Graph
 
 		public int Size { get { return nodes; } }
 
-		public ColourerResult Colour()
+		public ColourerResult Colour(EqualityMap<int> eq = null)
 		{
 			int[] mappings = (-1).Repeat(Size);
 
 			int[] nodes = Enumerable.Range(0, Size)
-				.OrderBy(x => NeighbourCount(x))
+				.OrderByDescending(x => NeighbourCount(x))
 				.ToArray();
 
 			int colour = 0;
 			int remaining = nodes.Length;
 			while (remaining > 0)
 			{
-				for (int i = nodes.Length - 1; i >= 0; i--)
+				foreach (int node in nodes)
 				{
-					int value = mappings[i];
-					if (value == -1 && Neighbours(i).All(x => mappings[x] != colour))
+					if (mappings[node] == -1 && Neighbours(node).All(x => mappings[x] != colour))
 					{
-						mappings[i] = colour;
+						mappings[node] = colour;
 						remaining--;
+
+						if (eq != null)
+						{
+							foreach (int other in eq.GetEqual(node))
+							{
+								if (mappings[other] == -1 && Neighbours(other).All(x => mappings[x] != colour))
+								{
+									mappings[other] = colour;
+									remaining--;
+								}
+							}
+						}
 					}
 				}
 				colour++;

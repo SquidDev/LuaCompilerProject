@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using LuaCP.Graph;
 using LuaCP.Collections;
+using LuaCP.Graph;
 using LuaCP.IR;
 using LuaCP.IR.Components;
 using LuaCP.IR.Instructions;

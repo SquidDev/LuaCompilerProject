@@ -65,6 +65,16 @@ namespace LuaCP.Collections
 			return value;
 		}
 
+		public static TVal GetOrAddDefault<TKey, TVal>(this IDictionary<TKey, TVal> dict, TKey key, Func<TKey, TVal> creator)
+		{
+			TVal value;
+			if (dict.TryGetValue(key, out value)) return value;
+
+			value = creator(key);
+			dict.Add(key, value);
+			return value;
+		}
+
 		public static TVal GetOrAddDefault<TKey, TVal>(this IDictionary<TKey, TVal> dict, TKey key)
 			where TVal : new()
 		{

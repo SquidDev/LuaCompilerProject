@@ -123,7 +123,7 @@ namespace LuaCP.IR.Instructions
 				case Opcode.LessThan:
 					return "<";
 				case Opcode.LessThanEquals:
-					return ">";
+					return "<=";
 				default:
 					throw new ArgumentException("Unexpected opcode " + x, "x");
 			}

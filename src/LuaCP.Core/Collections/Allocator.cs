@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -19,7 +18,7 @@ namespace LuaCP.Collections
 			Get(key);
 		}
 
-		private int Get(T key)
+		public int Get(T key)
 		{
 			int index;
 			if (items.TryGetValue(key, out index)) return index;
@@ -27,6 +26,13 @@ namespace LuaCP.Collections
 			counter++;
 			items.Add(key, index);
 			return index;
+		}
+
+		public T[] Reverse()
+		{
+			T[] lookup = new T[counter];
+			foreach (var item in items) lookup[item.Value] = item.Key;
+			return lookup;
 		}
 	}
 

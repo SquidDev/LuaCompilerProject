@@ -13,6 +13,15 @@ namespace LuaCP.Debug
 	{
 		public static readonly Formatter Default = new Formatter();
 
+		public string Choose(object value, NodeNumberer numberer)
+		{
+			if (value == null) return "null";
+			if (value is Phi) return Phi((Phi)value, numberer);
+			if (value is Instruction) return InstructionLong((Instruction)value, numberer);
+			if (value is IValue) return Value((IValue)value, numberer);
+			return Unknown(value);
+		}
+
 		public string Phi(Phi phi, NodeNumberer numberer)
 		{
 			StringWriter writer = new StringWriter();
@@ -32,6 +41,13 @@ namespace LuaCP.Debug
 				Value(item.Value, writer, numberer);
 				writer.Write("]");
 			}
+		}
+
+		public string Unknown(object obj)
+		{
+			StringWriter writer = new StringWriter();
+			Unknown(obj, writer);
+			return writer.ToString();
 		}
 
 		public void Unknown(object obj, TextWriter writer)

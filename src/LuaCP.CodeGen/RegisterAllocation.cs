@@ -1,20 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
-using LuaCP.IR;
+using System.Linq;
+using LuaCP.Collections;
 using LuaCP.Graph;
+using LuaCP.IR;
 using LuaCP.IR.Components;
 using LuaCP.IR.Instructions;
-using System.Linq;
-using LuaCP.Passes.Analysis;
-using LuaCP.Collections;
 using LuaCP.IR.User;
-using LuaCP.Debug;
+using LuaCP.Passes.Analysis;
 
 namespace LuaCP.CodeGen
 {
 	public static class RegisterAllocation
 	{
-		public static Dictionary<IValue, int> Allocate(Function function, out int count)
+		public static Dictionary<IValue, HashSet<Block>> GetLiveBlocks(Function function, Func<IValue, bool> predicate)
 		{
 			// We exclude tuples & references because they require special handling
 			var insns = function.Blocks
@@ -24,20 +23,46 @@ namespace LuaCP.CodeGen
 				.SelectMany(x => x.PhiNodes);
 
 			var live = new Dictionary<IValue, HashSet<Block>>();
-			var indexes = new Allocator<IValue>();
 
-			foreach (var argument in function.Arguments.Where(x => x.Kind == ValueKind.Value))
+			foreach (var argument in function.Arguments.Where(predicate))
 			{
 				live.Add(argument, Liveness.LiveBlocks(argument, function.EntryPoint));
 			}
-			foreach (var insn in insns.Where(x => x.Kind == ValueKind.Value))
+			foreach (var insn in insns.Where<ValueInstruction>(predicate))
 			{
 				live.Add(insn, Liveness.LiveBlocks(insn, insn.Block));
 			}
-			foreach (var phi in phis.Where(x => x.Kind == ValueKind.Value))
+			foreach (var phi in phis.Where<Phi>(predicate))
 			{
 				live.Add(phi, Liveness.LiveBlocks(phi, phi.Block));
 			}
+
+			return live;
+		}
+
+		public static EqualityMap<IValue> BuildPhiMap(Function function, Dictionary<IValue, HashSet<Block>> live)
+		{
+			var map = new EqualityMap<IValue>();
+			foreach (Block block in function.Blocks)
+			{
+				foreach (Phi phi in block.PhiNodes)
+				{
+					foreach (IValue value in phi.Source.Values)
+					{
+						if (live.ContainsKey(value))
+						{
+							map.Equate(phi, value);
+						}
+					}
+				}
+			}
+
+			return map;
+		}
+
+		public static Dictionary<IValue, int> Allocate(Function function, Dictionary<IValue, HashSet<Block>> live, EqualityMap<IValue> values, out int count)
+		{
+			var indexes = new Allocator<IValue>();
 				
 			var graph = new UndirectedGraph(live.Count);
 			foreach (Block block in function.Blocks)
@@ -49,10 +74,7 @@ namespace LuaCP.CodeGen
 					if (value.Value.Contains(block))
 					{
 						var belongs = value.Key as IBelongs<Block>;
-						if (belongs == null || belongs.Owner != block)
-						{
-							currentlyLive.Add(value.Key);
-						}
+						if (belongs == null || belongs.Owner != block) currentlyLive.Add(value.Key);
 
 						var boundary = Liveness.Boundary(value.Key, block, value.Value);
 						if (boundary != null) boundaries.Add(boundary, value.Key);
@@ -76,7 +98,7 @@ namespace LuaCP.CodeGen
 						currentlyLive.Remove(value);
 					}
 
-					if (phi.Kind == ValueKind.Value)
+					if (live.ContainsKey(phi))
 					{
 						int index = indexes[phi];
 						foreach (IValue other in currentlyLive)
@@ -94,7 +116,7 @@ namespace LuaCP.CodeGen
 					if (user != null) currentlyLive.ExceptWith(boundaries.GetEnumerable(user));
 
 					var value = insn as IValue;
-					if (value != null && value.Kind == ValueKind.Value)
+					if (value != null && live.ContainsKey(value))
 					{
 						int index = indexes[value];
 						foreach (IValue other in currentlyLive)
@@ -107,15 +129,24 @@ namespace LuaCP.CodeGen
 				}
 			}
 
-			var solved = graph.Colour();
+			EqualityMap<int> map = null;
+			if (values != null)
+			{
+				map = new EqualityMap<int>();
+				map.UnionWith<IValue>(values, x =>
+				{
+					if (!live.ContainsKey(x)) throw new KeyNotFoundException("No key for " + x);
+					return indexes[x];
+				});
+			}
+
+			var solved = graph.Colour(map);
 			count = solved.ColourCount;
 
 			var result = new Dictionary<IValue, int>(live.Count);
-			int i = 0;
 			foreach (IValue value in live.Keys)
 			{
-				result.Add(value, solved.Colours[i]);
-				i++;
+				result.Add(value, solved.Colours[indexes[value]]);
 			}
 
 			return result;
