@@ -50,12 +50,13 @@ let main argv =
             else 
                 match line.Substring 1 with
                 | "help" -> 
-                    Console.WriteLine("!help:  Print this help")
-                    Console.WriteLine("!dump:  Dump the previous source")
-                    Console.WriteLine("!graph: Plot the CFG of the previous source")
-                    Console.WriteLine("!lasm:  Dump LASM code of the module")
-                    Console.WriteLine("!lua:   Dump Lua code of the module")
-                    Console.WriteLine("!types: Dump the types and constraints of all values")
+                    Console.WriteLine("!help:   Print this help")
+                    Console.WriteLine("!dump:   Dump the previous source")
+                    Console.WriteLine("!graph:  Plot the CFG of the previous source")
+                    Console.WriteLine("!lasm:   Dump LASM code of the module")
+                    Console.WriteLine("!lua:    Dump Lua code of the module")
+                    Console.WriteLine("!types:  Dump the types and constraints of all values")
+                    Console.WriteLine("!branch: Dump a simplified branching model of the code")
                 | "dump" -> (new Exporter(Console.Out)).ModuleLong(modu)
                 | "graph" -> DotExporter.Write(modu)
                 | "lua" -> (new FunctionCodegen(modu.EntryPoint, new IndentedTextWriter(Console.Out))).Write()
@@ -70,6 +71,11 @@ let main argv =
                         let numberer = new NodeNumberer(builder.Function)
                         scope.DumpFunction numberer
                     scope.DumpConstraints()
+                | "branch" -> 
+                    let group = (new LuaCP.CodeGen.BranchGen.BranchAnalysis(modu.EntryPoint)).Group
+                    let writer = new IndentedTextWriter(Console.Out)
+                    let num = new NodeNumberer(modu.EntryPoint)
+                    group.Dump(num, writer)
                 | line -> Console.WriteLine("Unknown command " + line)
         else 
             match parse line with

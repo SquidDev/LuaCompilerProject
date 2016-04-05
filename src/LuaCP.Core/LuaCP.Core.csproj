@@ -104,6 +104,7 @@
     <Compile Include="Passes\Analysis\Liveness.cs" />
     <Compile Include="Graph\UndirectedGraph.cs" />
     <Compile Include="Collections\EqualityMap.cs" />
+    <Compile Include="Collections\UniqueQueue.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

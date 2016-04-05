@@ -42,6 +42,7 @@
     <Compile Include="Bytecode\WriterExtensions.cs" />
     <Compile Include="RegisterAllocation.cs" />
     <Compile Include="Lua\FunctionCodegen.Block.cs" />
+    <Compile Include="BranchGen\BranchAnalysis.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -53,5 +54,6 @@
   <ItemGroup>
     <Folder Include="Lua\" />
     <Folder Include="Bytecode\" />
+    <Folder Include="BranchGen\" />
   </ItemGroup>
 </Project>

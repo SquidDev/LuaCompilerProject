@@ -25,7 +25,7 @@ namespace LuaCP.IR.Instructions
 
 		public Block Owner { get { return Block; } }
 
-		public Instruction(Opcode opcode)
+		protected Instruction(Opcode opcode)
 		{
 			this.opcode = opcode;
 		}
@@ -46,7 +46,7 @@ namespace LuaCP.IR.Instructions
 
 		private readonly ValueKind kind;
 
-		public ValueInstruction(Opcode opcode, ValueKind kind)
+		protected ValueInstruction(Opcode opcode, ValueKind kind)
 			: base(opcode)
 		{
 			this.kind = kind;
