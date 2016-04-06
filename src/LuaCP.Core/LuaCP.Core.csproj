@@ -107,6 +107,8 @@
     <Compile Include="Collections\UniqueQueue.cs" />
     <Compile Include="Passes\Analysis\BranchAnalysis.cs" />
     <Compile Include="IndentedTextWriter.cs" />
+    <Compile Include="Passes\Optimisation\CommonSubexpressionElimination.cs" />
+    <Compile Include="IR\Instructions\InstructionComparer.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

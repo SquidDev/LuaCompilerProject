@@ -187,7 +187,15 @@ namespace LuaCP.CodeGen.Lua
 							Return ret = (Return)insn;
 							if (!ret.Values.Equals(previous)) throw TupleChain(ret.Values, previous, previousContents);
 
-							writer.WriteLine("do return {0} end", previousContents);
+							if (ret.Values.IsNil())
+							{
+								writer.WriteLine("return");
+							}
+							else
+							{
+								writer.WriteLine("return {0}", previousContents);
+							}
+
 							return insn;
 						}
 					case Opcode.TupleGet:

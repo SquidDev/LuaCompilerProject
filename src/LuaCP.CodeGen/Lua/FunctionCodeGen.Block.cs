@@ -12,8 +12,6 @@ namespace LuaCP.CodeGen.Lua
 	{
 		private void WriteGroup(ControlGroup group, ControlNode next)
 		{
-			if (group.Entry != null && group.Entry.Previous.Count() > 1) writer.WriteLine("::{0}::", blocks[group.Entry]);
-
 			var nodes = group.Nodes;
 			var children = group.Children;
 			for (int i = 0; i < nodes.Count; i++)
@@ -85,12 +83,18 @@ namespace LuaCP.CodeGen.Lua
 				ControlNode nextNode;
 				nextNode = i + 1 < children.Count - 1 ? children[i + 1].Nodes[0] : next;
 
+				writer.WriteLine("do");
+				writer.Indent++;
 				WriteGroup(child, nextNode);
+				writer.Indent--;
+				writer.WriteLine("end");
 			}
 		}
 
 		private void WriteBlock(Block block, ControlNode node, ControlNode next)
 		{
+			if (block != null && block.Previous.Count() > 1) writer.WriteLine("::{0}::", blocks[block]);
+
 			Instruction insn = block.First;
 			while (insn != null)
 			{

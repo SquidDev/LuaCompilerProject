@@ -27,6 +27,7 @@ namespace LuaCP.Passes
 				IdenticalValues.CheckPhis.AsFunction(),
 				IdenticalValues.CheckUpvalues,
 				ClosureLifting.Runner,
+				CommonSubexpressionElimination.Runner,
 			}.Group().Repeat().AsModule(),
 		}.Group().Repeat();
 

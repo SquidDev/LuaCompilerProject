@@ -29,34 +29,36 @@ namespace LuaCP.IR.Instructions
 		Equals = 17,
 		NotEquals = 18,
 		LessThan = 19,
-		LessThanEquals,
+		LessThanEquals = 20,
 
 		// Branch
-		Branch,
-		BranchCondition,
-		Return,
-		ValueCondition,
+		Branch = 21,
+		BranchCondition = 22,
+		Return = 23,
+		ValueCondition = 24,
 
 		// Table access
-		TableGet,
-		TableSet,
-		TableNew,
+		TableGet = 25,
+		TableSet = 26,
+		TableNew = 27,
 
 		// Methods and tuples
-		Call,
-		TupleNew,
-		TupleGet,
-		TupleRemainder,
+		Call = 28,
+		TupleNew = 29,
+		TupleGet = 30,
+		TupleRemainder = 31,
 		
 		// Upvalue
-		ReferenceGet,
-		ReferenceSet,
-		ReferenceNew,
-		ClosureNew,
+		ReferenceGet = 32,
+		ReferenceSet = 33,
+		ReferenceNew = 34,
+		ClosureNew = 35,
 	}
 
 	public static class OpcodeExtensions
 	{
+		public const int Size = 36;
+
 		public static bool IsUnaryOperator(this Opcode x)
 		{
 			return x >= Opcode.Not && x <= Opcode.Length;
