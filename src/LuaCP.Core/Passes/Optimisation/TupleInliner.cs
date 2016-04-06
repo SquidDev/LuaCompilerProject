@@ -1,5 +1,6 @@
 using LuaCP.IR.Instructions;
 using LuaCP.IR;
+using LuaCP.IR.Components;
 
 namespace LuaCP.Passes.Optimisation
 {
@@ -33,6 +34,22 @@ namespace LuaCP.Passes.Optimisation
 							}
 							return true;
 						}
+						else if (tuple.Tuple is Phi)
+						{
+							Phi phi = (Phi)tuple.Tuple;
+							Phi newPhi = new Phi(phi.Block);
+
+							foreach (var pair in phi.Source)
+							{
+								var getter = new TupleGet(pair.Value, tuple.Offset);
+								pair.Key.AddBefore(pair.Key.Last, getter);
+								newPhi.Source.Add(pair.Key, getter);
+							}
+
+							tuple.ReplaceWithAndRemove(newPhi);
+
+							return true;
+						}
 						return false;
 					}
 				case Opcode.TupleNew:
@@ -43,7 +60,7 @@ namespace LuaCP.Passes.Optimisation
 							tuple.ReplaceWithAndRemove(tuple.Remaining);
 							return true;
 						}
-						else if(tuple.Remaining is TupleNew)
+						else if (tuple.Remaining is TupleNew)
 						{
 							TupleNew remainder = (TupleNew)tuple.Remaining;
 							foreach (IValue value in remainder.Values)

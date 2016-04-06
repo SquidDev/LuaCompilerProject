@@ -37,7 +37,7 @@ let main argv =
         match ReadFile file language with
         | None -> 1
         | Some(modu, _) -> 
-            use writer = new IO.StreamWriter(file + ".out")
+            use writer = new IO.StreamWriter(IO.Path.GetFileNameWithoutExtension(file) + ".out.lua")
             (new Lua.FunctionCodeGen(modu.EntryPoint, new IndentedTextWriter(writer))).Write()
             0
     | [| file; command |] -> 
