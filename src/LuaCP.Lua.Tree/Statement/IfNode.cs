@@ -25,10 +25,10 @@ namespace LuaCP.Lua.Tree.Statement
 			BlockBuilder end = builder.Continue();
 
 			BlockBuilder success = Success.Build(builder.MakeChild());
-			success.Block.AddLast(new Branch(end.Block));
+			if (!success.Block.IsTerminated()) success.Block.AddLast(new Branch(end.Block));
 
 			BlockBuilder failure = Failure.Build(builder.MakeChild());
-			failure.Block.AddLast(new Branch(end.Block));
+			if (!failure.Block.IsTerminated()) failure.Block.AddLast(new Branch(end.Block));
 
 			builder.Block.AddLast(new BranchCondition(test, success.Block, failure.Block));
 

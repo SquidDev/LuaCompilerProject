@@ -25,10 +25,7 @@ namespace LuaCP.Lua.Tree.Statement
 			builder.Block.AddLast(new Branch(bodyBranch.Block));
 
 			BlockBuilder bodyEnd = Body.Build(bodyBranch);
-			if (bodyEnd.Block.Last == null || !bodyEnd.Block.Last.Opcode.IsTerminator())
-			{
-				bodyEnd.Block.AddLast(new Branch(testBranch.Block));
-			}
+			if (!bodyEnd.Block.IsTerminated()) bodyEnd.Block.AddLast(new Branch(testBranch.Block));
             
 			testBranch = bodyEnd.Continue();
 			IValue test;

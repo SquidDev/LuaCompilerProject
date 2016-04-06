@@ -48,9 +48,7 @@ let Break : INode = upcast new BreakNode()
 let Repeat block condition : INode = upcast new RepeatNode(block, condition)
 
 let ForIn idents (generator : list<IValueNode>) block : INode = 
-    upcast new ForInNode(generator.Item 0, 
-                         (if generator.Length > 1 then generator.Item 1
-                          else null), idents, block)
+    upcast new ForInNode(generator, idents, block)
 
 let ForNum ident start stop step block : INode = 
     upcast new ForNumNode(ident, start, stop, step, block)

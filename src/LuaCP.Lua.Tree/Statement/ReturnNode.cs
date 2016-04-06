@@ -17,35 +17,11 @@ namespace LuaCP.Lua.Tree.Statement
 
 		public override BlockBuilder Build(BlockBuilder builder)
 		{
-			List<IValue> values = new List<IValue>(Values.Count);
-			IValue remainder = builder.Constants.Nil;
-
-			int index = 0, length = Values.Count - 1;
-			foreach (IValueNode node in Values)
+			IValue result;
+			builder = Values.BuildAsTuple(builder, out result);
+			using (var writer = new BlockWriter(builder, this))
 			{
-				if (index < length)
-				{
-					IValue arg;
-					builder = node.BuildAsValue(builder, out arg);
-					values.Add(arg);
-				}
-				else
-				{
-					builder = node.BuildAsTuple(builder, out remainder);
-					if (remainder.Kind != ValueKind.Tuple)
-					{
-						values.Add(remainder);
-						remainder = builder.Constants.Nil;
-					}
-				}
-
-				index++;
-			}
-
-			using (BlockWriter writer = new BlockWriter(builder, this))
-			{
-				TupleNew tuple = writer.Add(new TupleNew(values, remainder));
-				writer.Add(new Return(tuple));
+				writer.Add(new Return(result));
 			}
 			return builder;
 		}

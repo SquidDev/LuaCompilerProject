@@ -59,10 +59,7 @@ namespace LuaCP.Lua.Tree.Statement
 			// <Counter> = Index
 			Counter.Declare(bodyBlock, index);
 			bodyBlock = Body.Build(bodyBlock);
-			if (bodyBlock.Block.Count == 0 || !bodyBlock.Block.Last.Opcode.IsTerminator())
-			{
-				bodyBlock.Block.AddLast(new Branch(addBlock.Block));
-			}
+			if (!bodyBlock.Block.IsTerminated()) bodyBlock.Block.AddLast(new Branch(addBlock.Block));
             
 			// Index += Step
 			IValue newIndex = addBlock.Block.AddLast(new BinaryOp(Opcode.Add, index, step));

@@ -127,6 +127,11 @@ namespace LuaCP.CodeGen.Lua
 							writer.WriteLine("local {0} = {1}", refs[refNew], Format(refNew.Value));
 							break;
 						}
+					case Opcode.TupleGet:
+						{
+							writer.WriteLine("{0} = nil -- Error: getting tuple", GetName(insn));
+							break;
+						}
 					default:
 						throw new ArgumentException("Expected Value, got " + insn.Opcode);
 				}

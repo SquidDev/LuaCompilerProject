@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using LuaCP.IR.User;
 using LuaCP.Collections;
+using System.Linq;
 
 namespace LuaCP.IR.Components
 {
@@ -53,7 +54,10 @@ namespace LuaCP.IR.Components
 			block.phiNodes.Remove(this);
 		}
 
-		public ValueKind Kind { get { return ValueKind.Value; } }
+		public ValueKind Kind
+		{ 
+			get { return source.IsEmpty() ? ValueKind.Value : source.Values.First().Kind; } 
+		}
 
 		public CountingSet<IUser<IValue>> Users { get { return users; } }
 

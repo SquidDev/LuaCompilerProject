@@ -167,9 +167,17 @@ namespace LuaCP.CodeGen.Lua
 		{
 			foreach (Phi phi in target.PhiNodes)
 			{
-				string name = GetName(phi);
-				string sourceName = Format(phi.Source[source]);
-				if (name != sourceName) writer.WriteLine("{0} = {1}", name, sourceName);
+				if (phi.Kind == ValueKind.Tuple)
+				{
+					// TODO: Handle tuple phis somehow.
+					writer.WriteLine("-- ERROR: Tuple phi");
+				}
+				else
+				{
+					string name = GetName(phi);
+					string sourceName = Format(phi.Source[source]);
+					if (name != sourceName) writer.WriteLine("{0} = {1}", name, sourceName);
+				}
 			}
 		}
 	}

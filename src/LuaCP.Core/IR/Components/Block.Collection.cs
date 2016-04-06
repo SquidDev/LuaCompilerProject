@@ -62,6 +62,12 @@ namespace LuaCP.IR.Components
 			value.Block = null;
 		}
 
+		public bool IsTerminated()
+		{ 
+			Instruction last = Last;
+			return last != null && last.Opcode.IsTerminator();
+		}
+
 		public int Count { get { return instructions.Count; } }
 
 		public bool IsReadOnly { get { return false; } }

@@ -11,44 +11,36 @@ namespace LuaCP.Lua.Tree.Statement
 	public class ForInNode : Node
 	{
 		public readonly IReadOnlyList<IDeclarable> Variables;
-		public readonly IValueNode Function;
-		public readonly IValueNode Table;
+		public readonly IReadOnlyList<IValueNode> Args;
 		public readonly INode Body;
 
-		public ForInNode(IValueNode function, IValueNode table, IEnumerable<IDeclarable> variables, INode body)
+		public ForInNode(IEnumerable<IValueNode> args, IEnumerable<IDeclarable> variables, INode body)
 		{
 			Variables = variables.ToList();
-			Function = function;
-			Table = table;
+			Args = args.ToList();
 			Body = body;
 		}
 
 		public override BlockBuilder Build(BlockBuilder builder)
 		{
-			IValue function, table;
-			builder = Function.Build(builder, out function);
-			if (Table == null)
-			{
-				if (function.Kind != ValueKind.Tuple) throw new Exception("Cannot have ForIn loop with one non-tuple argument");
-				table = builder.Block.AddLast(new TupleGet(function, 1));
-				function = builder.Block.AddLast(new TupleGet(function, 0));
-			}
-			else
-			{
-				builder = Table.Build(builder, out table);
-			}
+			IValue setup;
+			builder = Args.BuildAsTuple(builder, out setup);
+
+			IValue function = builder.Block.AddLast(new TupleGet(setup, 0));
+			IValue table = builder.Block.AddLast(new TupleGet(setup, 1));
+			IValue initial = builder.Block.AddLast(new TupleGet(setup, 2));
 
 			BlockBuilder test = builder.MakeChild();
 			builder.Block.AddLast(new Branch(test.Block));
 
 			BlockBuilder cont = builder.Continue();
 			Phi value = new Phi(test.Block);
-			value.Source.Add(builder.Block, builder.Constants.Nil);
+			value.Source.Add(builder.Block, initial);
 
 			BlockBuilder body = builder.MakeLoop(new LoopState(test, cont));
 
-			TupleNew tuple = test.Block.AddLast(new TupleNew(new IValue[] { table, value }, builder.Constants.Nil));
-			IValue call = test.Block.AddLast(new Call(function, tuple));
+			TupleNew args = test.Block.AddLast(new TupleNew(new IValue[] { table, value }, builder.Constants.Nil));
+			IValue call = test.Block.AddLast(new Call(function, args));
 			IValue val = test.Block.AddLast(new TupleGet(call, 0));
 			IValue isNil = test.Block.AddLast(new BinaryOp(Opcode.Equals, val, builder.Constants.Nil));
 
@@ -60,10 +52,7 @@ namespace LuaCP.Lua.Tree.Statement
 			}
 			body = Body.Build(body);
 			value.Source.Add(body.Block, val);
-			if (body.Block.Last == null || !body.Block.Last.Opcode.IsTerminator())
-			{
-				body.Block.AddLast(new Branch(test.Block));
-			}
+			if (!body.Block.IsTerminated()) body.Block.AddLast(new Branch(test.Block));
 
 			return cont;
 		}
