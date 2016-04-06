@@ -17,7 +17,7 @@ Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "LuaCP.FSharp", "src\LuaCP.F
 EndProject
 Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "LuaCP.Test", "src\LuaCP.Test\LuaCP.Test.fsproj", "{96055562-AE1E-475D-B7E3-0501251D0F6D}"
 EndProject
-Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "LuaCP.REPL", "src\LuaCP.REPL\LuaCP.REPL.fsproj", "{821787D2-46C0-49B4-864B-34CC253F4ECE}"
+Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "LuaCP.CLI", "src\LuaCP.CLI\LuaCP.CLI.fsproj", "{821787D2-46C0-49B4-864B-34CC253F4ECE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
