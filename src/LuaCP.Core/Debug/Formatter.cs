@@ -13,13 +13,14 @@ namespace LuaCP.Debug
 	{
 		public static readonly Formatter Default = new Formatter();
 
-		public string Choose(object value, NodeNumberer numberer)
+		public string Choose(object obj, NodeNumberer numberer)
 		{
-			if (value == null) return "null";
-			if (value is Phi) return Phi((Phi)value, numberer);
-			if (value is Instruction) return InstructionLong((Instruction)value, numberer);
-			if (value is IValue) return Value((IValue)value, numberer);
-			return Unknown(value);
+			if (obj == null) return "null";
+			if (obj is Phi) return Phi((Phi)obj, numberer);
+			if (obj is Instruction) return InstructionLong((Instruction)obj, numberer);
+			if (obj is IValue) return Value((IValue)obj, numberer);
+			if (obj is Block) return Block((Block)obj, numberer);
+			return Unknown(obj);
 		}
 
 		public string Phi(Phi phi, NodeNumberer numberer)

@@ -31,7 +31,7 @@ namespace LuaCP.Passes.Analysis
 				blocks.Add(phi.Block);
 				foreach (var source in phi.Source)
 				{
-					if (source.Value == phi && blocks.Add(source.Key))
+					if (source.Value == value && blocks.Add(source.Key))
 					{
 						worklist.Enqueue(source.Key);
 					}
