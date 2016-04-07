@@ -18,10 +18,10 @@ let Build(tree : INode) =
     let types = builder.EntryPoint.Scopes.Get<TypeScope>()
     let variables = builder.EntryPoint.Scopes.Get<IVariableScope>()
     types.Constraint(ValueSubtype(types.Get(variables.Globals), StandardLibraries.Base))
-    // for func in modu.Functions do
-    //    ConstraintGenerator.InferTypes scope func
+    for func in modu.Functions do
+        ConstraintGenerator.InferTypes types func
     // try 
-    PassManager.Run(modu, PassExtensions.Default, true)
+    // PassManager.Run(modu, PassExtensions.Default, true)
     // with :? VerificationException as e -> printfn "Cannot verify: %A" e
     modu, builder
 

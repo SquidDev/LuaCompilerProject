@@ -229,6 +229,8 @@ type TypeProvider() =
     member this.IsTypeEqual current target = (isBiwaySubtype current target).ToBoolean()
     member this.IsSubtype current target = (isSubtype current target).ToBoolean()
     member this.IsTupleSubtype current target = (isTupleSubtype current target).ToBoolean()
+    member this.IsTupleEqual current target = 
+        (isTupleSubtype current target).ToBoolean() && (isTupleSubtype target current).ToBoolean()
     
     /// <summary>Find the best function given a set of arguments</summary>
     member this.FindBestFunction (func : ValueType) (args : TupleType) = 
@@ -262,7 +264,7 @@ type TypeProvider() =
                 | Literal x -> Primitive x.Kind
                 | x -> x
             
-            let args, remainder = args.Root
+            let args, remainder = args.Base
             
             let mapped : TupleType = 
                 Single((List.map literalToPrim args), 

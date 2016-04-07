@@ -6,6 +6,7 @@ open LuaCP.Types
 open LuaCP.IR
 open LuaCP.Debug
 open LuaCP.Collections
+open LuaCP.Collections.Matching
 open LuaCP.IR.Components
 open LuaCP.IR.User
 open LuaCP.Tree
@@ -15,18 +16,14 @@ open LuaCP.Types.Extensions
 [<StructuredFormatDisplay("{AsString}")>]
 type Constraint<'tv, 'tt when 'tv : equality and 'tt : equality> = 
     | ValueSubtype of current : 'tv * target : 'tv
-    | ValueEqual of 'tv * 'tv
     | WithBinOp of Operator * left : 'tv * right : 'tv * result : 'tv
     | WithUnOp of Operator * operand : 'tv * result : 'tv
     | TupleSubtype of current : 'tt * target : 'tt
-    | TupleEqual of 'tt * 'tt
     
     override this.ToString() = 
         match this with
         | ValueSubtype(current, target) -> sprintf "%A :> %A" current target
         | TupleSubtype(current, target) -> sprintf "%A :> %A" current target
-        | ValueEqual(current, target) -> sprintf "%A = %A" current target
-        | TupleEqual(current, target) -> sprintf "%A = %A" current target
         | WithUnOp(op, operand, result) -> sprintf "%A %A :> %A" op operand result
         | WithBinOp(op, left, right, result) -> sprintf "%A(%A %A) :> %A" op left right result
     
@@ -34,20 +31,20 @@ type Constraint<'tv, 'tt when 'tv : equality and 'tt : equality> =
     
     member this.ContainsValue ty = 
         match this with
-        | ValueEqual(a, b) | ValueSubtype(a, b) | WithUnOp(_, a, b) -> a = ty || b = ty
-        | TupleSubtype(_, _) | TupleEqual(_, _) -> false
+        | ValueSubtype(a, b) | WithUnOp(_, a, b) -> a = ty || b = ty
+        | TupleSubtype(_, _) -> false
         | WithBinOp(_, a, b, c) -> a = ty || b = ty || c = ty
     
     member this.ContainsTuple ty = 
         match this with
-        | ValueEqual(_, _) | ValueSubtype(_, _) | WithUnOp(_, _, _) | WithBinOp(_, _, _, _) -> false
-        | TupleSubtype(a, b) | TupleEqual(a, b) -> a = ty || b = ty
+        | ValueSubtype(_, _) | WithUnOp(_, _, _) | WithBinOp(_, _, _, _) -> false
+        | TupleSubtype(a, b)  -> a = ty || b = ty
 
 type TypeScope() = 
     let values = new Dictionary<IValue, ValueType>()
     let tuples = new Dictionary<IValue, TupleType>()
     let returns = new Dictionary<Function, TupleType>()
-    let constraints = new List<Constraint<ValueType, TupleType>>()
+    let constraints = new HashSet<Constraint<ValueType, TupleType>>()
     let checker = new TypeProvider()
     member this.Checker = checker
     
@@ -62,18 +59,24 @@ type TypeScope() =
                 values.Add(value, ty)
                 ty
     
+    member this.TryGet(value : IValue) = 
+        if value.Kind = ValueKind.Tuple then raise (ArgumentException "Expected value, got reference")
+        if value :? Constant then Some(ValueType.Literal (value :?> Constant).Literal)
+        else 
+            let exists, ty = values.TryGetValue(value)
+            if exists then Some(ty)
+            else None
+    
     member this.Create(value : IValue) = this.Get value |> ignore
-    member this.Constraint cons = constraints.Add cons
+    member this.Constraint cons = constraints.Add cons |> ignore
     
     member this.VConstraint cons = 
         match cons with
         | ValueSubtype(current, target) -> this.Constraint(ValueSubtype(this.Get current, this.Get target))
-        | ValueEqual(current, target) -> this.Constraint(ValueEqual(this.Get current, this.Get target))
         | WithUnOp(opcode, operand, result) -> this.Constraint(WithUnOp(opcode, this.Get operand, this.Get result))
         | WithBinOp(opcode, left, right, result) -> 
             this.Constraint(WithBinOp(opcode, this.Get left, this.Get right, this.Get result))
         | TupleSubtype(current, target) -> this.Constraint(TupleSubtype(this.TupleGet current, this.TupleGet target))
-        | TupleEqual(current, target) -> this.Constraint(TupleEqual(this.TupleGet current, this.TupleGet target))
     
     member this.ReturnGet(func : Function) = 
         let exists, ty = returns.TryGetValue func
@@ -93,6 +96,63 @@ type TypeScope() =
                 let ty = TReference(IdentRef<_>(Unbound))
                 tuples.Add(value, ty)
                 ty
+    
+    member this.TryTupleGet(value : IValue) = 
+        if value.IsNil() then Some(Single([], None))
+        elif value.Kind <> ValueKind.Tuple then Some(Single([ this.Get value ], None))
+        else 
+            let exists, ty = tuples.TryGetValue value
+            if exists then Some ty
+            else None
+    
+    member this.EquateValueTypes (a : ValueType) (b : ValueType) = 
+        let replace a b = 
+            match a with
+            | Reference(IdentRef(Link child) as childRef) -> childRef.Value <- Link b
+            | Reference(IdentRef(Unbound) as childRef) -> childRef.Value <- Link b
+            | _ -> raise (ArgumentException(sprintf "Cannot replace %A with %A" a b))
+        match a.Root, b.Root with
+        | Reference(IdentRef(Unbound)), (Reference(IdentRef(Unbound)) as ty) -> replace a ty
+        | Reference(IdentRef(Unbound)), ty -> replace a ty
+        | ty, Reference(IdentRef(Unbound)) -> replace b ty
+        | a, b -> 
+            if not (checker.IsTypeEqual a b) then printfn "Not equal %A and %A" a b
+    
+    member this.EquateValues (a : IValue) (b : IValue) = 
+        match this.TryGet a, this.TryGet b with
+        | None, None -> values.[a] <- this.Get b
+        | None, Some ty -> 
+            values.Add(a, ty)
+            (System.Diagnostics.Debug.Assert(ty != null))
+        | Some ty, None -> 
+            values.Add(b, ty)
+            (System.Diagnostics.Debug.Assert(ty != null))
+        | Some a, Some b -> this.EquateValueTypes a b
+    
+    member this.EquateTupleTypes (a : TupleType) (b : TupleType) = 
+        let replace a b = 
+            match a with
+            | TReference(IdentRef(Link child) as childRef) -> childRef.Value <- Link b
+            | TReference(IdentRef(Unbound) as childRef) -> childRef.Value <- Link b
+            | _ -> raise (ArgumentException(sprintf "Cannot replace %A with %A" a b))
+        match a.Root, b.Root with
+        | TReference(IdentRef(Unbound)), (TReference(IdentRef(Unbound)) as ty) -> replace a ty
+        | TReference(IdentRef(Unbound)), ty -> replace a ty
+        | ty, TReference(IdentRef(Unbound)) -> replace b ty
+        | a, b -> 
+            if not (checker.IsTupleEqual a b) then printfn "Not equal %A and %A" a b
+    
+    member this.EquateValuesWith (a : IValue) (b : ValueType) = 
+        match this.TryGet a with
+        | None -> 
+            values.Add(a, b)
+            (System.Diagnostics.Debug.Assert(b != null))
+        | Some a -> this.EquateValueTypes a b
+    
+    member this.EquateTuplesWith (a : IValue) (b : TupleType) = 
+        match this.TryTupleGet a with
+        | None -> tuples.Add(a, b)
+        | Some a -> this.EquateTupleTypes a b
     
     member this.DumpFunction(num : NodeNumberer) = 
         printfn "# Function: %A" num.Function

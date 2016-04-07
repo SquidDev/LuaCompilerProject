@@ -40,17 +40,17 @@ let rec private nth ty rem n =
         | [], None -> Nil
         | _ :: rest, _ -> nth rest rem (n - 1)
 
-let private root (this : TupleType) = 
+let private baseTuple (this : TupleType) = 
     let rec doRoot ty = 
         match ty with
         | TReference(IdentRef Unbound) -> raise (ArgumentException("Cannot get root of unbound"))
         | TReference(IdentRef(Link x)) when x = this -> raise (ArgumentException("Cycle in type"))
-        | TReference(IdentRef(Link x)) -> doRoot ty
+        | TReference(IdentRef(Link x)) -> doRoot x
         | Single(args, rem) -> args, rem
     doRoot this
 
 let rec private first (ty : TupleType) = 
-    let ty, rem = root ty
+    let ty, rem = baseTuple ty
     nth ty rem 0
 
 type ValueType with
@@ -64,7 +64,6 @@ type ValueType with
     member this.Root = 
         let rec root (ty : ValueType) = 
             match ty with
-            | Reference(IdentRef Unbound) -> raise (ArgumentException("Cannot get root of unbound"))
             | Reference(IdentRef(Link x)) when x = this -> raise (ArgumentException("Cycle in type"))
             | Reference(IdentRef(Link x)) -> root ty
             | ty -> ty
@@ -82,10 +81,19 @@ type TupleType with
     member this.First = first this
     
     member this.Nth n = 
-        let ty, rem = root this
+        let ty, rem = baseTuple this
         nth ty rem n
     
-    member this.Root = root this
+    member this.Base = baseTuple this
+    
+    member this.Root = 
+        let rec root (ty : TupleType) = 
+            match ty with
+            | TReference(IdentRef(Link x)) when x = this -> raise (ArgumentException("Cycle in type"))
+            | TReference(IdentRef(Link x)) -> root x
+            | ty -> ty
+        root this
+    
     member this.HasUnbound = tupleUnbound (new HashSet<_>()) this
     member this.IsUnbound = 
         match this with

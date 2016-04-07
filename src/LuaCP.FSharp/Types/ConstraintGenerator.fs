@@ -23,8 +23,8 @@ let InferType (scope : TypeScope) (insn : Instruction) =
     | BinaryOp insn -> scope.VConstraint(WithBinOp(insn.Opcode.AsOperator, insn.Left, insn.Right, upcast insn))
     | UnaryOp insn -> scope.VConstraint(WithUnOp(insn.Opcode.AsOperator, insn.Operand, upcast insn))
     | ValueCondition insn -> 
-        scope.Constraint(ValueEqual(Union [ scope.Get insn.Success
-                                            scope.Get insn.Failure ], scope.Get insn))
+        scope.EquateValuesWith insn (Union [ scope.Get insn.Success
+                                             scope.Get insn.Failure ])
     | Return insn -> scope.Constraint(TupleSubtype(scope.TupleGet insn.Values, scope.ReturnGet insn.Block.Function))
     | TableGet insn -> 
         scope.Constraint(ValueSubtype(Table([ { Key = scope.Get insn.Key
@@ -47,20 +47,19 @@ let InferType (scope : TypeScope) (insn : Instruction) =
         scope.Constraint
             (ValueSubtype(scope.Get insn.Method, Function(scope.TupleGet insn.Arguments, scope.TupleGet insn)))
     | TupleNew insn when insn.Remaining.IsNil() -> 
-        scope.Constraint(TupleEqual(scope.TupleGet insn, Single(Seq.map scope.Get insn.Values |> Seq.toList, None)))
-    | ReferenceGet insn -> scope.VConstraint(ValueEqual(insn.Reference, upcast insn))
-    | ReferenceSet insn -> scope.VConstraint(ValueSubtype(insn.Value, insn.Reference))
-    | ReferenceNew insn -> scope.VConstraint(ValueSubtype(insn.Value, upcast insn))
+        scope.EquateTuplesWith insn (Single(Seq.map scope.Get insn.Values |> Seq.toList, None))
+    | ReferenceGet insn -> scope.EquateValues insn.Reference insn
+    | ReferenceSet insn -> scope.EquateValues insn.Value insn.Reference
+    | ReferenceNew insn -> scope.EquateValues insn.Value insn
     | ClosureNew insn -> 
-        Seq.iteri (fun i (x : IValue) -> scope.VConstraint(ValueEqual(x, upcast insn.Function.OpenUpvalues.[i]))) 
-            insn.OpenUpvalues
+        Seq.iteri (fun i (x : IValue) -> scope.EquateValues x (insn.Function.OpenUpvalues.[i])) insn.OpenUpvalues
         Seq.iteri (fun i (x : IValue) -> scope.VConstraint(ValueSubtype(x, upcast insn.Function.ClosedUpvalues.[i]))) 
             insn.ClosedUpvalues
         let mapped = 
             List.map scope.Get (Seq.filter (fun (x : Argument) -> x.Kind = ValueKind.Value) insn.Function.Arguments
                                 |> Seq.map (fun x -> x :> IValue)
                                 |> Seq.toList)
-        scope.Constraint(ValueEqual(Function(Single(mapped, None), scope.ReturnGet insn.Function), scope.Get insn))
+        scope.EquateValuesWith insn (Function(Single(mapped, None), scope.ReturnGet insn.Function))
     | Branch _ | BranchCondition _ -> ()
     | _ -> printfn "Cannot handle %A" insn
 
@@ -68,8 +67,7 @@ let InferTypes (scope : TypeScope) (func : Function) =
     for block in func.EntryPoint.VisitPreorder() do
         for phi in block.PhiNodes do
             match phi.Kind with
-            | ValueKind.Value -> 
-                scope.Constraint(ValueEqual(Union(Seq.map scope.Get phi.Source.Values |> Seq.toList), scope.Get phi))
+            | ValueKind.Value -> scope.EquateValuesWith phi (Union(Seq.map scope.Get phi.Source.Values |> Seq.toList))
             | ValueKind.Tuple -> () // TODO: Handle this
         for item in block do
             InferType scope item
