@@ -16,12 +16,7 @@ let ReadFile (file : string) (language : Language) =
     | Failure(messageA, _, _) -> 
         Console.Error.WriteLine("Cannot compile " + file + "\n" + messageA)
         None
-    | Success(tree, _, _) -> 
-        let modu = new Module()
-        let builder = new FunctionBuilder(modu)
-        builder.Accept(tree) |> ignore
-        PassManager.Run(modu, PassExtensions.Default, true)
-        Some(modu, builder)
+    | Success(tree, _, _) -> Some(CLI.Commands.Build tree)
 
 [<EntryPoint>]
 let main argv = 

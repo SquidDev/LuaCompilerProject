@@ -8,7 +8,22 @@ open LuaCP.Debug
 open LuaCP.IR.Components
 open LuaCP.Lua.Tree
 open LuaCP.Passes
+open LuaCP.Tree
 open LuaCP.Types
+
+let Build(tree : INode) = 
+    let modu = new Module()
+    let builder = new FunctionBuilder(modu)
+    builder.Accept(tree) |> ignore
+    let types = builder.EntryPoint.Scopes.Get<TypeScope>()
+    let variables = builder.EntryPoint.Scopes.Get<IVariableScope>()
+    types.Constraint(ValueSubtype(types.Get(variables.Globals), StandardLibraries.Base))
+    // for func in modu.Functions do
+    //    ConstraintGenerator.InferTypes scope func
+    // try 
+    PassManager.Run(modu, PassExtensions.Default, true)
+    // with :? VerificationException as e -> printfn "Cannot verify: %A" e
+    modu, builder
 
 let RunCommand (command : string) (modu : Module) (builder : FunctionBuilder) = 
     match command with

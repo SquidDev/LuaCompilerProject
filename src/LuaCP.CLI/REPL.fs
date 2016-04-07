@@ -40,16 +40,7 @@ let rec Loop(language : Language) =
             match Parse language line with
             | None -> ()
             | Some(item) -> 
-                modu <- new Module()
-                builder <- new FunctionBuilder(modu)
-                builder.Accept(item) |> ignore
-                let scope = builder.EntryPoint.Scopes.Get<TypeScope>()
-                scope.Constraint
-                    (ValueSubtype
-                         (scope.Get(builder.EntryPoint.Scopes.Get<IVariableScope>().Globals), StandardLibraries.Base))
-                // for func in modu.Functions do
-                //    ConstraintGenerator.InferTypes scope func
-                // try 
-                PassManager.Run(modu, PassExtensions.Default, true)
-                (// with :? VerificationException as e -> printfn "Cannot verify: %A" e
-                 new Exporter(Console.Out)).ModuleLong(modu)
+                let builtModule, builtBuilder = Commands.Build item
+                modu <- builtModule
+                builder <- builtBuilder
+                (new Exporter(Console.Out)).ModuleLong(modu)

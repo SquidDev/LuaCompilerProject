@@ -156,7 +156,7 @@ namespace LuaCP.CodeGen.Lua
 					case Opcode.Call:
 						{
 							Call call = (Call)insn;
-							if (!call.Arguments.Equals(previous)) throw TupleChain(call.Arguments, previous, previousContents);
+							if (call.Arguments != previous) throw TupleChain(call.Arguments, previous, previousContents);
 
 							previous = call;
 							previousContents = String.Format("{0}({1})", Format(call.Method), previousContents);
@@ -165,7 +165,7 @@ namespace LuaCP.CodeGen.Lua
 					case Opcode.TupleNew:
 						{
 							TupleNew tupNew = (TupleNew)insn;
-							if (!tupNew.Remaining.Equals(previous)) throw TupleChain(tupNew.Remaining, previous, previousContents);
+							if (tupNew.Remaining != previous) throw TupleChain(tupNew.Remaining, previous, previousContents);
 
 							previous = tupNew;
 							if (tupNew.Remaining.IsNil())
@@ -181,7 +181,7 @@ namespace LuaCP.CodeGen.Lua
 					case Opcode.TupleRemainder:
 						{
 							TupleRemainder remainder = (TupleRemainder)insn;
-							if (!remainder.Tuple.Equals(previous)) throw TupleChain(remainder.Tuple, previous, previousContents);
+							if (remainder.Tuple != previous) throw TupleChain(remainder.Tuple, previous, previousContents);
 
 							previous = remainder;
 							previousContents = String.Format("select({0}, {1}", remainder.Offset + 1, previousContents);
@@ -190,7 +190,19 @@ namespace LuaCP.CodeGen.Lua
 					case Opcode.Return:
 						{
 							Return ret = (Return)insn;
-							if (!ret.Values.Equals(previous)) throw TupleChain(ret.Values, previous, previousContents);
+							if (ret.Values != previous)
+							{
+								if (ret.Values.IsNil())
+								{
+									// We might be returning nil
+									writer.Write(previousContents);
+									writer.WriteLine(";");
+								}
+								else
+								{
+									throw TupleChain(ret.Values, previous, previousContents);
+								}
+							}
 
 							if (ret.Values.IsNil())
 							{
@@ -211,7 +223,7 @@ namespace LuaCP.CodeGen.Lua
 							while (insn != null && insn.Opcode == Opcode.TupleGet)
 							{
 								TupleGet getter = (TupleGet)insn;
-								if (!getter.Tuple.Equals(previous)) throw TupleChain(getter.Tuple, previous, previousContents);
+								if (getter.Tuple != previous) throw TupleChain(getter.Tuple, previous, previousContents);
 
 								if (getter.Offset >= locals.Count) locals.Resize(getter.Offset + 1, null);
 								TupleGet current = locals[getter.Offset];
