@@ -15,37 +15,29 @@ open LuaCP.Types.Extensions
 
 [<StructuredFormatDisplay("{AsString}")>]
 type Constraint<'tv, 'tt when 'tv : equality and 'tt : equality> = 
-    | ValueSubtype of current : 'tv * target : 'tv
     | WithBinOp of Operator * left : 'tv * right : 'tv * result : 'tv
     | WithUnOp of Operator * operand : 'tv * result : 'tv
-    | TupleSubtype of current : 'tt * target : 'tt
     
     override this.ToString() = 
         match this with
-        | ValueSubtype(current, target) -> sprintf "%A :> %A" current target
-        | TupleSubtype(current, target) -> sprintf "%A :> %A" current target
         | WithUnOp(op, operand, result) -> sprintf "%A %A :> %A" op operand result
         | WithBinOp(op, left, right, result) -> sprintf "%A(%A %A) :> %A" op left right result
     
     member this.AsString = this.ToString()
-    
     member this.ContainsValue ty = 
         match this with
-        | ValueSubtype(a, b) | WithUnOp(_, a, b) -> a = ty || b = ty
-        | TupleSubtype(_, _) -> false
+        | WithUnOp(_, a, b) -> a = ty || b = ty
         | WithBinOp(_, a, b, c) -> a = ty || b = ty || c = ty
-    
-    member this.ContainsTuple ty = 
-        match this with
-        | ValueSubtype(_, _) | WithUnOp(_, _, _) | WithBinOp(_, _, _, _) -> false
-        | TupleSubtype(a, b)  -> a = ty || b = ty
 
 type TypeScope() = 
+    let valueMin = new Dictionary<ValueType, ValueType>() // Current constraint on a type
+    let tupleMin = new Dictionary<TupleType, TupleType>() // Current constraint on a type
     let values = new Dictionary<IValue, ValueType>()
     let tuples = new Dictionary<IValue, TupleType>()
     let returns = new Dictionary<Function, TupleType>()
     let constraints = new HashSet<Constraint<ValueType, TupleType>>()
     let checker = new TypeProvider()
+    let equator = new TypeEquator(checker)
     member this.Checker = checker
     
     member this.Get(value : IValue) = 
@@ -72,11 +64,9 @@ type TypeScope() =
     
     member this.VConstraint cons = 
         match cons with
-        | ValueSubtype(current, target) -> this.Constraint(ValueSubtype(this.Get current, this.Get target))
         | WithUnOp(opcode, operand, result) -> this.Constraint(WithUnOp(opcode, this.Get operand, this.Get result))
         | WithBinOp(opcode, left, right, result) -> 
             this.Constraint(WithBinOp(opcode, this.Get left, this.Get right, this.Get result))
-        | TupleSubtype(current, target) -> this.Constraint(TupleSubtype(this.TupleGet current, this.TupleGet target))
     
     member this.ReturnGet(func : Function) = 
         let exists, ty = returns.TryGetValue func
@@ -107,6 +97,8 @@ type TypeScope() =
     
     member this.EquateValueTypes (a : ValueType) (b : ValueType) = 
         let replace a b = 
+            let exists, min = valueMin.TryGetValue b
+            if exists then this.Subtype a min
             match a with
             | Reference(IdentRef(Link child) as childRef) -> childRef.Value <- Link b
             | Reference(IdentRef(Unbound) as childRef) -> childRef.Value <- Link b
@@ -118,19 +110,22 @@ type TypeScope() =
         | a, b -> 
             if not (checker.IsTypeEqual a b) then printfn "Not equal %A and %A" a b
     
+    member this.Subtype (current : ValueType) (target : ValueType) = 
+        let success, cons = valueMin.TryGetValue current
+        if success then equator.Value target cons
+        else valueMin.Add(current, target)
+    
     member this.EquateValues (a : IValue) (b : IValue) = 
         match this.TryGet a, this.TryGet b with
         | None, None -> values.[a] <- this.Get b
-        | None, Some ty -> 
-            values.Add(a, ty)
-            (System.Diagnostics.Debug.Assert(ty != null))
-        | Some ty, None -> 
-            values.Add(b, ty)
-            (System.Diagnostics.Debug.Assert(ty != null))
+        | None, Some ty -> values.Add(a, ty)
+        | Some ty, None -> values.Add(b, ty)
         | Some a, Some b -> this.EquateValueTypes a b
     
     member this.EquateTupleTypes (a : TupleType) (b : TupleType) = 
         let replace a b = 
+            let exists, min = tupleMin.TryGetValue b
+            if exists then this.TupleSubtype a min
             match a with
             | TReference(IdentRef(Link child) as childRef) -> childRef.Value <- Link b
             | TReference(IdentRef(Unbound) as childRef) -> childRef.Value <- Link b
@@ -144,9 +139,7 @@ type TypeScope() =
     
     member this.EquateValuesWith (a : IValue) (b : ValueType) = 
         match this.TryGet a with
-        | None -> 
-            values.Add(a, b)
-            (System.Diagnostics.Debug.Assert(b != null))
+        | None -> values.Add(a, b)
         | Some a -> this.EquateValueTypes a b
     
     member this.EquateTuplesWith (a : IValue) (b : TupleType) = 
@@ -154,18 +147,29 @@ type TypeScope() =
         | None -> tuples.Add(a, b)
         | Some a -> this.EquateTupleTypes a b
     
+    member this.TupleSubtype (current : TupleType) (target : TupleType) = 
+        let success, cons = tupleMin.TryGetValue current
+        if success then equator.Tuple target cons
+        else tupleMin.Add(current, target)
+    
     member this.DumpFunction(num : NodeNumberer) = 
         printfn "# Function: %A" num.Function
         printfn "## Values:"
         let valueItem (pair : KeyValuePair<IValue, ValueType>) = 
             Formatter.Default.Value(pair.Key, Console.Out, num)
-            printfn " : %s => %A" (pair.Value.WithLabel()) 
+            printfn " : %s" (pair.Value.WithLabel())
+            printfn "    %A" 
                 (Seq.filter (fun (x : Constraint<_, _>) -> x.ContainsValue pair.Value) constraints |> Seq.toList)
+            printfn "    %A" 
+                (Seq.filter (fun (x : KeyValuePair<_, _>) -> x.Key = pair.Value || x.Value = pair.Value) valueMin 
+                 |> Seq.toList)
         
         let tupleItem (pair : KeyValuePair<IValue, TupleType>) = 
             Formatter.Default.Value(pair.Key, Console.Out, num)
-            printfn " : %s => %A" (pair.Value.WithLabel()) 
-                (Seq.filter (fun (x : Constraint<_, _>) -> x.ContainsTuple pair.Value) constraints |> Seq.toList)
+            printfn " : %s" (pair.Value.WithLabel())
+            printfn "    %A" 
+                (Seq.filter (fun (x : KeyValuePair<_, _>) -> x.Key = pair.Value || x.Value = pair.Value) tupleMin 
+                 |> Seq.toList)
         
         for pair in values do
             match pair.Key with

@@ -281,6 +281,31 @@ type TypeProvider() =
             | Some x -> Some x, []
             | None -> func, bests
     
+    member this.FindBestPair (fields : TableField list) (key : ValueType) = 
+        let rec findBest (fields : TableField list) (best : TableField list) = 
+            match fields with
+            | [] -> None, best
+            | field :: rem -> 
+                if isSubtype key (field.Key) <> Failure then 
+                    if isSubtype (field.Key) key <> Failure then Some(field), best
+                    else findBest rem (field :: best)
+                else findBest rem best
+        
+        let field, bests = findBest fields []
+        match field, bests with
+        | Some _, _ | None, [] -> field, bests
+        | None, [ item ] | Some item, [] -> Some item, []
+        | (None, _) -> 
+            let literalToPrim x = 
+                match x with
+                | Literal x -> Primitive x.Kind
+                | x -> x
+            
+            let equal (field : TableField) = isSubtype (literalToPrim field.Key) key <> Failure
+            match List.tryFind equal bests with
+            | Some x -> Some x, []
+            | None -> field, bests
+    
     member this.GetOperator (ty : ValueType) (op : Operator) = getOperator ty op
     member this.GetBinaryOperatory (left : ValueType) (right : ValueType) (op : Operator) = 
         let handleRight() = 

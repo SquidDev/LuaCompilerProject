@@ -99,3 +99,8 @@ type TupleType with
         match this with
         | TReference(IdentRef Unbound) -> true
         | _ -> false
+
+let (|BasicType|_|) (ty : ValueType) = 
+    match ty with
+    | Nil | Value | Dynamic | Primitive _ | Literal _ -> Some(ty)
+    | _ -> None

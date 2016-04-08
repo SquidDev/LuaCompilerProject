@@ -17,7 +17,7 @@ let Build(tree : INode) =
     builder.Accept(tree) |> ignore
     let types = builder.EntryPoint.Scopes.Get<TypeScope>()
     let variables = builder.EntryPoint.Scopes.Get<IVariableScope>()
-    types.Constraint(ValueSubtype(types.Get(variables.Globals), StandardLibraries.Base))
+    types.Subtype (types.Get(variables.Globals)) StandardLibraries.Base
     for func in modu.Functions do
         ConstraintGenerator.InferTypes types func
     // try 

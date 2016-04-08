@@ -39,6 +39,7 @@
     <Compile Include="Types\OperatorHelpers.fs" />
     <Compile Include="Types\TypeProvider.fs" />
     <Compile Include="Types\Factories.fs" />
+    <Compile Include="Types\TypeMerger.fs" />
     <Compile Include="Types\TypeScope.fs" />
     <Compile Include="Types\ConstraintGenerator.fs" />
     <Compile Include="Types\StandardLibraries.fs" />

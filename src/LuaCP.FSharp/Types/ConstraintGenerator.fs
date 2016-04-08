@@ -25,15 +25,15 @@ let InferType (scope : TypeScope) (insn : Instruction) =
     | ValueCondition insn -> 
         scope.EquateValuesWith insn (Union [ scope.Get insn.Success
                                              scope.Get insn.Failure ])
-    | Return insn -> scope.Constraint(TupleSubtype(scope.TupleGet insn.Values, scope.ReturnGet insn.Block.Function))
+    | Return insn -> scope.TupleSubtype (scope.TupleGet insn.Values) (scope.ReturnGet insn.Block.Function)
     | TableGet insn -> 
-        scope.Constraint(ValueSubtype(Table([ { Key = scope.Get insn.Key
-                                                Value = scope.Get insn
-                                                ReadOnly = true } ], OperatorHelpers.Empty), scope.Get insn.Table))
+        scope.Subtype (scope.Get insn.Table) (Table([ { Key = scope.Get insn.Key
+                                                        Value = scope.Get insn
+                                                        ReadOnly = true } ], OperatorHelpers.Empty))
     | TableSet insn -> 
-        scope.Constraint(ValueSubtype(Table([ { Key = scope.Get insn.Key
-                                                Value = scope.Get insn.Value
-                                                ReadOnly = false } ], OperatorHelpers.Empty), scope.Get insn.Table))
+        scope.Subtype (scope.Get insn.Table) (Table([ { Key = scope.Get insn.Key
+                                                        Value = scope.Get insn.Value
+                                                        ReadOnly = false } ], OperatorHelpers.Empty))
     | TableNew insn -> 
         let keys = 
             Seq.map (fun (x : KeyValuePair<_, _>) -> 
@@ -42,10 +42,8 @@ let InferType (scope : TypeScope) (insn : Instruction) =
                   ReadOnly = false }) insn.HashPart
             |> Seq.toList
         // TODO: Handle array part
-        scope.Constraint(ValueSubtype(Table(keys, OperatorHelpers.Empty), scope.Get insn))
-    | Call insn -> 
-        scope.Constraint
-            (ValueSubtype(scope.Get insn.Method, Function(scope.TupleGet insn.Arguments, scope.TupleGet insn)))
+        scope.Subtype (Table(keys, OperatorHelpers.Empty)) (scope.Get insn)
+    | Call insn -> scope.Subtype (scope.Get insn.Method) (Function(scope.TupleGet insn.Arguments, scope.TupleGet insn))
     | TupleNew insn when insn.Remaining.IsNil() -> 
         scope.EquateTuplesWith insn (Single(Seq.map scope.Get insn.Values |> Seq.toList, None))
     | ReferenceGet insn -> scope.EquateValues insn.Reference insn
@@ -53,7 +51,7 @@ let InferType (scope : TypeScope) (insn : Instruction) =
     | ReferenceNew insn -> scope.EquateValues insn.Value insn
     | ClosureNew insn -> 
         Seq.iteri (fun i (x : IValue) -> scope.EquateValues x (insn.Function.OpenUpvalues.[i])) insn.OpenUpvalues
-        Seq.iteri (fun i (x : IValue) -> scope.VConstraint(ValueSubtype(x, upcast insn.Function.ClosedUpvalues.[i]))) 
+        Seq.iteri (fun i (x : IValue) -> scope.Subtype (scope.Get x) (scope.Get(insn.Function.ClosedUpvalues.[i]))) 
             insn.ClosedUpvalues
         let mapped = 
             List.map scope.Get (Seq.filter (fun (x : Argument) -> x.Kind = ValueKind.Value) insn.Function.Arguments
