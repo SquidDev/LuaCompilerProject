@@ -1,6 +1,7 @@
-﻿module LuaCP.CLI.Commands
+module LuaCP.CLI.Commands
 
 open System
+open System.Diagnostics;
 open System.Text
 open LuaCP
 open LuaCP.CodeGen
@@ -8,26 +9,27 @@ open LuaCP.Debug
 open LuaCP.IR.Components
 open LuaCP.Lua.Tree
 open LuaCP.Passes
+open LuaCP.Passes.Analysis
 open LuaCP.Tree
 open LuaCP.Types
 
-let Build(tree : INode) = 
+let Build(tree : INode) =
     let modu = new Module()
     let builder = new FunctionBuilder(modu)
     builder.Accept(tree) |> ignore
     let types = builder.EntryPoint.Scopes.Get<TypeScope>()
     let variables = builder.EntryPoint.Scopes.Get<IVariableScope>()
-    types.Subtype (types.Get(variables.Globals)) StandardLibraries.Base
-    for func in modu.Functions do
-        ConstraintGenerator.InferTypes types func
-    // try 
-    // PassManager.Run(modu, PassExtensions.Default, true)
-    // with :? VerificationException as e -> printfn "Cannot verify: %A" e
+    // types.Subtype (types.Get(variables.Globals)) StandardLibraries.Base
+    // for func in modu.Functions do
+    //    ConstraintGenerator.InferTypes types func
+    try
+        PassManager.Run(modu, PassExtensions.Default, true)
+    with :? VerificationException as e -> printfn "Cannot verify: %A" e
     modu, builder
 
-let RunCommand (command : string) (modu : Module) (builder : FunctionBuilder) = 
+let RunCommand (command : string) (modu : Module) (builder : FunctionBuilder) =
     match command with
-    | "help" -> 
+    | "help" ->
         Console.WriteLine("!help:   Print this help")
         Console.WriteLine("!dump:   Dump the previous source")
         Console.WriteLine("!graph:  Plot the CFG of the previous source")
@@ -38,18 +40,31 @@ let RunCommand (command : string) (modu : Module) (builder : FunctionBuilder) =
     | "dump" -> (new Exporter(Console.Out)).ModuleLong(modu)
     | "graph" -> DotExporter.Write(modu)
     | "lua" -> (new Lua.FunctionCodeGen(modu.EntryPoint, new IndentedTextWriter(Console.Out))).Write()
-    | "lasm" -> 
+    | "exec" ->
+        let startInfo = new ProcessStartInfo()
+        startInfo.FileName <- "lua5.2"
+        startInfo.Arguments <- "-"
+        startInfo.UseShellExecute <- false
+        startInfo.CreateNoWindow <- true
+        startInfo.RedirectStandardInput <- true
+
+        use proc = Process.Start(startInfo)
+        using proc.StandardInput (fun input ->
+            (new Lua.FunctionCodeGen(modu.EntryPoint, new IndentedTextWriter(input))).Write()
+        )
+        proc.WaitForExit()
+    | "lasm" ->
         let builder = new StringBuilder()
         use x = new Bytecode.LasmBytecodeWriter(builder, Bytecode.VarargType.Exists)
         (new Bytecode.BytecodeCodegen(x, modu.EntryPoint)).Write()
         Console.WriteLine(builder)
-    | "types" -> 
+    | "types" ->
         let scope = builder.EntryPoint.Scopes.Get<TypeScope>()
         for func in modu.Functions do
             let numberer = new NodeNumberer(builder.Function)
             scope.DumpFunction numberer
         scope.DumpConstraints()
-    | "branch" -> 
+    | "branch" ->
         let group = (new Analysis.BranchAnalysis(modu.EntryPoint)).Group
         let writer = new IndentedTextWriter(Console.Out)
         let num = new NodeNumberer(modu.EntryPoint)

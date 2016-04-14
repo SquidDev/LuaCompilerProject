@@ -59,8 +59,8 @@ namespace LuaCP.CodeGen.Lua
 							ValueCondition valueCond = (ValueCondition)insn;
 
 							writer.WriteLine(
-								"if {1} then {0} = {2} else {0} = {3} end", 
-								GetName(insn), 
+								"if {1} then {0} = {2} else {0} = {3} end",
+								GetName(insn),
 								Format(valueCond.Test),
 								Format(valueCond.Success),
 								Format(valueCond.Failure)
@@ -156,7 +156,21 @@ namespace LuaCP.CodeGen.Lua
 					case Opcode.Call:
 						{
 							Call call = (Call)insn;
-							if (call.Arguments != previous) throw TupleChain(call.Arguments, previous, previousContents);
+							if (call.Arguments != previous)
+							{
+								if (call.Arguments.IsNil())
+								{
+									writer.Write(previousContents);
+									writer.WriteLine(";");
+
+									previous = block.Function.Module.Constants.Nil;
+									previousContents = "";
+								}
+								else
+								{
+									throw TupleChain(call.Arguments, previous, previousContents);
+								}
+							}
 
 							previous = call;
 							previousContents = String.Format("{0}({1})", Format(call.Method), previousContents);
@@ -165,7 +179,21 @@ namespace LuaCP.CodeGen.Lua
 					case Opcode.TupleNew:
 						{
 							TupleNew tupNew = (TupleNew)insn;
-							if (tupNew.Remaining != previous) throw TupleChain(tupNew.Remaining, previous, previousContents);
+							if (tupNew.Remaining != previous)
+							{
+								if (tupNew.Remaining.IsNil())
+								{
+									writer.Write(previousContents);
+									writer.WriteLine(";");
+
+									previous = block.Function.Module.Constants.Nil;
+									previousContents = "";
+								}
+								else
+								{
+									throw TupleChain(tupNew.Remaining, previous, previousContents);
+								}
+							}
 
 							previous = tupNew;
 							if (tupNew.Remaining.IsNil())
@@ -197,6 +225,9 @@ namespace LuaCP.CodeGen.Lua
 									// We might be returning nil
 									writer.Write(previousContents);
 									writer.WriteLine(";");
+
+									previous = block.Function.Module.Constants.Nil;
+									previousContents = "";
 								}
 								else
 								{

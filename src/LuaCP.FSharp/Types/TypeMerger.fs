@@ -49,6 +49,7 @@ type TypeEquator(checker : TypeProvider) =
                 List.iter2 this.Value aArgs bArgs
                 match aRem, bRem with
                 | Some aRem, Some bRem -> this.Value aRem bRem
+                | None, None -> ()
                 | _, _ -> raise (Exception(sprintf "Cannot intersect %A and %A" a b))
             | TReference(_), _ | _, TReference(_) -> 
                 raise (Exception(sprintf "Unexpected state intersecting %A and %A" a b))

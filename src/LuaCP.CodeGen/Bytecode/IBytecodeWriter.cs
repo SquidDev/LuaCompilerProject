@@ -51,7 +51,7 @@ namespace LuaCP.CodeGen.Bytecode
 
 		public override string ToString()
 		{
-			return "<" + Constant.ToString() + ">";
+			return "k(" + Constant.ToString() + ")";
 		}
 	}
 
