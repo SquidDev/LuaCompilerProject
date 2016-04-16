@@ -24,13 +24,15 @@ namespace LuaCP.Lua.Tree.Statement
 
 			BlockBuilder end = builder.Continue();
 
-			BlockBuilder success = Success.Build(builder.MakeChild());
+			BlockBuilder successStart = builder.MakeChild();
+			BlockBuilder success = Success.Build(successStart);
 			if (!success.Block.IsTerminated()) success.Block.AddLast(new Branch(end.Block));
 
-			BlockBuilder failure = Failure.Build(builder.MakeChild());
+			BlockBuilder failureStart = builder.MakeChild();
+			BlockBuilder failure = Failure.Build(failureStart);
 			if (!failure.Block.IsTerminated()) failure.Block.AddLast(new Branch(end.Block));
 
-			builder.Block.AddLast(new BranchCondition(test, success.Block, failure.Block));
+			builder.Block.AddLast(new BranchCondition(test, successStart.Block, failureStart.Block));
 
 			return end;
 		}

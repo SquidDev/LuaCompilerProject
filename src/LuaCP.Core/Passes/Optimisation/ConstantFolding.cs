@@ -140,13 +140,16 @@ namespace LuaCP.Passes.Optimisation
 								return (string)left == (string)right ? Literal.True : Literal.False;
 							case LiteralKind.Boolean:
 								return (bool)left == (bool)right ? Literal.True : Literal.False;
+							case LiteralKind.Nil:
+								return true;
+							default:
+								throw new InvalidOperationException("Unknown kind " + left.Kind);
 						}
 					}
-					break;
 				case Opcode.NotEquals:
 					if (left.Kind != right.Kind)
 					{
-						return Literal.False;
+						return Literal.True;
 					}
 					else
 					{
@@ -160,9 +163,12 @@ namespace LuaCP.Passes.Optimisation
 								return (string)left != (string)right ? Literal.True : Literal.False;
 							case LiteralKind.Boolean:
 								return (bool)left != (bool)right ? Literal.True : Literal.False;
+							case LiteralKind.Nil:
+								return false;
+							default:
+								throw new InvalidOperationException("Unknown kind " + left.Kind);
 						}
 					}
-					break;
 				case Opcode.LessThan:
 					if (left.Kind != right.Kind)
 					{
@@ -180,9 +186,12 @@ namespace LuaCP.Passes.Optimisation
 								return String.Compare(((string)left), (string)right, StringComparison.InvariantCulture) < 0 ? Literal.True : Literal.False;
 							case LiteralKind.Boolean:
 								throw new InvalidOperationException("Cannot compare boolean values");
+							case LiteralKind.Nil:
+								throw new InvalidOperationException("Cannot compare nil values");
+							default:
+								throw new InvalidOperationException("Unknown kind " + left.Kind);
 						}
 					}
-					break;
 				case Opcode.LessThanEquals:
 					if (left.Kind != right.Kind)
 					{
@@ -200,12 +209,17 @@ namespace LuaCP.Passes.Optimisation
 								return String.Compare(((string)left), (string)right, StringComparison.InvariantCulture) <= 0 ? Literal.True : Literal.False;
 							case LiteralKind.Boolean:
 								throw new InvalidOperationException("Cannot compare boolean values");
+							case LiteralKind.Nil:
+								throw new InvalidOperationException("Cannot compare nil values");
+							default:
+								throw new InvalidOperationException("Unknown kind " + left.Kind);
 						}
 					}
-					break;
+				default:
+					throw new Exception("Unexpected Opcode " + opcode);
 			}
 
-			throw new Exception("Unexpected Opcode " + opcode);
+
 		}
 
 		private static Literal NumericOperator(Opcode opcode, Literal left, Literal right, Func<int, int, int> opInt, Func<double, double, double> opDouble)

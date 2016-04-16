@@ -275,6 +275,7 @@ namespace LuaCP.Debug
 					case Opcode.ClosureNew:
 						{
 							ClosureNew closure = (ClosureNew)insn;
+							writer.Write("Func " + closure.Block.Function.Module.Functions.FindIndex(closure.Function) + " ");
 							writer.Write("Open[");
 							foreach (IValue open in closure.OpenUpvalues)
 							{

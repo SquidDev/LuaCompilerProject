@@ -22,9 +22,9 @@ let Build(tree : INode) =
     // types.Subtype (types.Get(variables.Globals)) StandardLibraries.Base
     // for func in modu.Functions do
     //    ConstraintGenerator.InferTypes types func
-    try
-        PassManager.Run(modu, PassExtensions.Default, true)
-    with :? VerificationException as e -> printfn "Cannot verify: %A" e
+    // try
+    PassManager.Run(modu, PassExtensions.Default, true)
+    // with :? VerificationException as e -> printfn "Cannot verify: %A" e
     modu, builder
 
 let RunCommand (command : string) (modu : Module) (builder : FunctionBuilder) =

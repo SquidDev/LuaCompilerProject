@@ -13,8 +13,8 @@ namespace LuaCP.Passes
 	{
 		public static readonly Pass<Module> Default = new Pass<Module>[]
 		{
-			UnreachableCode.ForModule,
-			DemoteUpvalue.Runner,
+			// UnreachableCode.ForModule,
+			// DemoteUpvalue.Runner,
 			new Pass<Function>[]
 			{
 				UnreachableCode.ForFunction,
@@ -28,6 +28,7 @@ namespace LuaCP.Passes
 				IdenticalValues.CheckUpvalues,
 				ClosureLifting.Runner,
 				CommonSubexpressionElimination.Runner,
+				JumpThreading.Runner.AsFunctionMutate(),
 			}.Group().Repeat().AsModule(),
 		}.Group().Repeat();
 
@@ -68,6 +69,18 @@ namespace LuaCP.Passes
 			};
 		}
 
+		public static Pass<TOut> SelectSingle<TIn, TOut>(this Pass<TIn> pass, Func<TOut, IEnumerable<TIn>> selector)
+		{
+			return (data, x) =>
+			{
+				foreach (TIn item in selector(x))
+				{
+					if (pass(data, item)) return true;
+				}
+				return false;
+			};
+		}
+
 		public static Pass<Block> AsBlock(this Pass<Instruction> pass)
 		{
 			return pass.Select<Instruction, Block>(x => x);
@@ -76,6 +89,11 @@ namespace LuaCP.Passes
 		public static Pass<Function> AsFunction(this Pass<Block> pass)
 		{
 			return pass.Select<Block, Function>(x => x.Blocks);
+		}
+
+		public static Pass<Function> AsFunctionMutate(this Pass<Block> pass)
+		{
+			return pass.SelectSingle<Block, Function>(x => x.Blocks);
 		}
 
 		public static Pass<Function> AsFunction(this Pass<Instruction> pass)

@@ -50,6 +50,11 @@ namespace LuaCP.Passes.Optimisation
 
 							return true;
 						}
+						else if (tuple.Tuple.IsNil())
+						{
+							tuple.ReplaceWithAndRemove(tuple.Tuple);
+							return true;
+						}
 						return false;
 					}
 				case Opcode.TupleNew:

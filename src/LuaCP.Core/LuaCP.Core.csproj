@@ -85,7 +85,6 @@
     <Compile Include="Collections\SingletonEnumerator.cs" />
     <Compile Include="Passes\Optimisation\DemoteUpvalue.cs" />
     <Compile Include="Passes\Optimisation\IdenticalValues.cs" />
-    <Compile Include="Passes\Tools\InstructionCloner.cs" />
     <Compile Include="Passes\Tools\ReturnCloner.cs" />
     <Compile Include="Passes\Analysis\UpvalueAnalysis.cs" />
     <Compile Include="Collections\ValidDictionary.cs" />
@@ -109,6 +108,9 @@
     <Compile Include="IndentedTextWriter.cs" />
     <Compile Include="Passes\Optimisation\CommonSubexpressionElimination.cs" />
     <Compile Include="IR\Instructions\InstructionComparer.cs" />
+    <Compile Include="Passes\Optimisation\JumpThreading.cs" />
+    <Compile Include="Passes\Analysis\PurityAnalysis.cs" />
+    <Compile Include="Passes\Tools\FunctionCloner.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

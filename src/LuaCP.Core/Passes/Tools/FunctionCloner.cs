@@ -10,118 +10,15 @@ using LuaCP.Collections;
 
 namespace LuaCP.Passes.Tools
 {
-	public class InstructionCloner
+	public abstract class BlockCloner
 	{
-		private readonly Dictionary<IValue, IValue> valueLookup = new Dictionary<IValue, IValue>();
-		private readonly Dictionary<Block, Block> blockLookup;
-		private readonly Function function;
+		public abstract IValue GetValue(IValue original);
 
-		public Block EntryPoint { get { return blockLookup[function.EntryPoint]; } }
+		public abstract void SetValue(IValue original, IValue replacement);
 
-		public InstructionCloner(
-			Function function, 
-			Function target, 
-			IList<IValue> args = null, 
-			IList<IValue> openUpvalues = null,
-			IList<IValue> closedUpvalues = null 
-		)
-		{
-			this.function = function;
-			
-			if (args != null)
-			{
-				// TODO: Handle variable arguments
-				for (int i = 0; i < args.Count; i++) valueLookup.Add(function.Arguments[i], args[i]);
-			}
-			
-			if (closedUpvalues != null)
-			{
-				for (int i = 0; i < closedUpvalues.Count; i++) valueLookup.Add(function.ClosedUpvalues[i], closedUpvalues[i]);
-			}
-			
-			if (openUpvalues != null)
-			{
-				for (int i = 0; i < openUpvalues.Count; i++) valueLookup.Add(function.OpenUpvalues[i], openUpvalues[i]);
-			}
-			
-			blockLookup = new Dictionary<Block, Block>(function.Blocks.Count);
-			foreach (Block block in function.Blocks) blockLookup.Add(block, new Block(target));
-		}
+		protected abstract Block GetBlock(Block original);
 
-		#region Item management
-
-		protected void SetValue(IValue oldVal, IValue newVal)
-		{
-			IValue lookup;
-			if (valueLookup.TryGetValue(oldVal, out lookup))
-			{
-				valueLookup[oldVal] = newVal;
-				lookup.ReplaceWith(newVal);
-			}
-			else
-			{
-				valueLookup.Add(oldVal, newVal);
-			}
-		}
-
-		protected IValue GetValue(IValue oldVal)
-		{
-			if (oldVal is Constant) return oldVal;
-			
-			IValue lookup;
-			if (valueLookup.TryGetValue(oldVal, out lookup)) return lookup;
-			
-			lookup = new TempValue(oldVal.Kind);
-			valueLookup.Add(oldVal, lookup);
-			return lookup;
-		}
-
-		protected Block GetBlock(Block block)
-		{
-			return blockLookup[block];
-		}
-
-		private sealed class TempValue : IValue
-		{
-			private readonly ValueKind kind;
-			private readonly CountingSet<IUser<IValue>> users = new CountingSet<IUser<IValue>>();
-
-			public TempValue(ValueKind kind)
-			{
-				this.kind = kind;
-			}
-
-			public ValueKind Kind { get { return kind; } }
-
-			public CountingSet<IUser<IValue>> Users { get { return users; } }
-		}
-
-		#endregion
-
-		public virtual void Run()
-		{
-			foreach (Block block in function.Blocks)
-			{
-				CloneBlock(block);
-			}
-
-		}
-
-		protected virtual void CloneBlock(Block block)
-		{
-			Block toWrite = GetBlock(block);
-			foreach (Phi phi in block.PhiNodes)
-			{
-				new Phi(phi.Source.ToDictionary(x => GetBlock(x.Key), x => GetValue(x.Value)), toWrite);
-			}
-			
-			foreach (Instruction insn in block)
-			{
-				CloneInstruction(toWrite, insn);
-			}
-		}
-
-		protected virtual void CloneInstruction(Block toWrite, Instruction insn)
+		public virtual void CloneInstruction(Block toWrite, Instruction insn)
 		{
 			if (insn.Opcode.IsBinaryOperator())
 			{
@@ -159,7 +56,7 @@ namespace LuaCP.Passes.Tools
 						{
 							ValueCondition cond = (ValueCondition)insn;
 							ValueCondition newCond = new ValueCondition(GetValue(cond.Test), GetValue(cond.Success), GetValue(cond.Failure));
-						
+
 							SetValue(cond, newCond);
 							toWrite.AddLast(newCond);
 							break;
@@ -174,7 +71,7 @@ namespace LuaCP.Passes.Tools
 						{
 							TableGet getter = (TableGet)insn;
 							TableGet newGetter = new TableGet(GetValue(getter.Table), GetValue(getter.Key));
-						
+
 							SetValue(getter, newGetter);
 							toWrite.AddLast(newGetter);
 							break;
@@ -194,7 +91,7 @@ namespace LuaCP.Passes.Tools
 								                      creator.ArrayPart.Select(GetValue),
 								                      creator.HashPart.ToDictionary(x => GetValue(x.Key), x => GetValue(x.Key))
 							                      );
-						
+
 							SetValue(creator, newCreator);
 							toWrite.AddLast(newCreator);
 							break;
@@ -203,7 +100,7 @@ namespace LuaCP.Passes.Tools
 						{
 							Call call = (Call)insn;
 							Call newCall = new Call(GetValue(call.Method), GetValue(call.Arguments));
-						
+
 							SetValue(call, newCall);
 							toWrite.AddLast(newCall);
 							break;
@@ -236,7 +133,7 @@ namespace LuaCP.Passes.Tools
 						{
 							ReferenceGet getter = (ReferenceGet)insn;
 							ReferenceGet newGetter = new ReferenceGet(GetValue(getter.Reference));
-						
+
 							SetValue(getter, newGetter);
 							toWrite.AddLast(newGetter);
 							break;
@@ -251,7 +148,7 @@ namespace LuaCP.Passes.Tools
 						{
 							ReferenceNew creator = (ReferenceNew)insn;
 							ReferenceNew newCreator = new ReferenceNew(GetValue(creator.Value));
-						
+
 							SetValue(creator, newCreator);
 							toWrite.AddLast(newCreator);
 							break;
@@ -264,7 +161,7 @@ namespace LuaCP.Passes.Tools
 								                        creator.OpenUpvalues.Select(GetValue), 
 								                        creator.ClosedUpvalues.Select(GetValue)
 							                        );
-						
+
 							SetValue(creator, newCreator);
 							toWrite.AddLast(newCreator);
 							break;
@@ -273,6 +170,146 @@ namespace LuaCP.Passes.Tools
 						throw new Exception("Unknown opcode " + insn.Opcode);
 				}
 			}
+		}
+
+		public virtual void CloneBlock(Block block)
+		{
+			Block toWrite = GetBlock(block);
+			foreach (Phi phi in block.PhiNodes)
+			{
+				SetValue(phi, new Phi(phi.Source.ToDictionary(x => GetBlock(x.Key), x => GetValue(x.Value)), toWrite));
+			}
+
+			foreach (Instruction insn in block)
+			{
+				CloneInstruction(toWrite, insn);
+			}
+		}
+
+		/// <summary>
+		/// A value that can be used for temporary value fetching
+		/// </summary>
+		protected sealed class TempValue : IValue
+		{
+			private readonly ValueKind kind;
+			private readonly CountingSet<IUser<IValue>> users = new CountingSet<IUser<IValue>>();
+
+			public TempValue(ValueKind kind)
+			{
+				this.kind = kind;
+			}
+
+			public ValueKind Kind { get { return kind; } }
+
+			public CountingSet<IUser<IValue>> Users { get { return users; } }
+		}
+	}
+
+	public class SingleBlockCloner : BlockCloner
+	{
+		private readonly Dictionary<IValue, IValue> valueLookup = new Dictionary<IValue, IValue>();
+
+		public override void SetValue(IValue original, IValue replacement)
+		{
+			valueLookup.Add(original, replacement);
+		}
+
+		public override IValue GetValue(IValue original)
+		{
+			if (original is Constant) return original;
+
+			IValue lookup;
+			if (valueLookup.TryGetValue(original, out lookup)) return lookup;
+
+			return original;
+		}
+
+		protected override Block GetBlock(Block original)
+		{
+			return original;
+		}
+	}
+
+	public class FunctionCloner : BlockCloner
+	{
+		private readonly Dictionary<IValue, IValue> valueLookup = new Dictionary<IValue, IValue>();
+		private readonly Dictionary<Block, Block> blockLookup;
+		private readonly Function function;
+
+		public Block EntryPoint { get { return blockLookup[function.EntryPoint]; } }
+
+		public FunctionCloner(
+			Function function, 
+			Function target, 
+			IList<IValue> args = null, 
+			IList<IValue> openUpvalues = null,
+			IList<IValue> closedUpvalues = null 
+		)
+		{
+			this.function = function;
+			
+			if (args != null)
+			{
+				// TODO: Handle variable arguments
+				for (int i = 0; i < args.Count; i++) valueLookup.Add(function.Arguments[i], args[i]);
+			}
+			
+			if (closedUpvalues != null)
+			{
+				for (int i = 0; i < closedUpvalues.Count; i++) valueLookup.Add(function.ClosedUpvalues[i], closedUpvalues[i]);
+			}
+			
+			if (openUpvalues != null)
+			{
+				for (int i = 0; i < openUpvalues.Count; i++) valueLookup.Add(function.OpenUpvalues[i], openUpvalues[i]);
+			}
+			
+			blockLookup = new Dictionary<Block, Block>(function.Blocks.Count);
+			foreach (Block block in function.Blocks) blockLookup.Add(block, new Block(target));
+		}
+
+		#region Item management
+
+		public override void SetValue(IValue oldVal, IValue newVal)
+		{
+			IValue lookup;
+			if (valueLookup.TryGetValue(oldVal, out lookup))
+			{
+				valueLookup[oldVal] = newVal;
+				lookup.ReplaceWith(newVal);
+			}
+			else
+			{
+				valueLookup.Add(oldVal, newVal);
+			}
+		}
+
+		public override IValue GetValue(IValue oldVal)
+		{
+			if (oldVal is Constant) return oldVal;
+			
+			IValue lookup;
+			if (valueLookup.TryGetValue(oldVal, out lookup)) return lookup;
+			
+			lookup = new TempValue(oldVal.Kind);
+			valueLookup.Add(oldVal, lookup);
+			return lookup;
+		}
+
+		protected override Block GetBlock(Block block)
+		{
+			return blockLookup[block];
+		}
+
+		#endregion
+
+		public virtual void Run()
+		{
+			foreach (Block block in function.Blocks)
+			{
+				CloneBlock(block);
+			}
+
 		}
 	}
 }

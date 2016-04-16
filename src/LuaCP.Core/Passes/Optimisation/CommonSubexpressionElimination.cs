@@ -4,6 +4,7 @@ using LuaCP.Collections;
 using LuaCP.Graph;
 using LuaCP.IR.Components;
 using LuaCP.IR.Instructions;
+using LuaCP.Passes.Analysis;
 
 namespace LuaCP.Passes.Optimisation
 {
@@ -19,7 +20,7 @@ namespace LuaCP.Passes.Optimisation
 			{
 				foreach (ValueInstruction instruction in block.OfType<ValueInstruction>())
 				{
-					if (CanApply(instruction.Opcode))
+					if (instruction.IsPure())
 					{
 						Block dom = block;
 						bool replaced = false;
@@ -49,23 +50,6 @@ namespace LuaCP.Passes.Optimisation
 			}
 
 			return changed;
-		}
-
-		private static bool CanApply(Opcode opcode)
-		{
-			
-			if (opcode.IsBinaryOperator() || opcode.IsUnaryOperator()) return true;
-
-			switch (opcode)
-			{
-				case Opcode.ValueCondition:
-				case Opcode.TupleNew:
-				case Opcode.TupleGet:
-				case Opcode.TupleRemainder:
-					return true;
-				default:
-					return false;
-			}
 		}
 	}
 }

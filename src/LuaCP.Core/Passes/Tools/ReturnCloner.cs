@@ -5,12 +5,12 @@ using LuaCP.IR.Instructions;
 
 namespace LuaCP.Passes.Tools
 {
-	public class ReturnCloner : InstructionCloner
+	public class ReturnCloner : FunctionCloner
 	{
 		private readonly Block exit;
 		private readonly Phi phi;
 
-		public  IValue Value { get { return phi; } }
+		public IValue Value { get { return phi; } }
 
 		public ReturnCloner(
 			Function function, 
@@ -26,7 +26,7 @@ namespace LuaCP.Passes.Tools
 			this.phi = new Phi(exit);
 		}
 
-		protected override void CloneInstruction(Block toWrite, Instruction insn)
+		public override void CloneInstruction(Block toWrite, Instruction insn)
 		{
 			if (insn.Opcode == Opcode.Return)
 			{

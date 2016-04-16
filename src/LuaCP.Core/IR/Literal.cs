@@ -89,7 +89,7 @@ namespace LuaCP.IR
 
 		private static readonly Literal nil = new Literal(LiteralKind.Nil);
 		private static readonly Literal f = new Boolean(false);
-		private static readonly Literal t = new Boolean(false);
+		private static readonly Literal t = new Boolean(true);
 
 		public static Literal Nil { get { return nil; } }
 

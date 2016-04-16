@@ -3,6 +3,7 @@ using LuaCP.IR;
 using LuaCP.IR.Components;
 using LuaCP.IR.Instructions;
 using LuaCP.IR.User;
+using LuaCP.Passes.Analysis;
 
 namespace LuaCP.Passes.Optimisation
 {
@@ -54,85 +55,55 @@ namespace LuaCP.Passes.Optimisation
 			
 			foreach (Instruction element in block)
 			{
+				ValueInstruction insn = element as ValueInstruction;
 				// We presume that operations don't have a side effect.
 				// If they do then something is breaking
-				if (element.Opcode.IsBinaryOperator() || element.Opcode.IsUnaryOperator())
+				if (insn != null && insn.Users.UniqueCount == 0 && insn.IsSideFree())
 				{
-					IValue value = (IValue)element;
-					if (value.Users.UniqueCount == 0)
-					{
-						element.Remove();
-						changed = true;
-					}
+					element.Remove();
+					changed = true;
+					continue;
 				}
-				else
+
+
+				switch (element.Opcode)
 				{
-					switch (element.Opcode)
-					{
-						case Opcode.ValueCondition:
+					case Opcode.ValueCondition:
+						{
+							ValueCondition condition = (ValueCondition)element;
+
+							// Constant term
+							Constant c = condition.Test as Constant;
+							if (c != null)
 							{
-								ValueCondition condition = (ValueCondition)element;
-								if (condition.Users.UniqueCount == 0)
+								condition.ReplaceWithAndRemove(c.Literal.IsTruthy() ? condition.Success : condition.Failure);
+								changed = true;
+							}
+							break;
+						}
+					case Opcode.BranchCondition:
+						{
+							BranchCondition branch = (BranchCondition)element;
+							Constant c = branch.Test as Constant;
+							if (c != null)
+							{
+								// Fold constants!
+								Block success = branch.Success, failure = branch.Failure;
+								branch.Remove();
+								if (c.Literal.IsTruthy())
 								{
-									// Never used? Remove!
-									condition.Remove();
-									changed = true;
+									block.AddLast(new Branch(success));
+									RemoveBranch(block, failure);
 								}
 								else
 								{
-									// Constant term
-									Constant c = condition.Test as Constant;
-									if (c != null)
-									{
-										condition.ReplaceWithAndRemove(c.Literal.IsTruthy() ? condition.Success : condition.Failure);
-										changed = true;
-									}
+									block.AddLast(new Branch(failure));
+									RemoveBranch(block, success);
 								}
-								break;
+								changed = true;
 							}
-						case Opcode.ReferenceNew:
-						case Opcode.TableNew:
-						case Opcode.TableGet:
-						case Opcode.ReferenceGet:
-						case Opcode.ClosureNew:
-						case Opcode.TupleNew:
-						case Opcode.TupleGet:
-						case Opcode.TupleRemainder:
-							{
-								// Never used? Remove!
-								// TODO: Inline tuple access & phi access
-								IValue val = (IValue)element;
-								if (val.Users.UniqueCount == 0)
-								{
-									element.Remove();
-									changed = true;
-								}
-								break;
-							}
-						case Opcode.BranchCondition:
-							{
-								BranchCondition branch = (BranchCondition)element;
-								Constant c = branch.Test as Constant;
-								if (c != null)
-								{
-									// Fold constants!
-									Block success = branch.Success, failure = branch.Failure;
-									branch.Remove();
-									if (c.Literal.IsTruthy())
-									{
-										block.AddLast(new Branch(success));
-										RemoveBranch(block, failure);
-									}
-									else
-									{
-										block.AddLast(new Branch(failure));
-										RemoveBranch(block, success);
-									}
-									changed = true;
-								}
-								break;
-							}
-					}
+							break;
+						}
 				}
 			}
 			

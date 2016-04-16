@@ -22,12 +22,12 @@ namespace LuaCP.Passes.Optimisation
 				.Where(x => x.Opcode == Opcode.ClosureNew)
 				.Cast<ClosureNew>()
                 .Where(x =>
-				{
-					if (x.Users.TotalCount != 1) return false;
+			{
+				if (x.Users.TotalCount != 1) return false;
 
-					Call user = x.Users.First<IUser<IValue>>() as Call;
-					return user != null && user.Method == x;
-				})
+				Call user = x.Users.First<IUser<IValue>>() as Call;
+				return user != null && user.Method == x;
+			})
 				.ToList();
 
 			bool changed = false;
