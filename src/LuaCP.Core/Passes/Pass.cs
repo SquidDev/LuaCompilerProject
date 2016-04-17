@@ -13,8 +13,8 @@ namespace LuaCP.Passes
 	{
 		public static readonly Pass<Module> Default = new Pass<Module>[]
 		{
-			// UnreachableCode.ForModule,
-			// DemoteUpvalue.Runner,
+			UnreachableCode.ForModule,
+			DemoteUpvalue.Runner,
 			new Pass<Function>[]
 			{
 				UnreachableCode.ForFunction,
@@ -34,22 +34,22 @@ namespace LuaCP.Passes
 
 		public static Pass<T> Repeat<T>(this Pass<T> pass)
 		{
-			return (data, x) =>
+			return (data, item) =>
 			{
 				bool changed = false;
-				while (pass(data, x)) changed = true;
+				while (data.RunPass(pass, item)) changed = true;
 				return changed;
 			};
 		}
 
 		public static Pass<T> Group<T>(this IEnumerable<Pass<T>> passes)
 		{
-			return (data, x) =>
+			return (data, item) =>
 			{
 				bool changed = false;
 				foreach (Pass<T> pass in passes)
 				{
-					changed |= pass(data, x);
+					changed |= data.RunPass(pass, item);
 				}
 
 				return changed;
@@ -63,7 +63,7 @@ namespace LuaCP.Passes
 				bool changed = false;
 				foreach (TIn item in selector(x))
 				{
-					changed |= pass(data, item);
+					changed |= data.RunPass(pass, item);
 				}
 				return changed;
 			};
@@ -75,7 +75,7 @@ namespace LuaCP.Passes
 			{
 				foreach (TIn item in selector(x))
 				{
-					if (pass(data, item)) return true;
+					if (data.RunPass(pass, item)) return true;
 				}
 				return false;
 			};

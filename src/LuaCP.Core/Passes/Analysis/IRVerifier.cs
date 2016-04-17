@@ -20,7 +20,7 @@ namespace LuaCP.Passes.Analysis
 	public static class IRVerifier
 	{
 		public const string WrongFunction = "Value {0} belongs to {1}, is in {2}";
-		public const string UndefinedValue = "Value {0} is used before it is declared";
+		public const string UndefinedValue = "Value {0} is used in {1} before it is declared in {2}";
 		public const string UnexpectedType = "Value {0} is a {1}, expected {2}";
 		public const string UnexpectedNil = "Value cannot be nil";
 
@@ -94,7 +94,7 @@ namespace LuaCP.Passes.Analysis
 					
 				if (!item.Owner.Dominates(user.Block))
 				{
-					messager.InvalidInstruction(user, UndefinedValue, value);
+					messager.InvalidInstruction(user, UndefinedValue, value, user.Block, item.Owner);
 				}
 			}
 
@@ -105,7 +105,7 @@ namespace LuaCP.Passes.Analysis
 				if (used.Block == user.Block)
 				{
 					Instruction first = used.Block.First(x => x == used || x == user);
-					if (first == user) messager.InvalidInstruction(user, UndefinedValue, value);
+					if (first == user) messager.InvalidInstruction(user, UndefinedValue, value, used.Block, "the same block");
 				}
 			}
 		}
@@ -167,6 +167,7 @@ namespace LuaCP.Passes.Analysis
 
 		public static void Run(Function function, IMessager messager)
 		{
+			function.Dominators.Evaluate();
 			foreach (Block block in function.Blocks)
 			{
 				ValidateBlock(block, messager);
