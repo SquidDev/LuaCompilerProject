@@ -18,7 +18,7 @@ namespace LuaCP.Passes
 			new Pass<Function>[]
 			{
 				UnreachableCode.ForFunction,
-				DeadCode.Runner.AsFunction(),
+				DeadCode.Runner.AsFunctionMutate(),
 				ReferenceToValue.Runner,
 				ConstantFolding.Runner.AsFunction(),
 				FunctionInliner.Runner,

@@ -4,6 +4,8 @@ using LuaCP.IR;
 using LuaCP.Passes.Tools;
 using LuaCP.IR.User;
 using System.Linq;
+using System.Collections.Generic;
+using LuaCP.Collections;
 
 namespace LuaCP.Passes.Optimisation
 {
@@ -12,6 +14,8 @@ namespace LuaCP.Passes.Optimisation
 	/// finds edges where the branch is constant. It then duplicates the block,
 	/// and redirects that edge to the new block.
 	/// Constant folding does not occur here.
+	/// 
+	/// FIXME: Don't do this for loop branches, only for if 
 	/// </summary>
 	public static class JumpThreading
 	{
@@ -35,8 +39,12 @@ namespace LuaCP.Passes.Optimisation
 				{
 					if (pair.Value is Constant)
 					{
+						if (!changed)
+						{
+							InsertPhiNodes(block);
+							changed = true;
+						}
 						Clone(block, pair.Key);
-						changed = true;
 					}
 				}
 				return changed;
@@ -54,8 +62,12 @@ namespace LuaCP.Passes.Optimisation
 					{
 						if (IsConstant(op.Left, block, previous) && IsConstant(op.Right, block, previous))
 						{
+							if (!changed)
+							{
+								InsertPhiNodes(block);
+								changed = true;
+							}
 							Clone(block, previous);
-							changed = true;
 						}
 					}
 
@@ -69,8 +81,12 @@ namespace LuaCP.Passes.Optimisation
 					{
 						if (IsConstant(op.Operand, block, previous))
 						{
+							if (!changed)
+							{
+								InsertPhiNodes(block);
+								changed = true;
+							}
 							Clone(block, previous);
-							changed = true;
 						}
 					}
 						
@@ -87,10 +103,11 @@ namespace LuaCP.Passes.Optimisation
 
 			var cloner = new SingleBlockCloner();
 			Block replacement = new Block(block.Function);
+
 			foreach (var phi in block.PhiNodes)
 			{
 				cloner.SetValue(phi, phi.Source[source]);
-				// phi.Source.Remove(source);
+				phi.Source.Remove(source);
 			}
 
 			foreach (Instruction insn in block)
@@ -99,6 +116,14 @@ namespace LuaCP.Passes.Optimisation
 			}
 				
 			((IUser<Block>)source.Last).Replace(block, replacement);
+
+			foreach (Block next in block.Next)
+			{
+				foreach (Phi phi in next.PhiNodes)
+				{
+					phi.Source.Add(replacement, cloner.GetValue(phi.Source[block]));
+				}
+			}
 		}
 
 		private static bool IsConstant(IValue value, Block block, Block source)
@@ -121,6 +146,50 @@ namespace LuaCP.Passes.Optimisation
 		{
 			Phi phi = value as Phi;
 			return phi != null && phi.Block == block;
+		}
+
+		private static void InsertPhiNodes(Block block)
+		{
+			foreach (Phi phi in block.PhiNodes) InsertNode(block, phi);
+			foreach (IValue insn in block.OfType<IValue>()) InsertNode(block, insn);
+		}
+
+		private static void InsertNode(Block source, IValue value)
+		{
+			if (value.Users.OfType<IBelongs<Block>>().All(x => x.Owner == source)) return;
+
+			HashSet<Block> next = source.Next.ToSet();
+			Dictionary<Block, Phi> phis = new Dictionary<Block, Phi>();
+
+			foreach (IUser<IValue> user in value.Users.Where<IUser<IValue>>(x => ((IBelongs<Block>)x).Owner != source).ToList())
+			{
+				Block belongs = ((IBelongs<Block>)user).Owner;
+				if (user is Phi)
+				{
+					if (next.Contains(belongs))
+					{
+						// We'll add this in the clone method
+						continue;
+					}
+
+					belongs = ((Phi)user).Source.First(x => x.Value == value).Key;
+				}
+
+				while (!next.Contains(belongs))
+				{
+					belongs = belongs.ImmediateDominator;
+				}
+
+				Phi replacement;
+				if (!phis.TryGetValue(belongs, out replacement))
+				{
+					replacement = new Phi(belongs);
+					replacement.Source.Add(source, value);
+					phis.Add(belongs, replacement);
+				}
+
+				user.Replace(value, replacement);
+			}
 		}
 	}
 }

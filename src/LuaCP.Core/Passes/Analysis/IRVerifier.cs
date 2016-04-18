@@ -167,6 +167,7 @@ namespace LuaCP.Passes.Analysis
 
 		public static void Run(Function function, IMessager messager)
 		{
+			function.Dominators.Invalidate(); // FIXME: Ensure that all passes do this anyway.
 			function.Dominators.Evaluate();
 			foreach (Block block in function.Blocks)
 			{

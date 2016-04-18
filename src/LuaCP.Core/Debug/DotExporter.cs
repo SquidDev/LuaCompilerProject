@@ -31,12 +31,12 @@ namespace LuaCP.Debug
 		public override void FunctionLong(Function function)
 		{
 			int index = function.Module.Functions.FindIndex(function);
-			writer.Write("subgraph cluster_");
-			writer.Write(index);
-			writer.WriteLine("{");
-			writer.Write("label = \"Function ");
-			writer.Write(index);
-			writer.WriteLine("\";");
+			Writer.Write("subgraph cluster_");
+			Writer.Write(index);
+			Writer.WriteLine("{");
+			Writer.Write("label = \"Function ");
+			Writer.Write(index);
+			Writer.WriteLine("\";");
 
 			function.Dominators.Evaluate();
 			NodeNumberer numberer = new NodeNumberer(function);
@@ -46,7 +46,7 @@ namespace LuaCP.Debug
 				BlockLong(block, numberer);
 			}
 
-			writer.WriteLine("}");
+			Writer.WriteLine("}");
 		}
 
 		public override void BlockLong(Block block, NodeNumberer numberer)
@@ -58,22 +58,22 @@ namespace LuaCP.Debug
 			normalWriter.Write("[label =<");
             
 			normalWriter.Write("<b>Block: ");
-			Block(block, writer, numberer);
+			Block(block, Writer, numberer);
 			normalWriter.Write("</b><br />");
             
-			writer.Write("Dominator: ");
-			writer.WriteLine(block.ImmediateDominator == null ? "Nothing" : numberer.PrettyGetBlock(block.ImmediateDominator));
+			Writer.Write("Dominator: ");
+			Writer.WriteLine(block.ImmediateDominator == null ? "Nothing" : numberer.PrettyGetBlock(block.ImmediateDominator));
 			normalWriter.Write("<br />");
 
 			foreach (Phi phi in block.PhiNodes)
 			{
-				Phi(phi, writer, numberer);
+				Phi(phi, Writer, numberer);
 				normalWriter.Write("<br align=\"left\" />");
 			}
 
 			foreach (Instruction insn in block)
 			{
-				InstructionLong(insn, writer, numberer);
+				InstructionLong(insn, Writer, numberer);
 				normalWriter.Write("<br align=\"left\"/>");
 			}
             
@@ -100,14 +100,14 @@ namespace LuaCP.Debug
 				normalWriter.Write("dom_");
 				normalWriter.Write(name);
 				normalWriter.Write(" [label=<<b>Block: ");
-				Block(block, writer, numberer);
+				Block(block, Writer, numberer);
 				normalWriter.Write("</b>");
 				if (block.DominanceFrontier.Count > 0)
 				{
 					normalWriter.Write("<br />Doms: ");
 					foreach (Block f in block.DominanceFrontier)
 					{
-						Block(f, writer, numberer);
+						Block(f, Writer, numberer);
 						normalWriter.Write(", ");
 					}
 				}
@@ -117,7 +117,7 @@ namespace LuaCP.Debug
 					normalWriter.Write("<br />Children: ");
 					foreach (Block f in block.DominatorTreeChildren)
 					{
-						Block(f, writer, numberer);
+						Block(f, Writer, numberer);
 						normalWriter.Write(", ");
 					}
 				}

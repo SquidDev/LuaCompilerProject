@@ -40,6 +40,13 @@ namespace LuaCP.Passes.Optimisation
 				if (next.Previous.Count() == 1)
 				{
 					block.Last.Remove();
+
+					foreach (Phi phi in next.PhiNodes.ToList())
+					{
+						phi.Replace(phi, phi.Source[block]);
+						phi.Remove();
+					}
+
 					foreach (Instruction insn in next)
 					{
 						insn.Block.Remove(insn);
@@ -47,7 +54,9 @@ namespace LuaCP.Passes.Optimisation
 					}
 					next.ReplaceWith(block);
 
-					next.Function.Dominators.Invalidate();
+					block.Function.Dominators.Invalidate();
+					block.Function.Blocks.Remove(next);
+
 					if (function.EntryPoint == next) function.EntryPoint = block;
 					changed = true;
 				}

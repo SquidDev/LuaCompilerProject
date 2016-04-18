@@ -16,7 +16,7 @@ namespace LuaCP.Passes.Optimisation
 	{
 		public static Pass<Function> CheckUpvalues { get { return  DoCheckUpvalues; } }
 
-		public static Pass<Block> CheckPhis { get { return  DoCheckPhis; } }
+		public static Pass<Block> CheckPhis { get { return DoCheckPhis; } }
 
 		private static bool DoCheckUpvalues(PassManager data, Function function)
 		{

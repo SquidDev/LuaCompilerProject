@@ -29,14 +29,15 @@ namespace LuaCP.Passes.Optimisation
 				return user != null && user.Method == x;
 			})
 				.ToList();
-
+			
 			bool changed = false;
 			foreach (ClosureNew closNew in closures)
 			{
 				Inline(closNew);
 				changed = true;
 			}
-			
+
+			if (changed) function.Dominators.Invalidate();
 			return changed;
 		}
 
@@ -71,11 +72,11 @@ namespace LuaCP.Passes.Optimisation
 			}
 			
 			// Segment the block
-			Block contination = Segment(caller);
+			Block continuation = Segment(caller);
 			ReturnCloner clone = new ReturnCloner(
 				                     closure.Function, 
 				                     function,
-				                     contination,
+				                     continuation,
 				                     args, 
 				                     closure.OpenUpvalues,
 				                     closure.ClosedUpvalues
@@ -96,7 +97,7 @@ namespace LuaCP.Passes.Optimisation
 		public static Block Segment(Instruction splitPoint)
 		{
 			Block current = splitPoint.Block;
-			Block contination = new Block(current.Function);
+			Block continuation = new Block(current.Function);
 			
 			Instruction next = splitPoint.Next;
 			while (next != null)
@@ -105,10 +106,10 @@ namespace LuaCP.Passes.Optimisation
 				next = value.Next;
 
 				current.Remove(value);
-				contination.AddLast(value);
+				continuation.AddLast(value);
 			}
 			
-			return contination;
+			return continuation;
 		}
 	}
 }

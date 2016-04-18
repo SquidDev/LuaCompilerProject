@@ -16,7 +16,7 @@ namespace LuaCP.Passes.Optimisation
 				if (op.Left is Constant && op.Right is Constant)
 				{
 					op.ReplaceWithAndRemove(insn.Block.Function.Module.Constants[BinaryOp(op.Opcode, ((Constant)op.Left).Literal, ((Constant)op.Right).Literal)]);
-					return false;
+					return true;
 				}
 			}
 			else if (insn.Opcode.IsUnaryOperator())

@@ -1,9 +1,10 @@
 using System;
 using System.IO;
+using System.Linq;
 using LuaCP.Collections;
+using LuaCP.Debug;
 using LuaCP.IR.Components;
 using LuaCP.Passes.Analysis;
-using LuaCP.Debug;
 
 namespace LuaCP.Passes
 {
@@ -36,9 +37,8 @@ namespace LuaCP.Passes
 
 				if (verify)
 				{
-					// TODO: Fix this slightly
 					StringWriter writer = new StringWriter();
-					writer.WriteLine("Validation errors with " + pass + ":");
+					writer.WriteLine("Validation errors with " + String.Join(", ", pass.GetInvocationList().Select(x => x.Method.DeclaringType.Name)) + ":");
 					bool errors = false;
 					int index = 0;
 					foreach (Function function in Module.Functions)
@@ -59,13 +59,9 @@ namespace LuaCP.Passes
 						index++;
 					}
 
-
-					if (errors)
-					{
-						// throw new VerificationException(writer.ToString());
-						// Console.Write(writer);
-					}
+					if (errors) throw new VerificationException(writer.ToString());
 				}
+
 				return true;
 			}
 
