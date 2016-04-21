@@ -65,7 +65,7 @@ let RunCommand (command : string) (modu : Module) (builder : FunctionBuilder) =
             scope.DumpFunction numberer
         scope.DumpConstraints()
     | "branch" ->
-        let group = (new Analysis.BranchAnalysis(modu.EntryPoint)).Group
+        let group = (new Analysis.BranchAnalysis(modu.EntryPoint)).EntryPoint
         let writer = new IndentedTextWriter(Console.Out)
         let num = new NodeNumberer(modu.EntryPoint)
         group.Dump(num, writer)

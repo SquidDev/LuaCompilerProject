@@ -6,6 +6,7 @@ using LuaCP.IR.User;
 using System.Linq;
 using System.Collections.Generic;
 using LuaCP.Collections;
+using LuaCP.Passes.Analysis;
 
 namespace LuaCP.Passes.Optimisation
 {
@@ -25,6 +26,10 @@ namespace LuaCP.Passes.Optimisation
 		{
 			if (block.PhiNodes.Count == 0) return false;
 			if (block.Last == null || block.Last.Opcode != Opcode.BranchCondition) return false;
+
+			var analysis = new BranchAnalysis(block.Function);
+			ControlGroup group;
+			if (analysis.Groups.TryGetValue(block, out group) && group.IsLoopHead) return false;
 
 			BranchCondition condition = (BranchCondition)block.Last;
 			IValue test = condition.Test;

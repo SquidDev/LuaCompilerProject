@@ -63,7 +63,7 @@ namespace LuaCP.CodeGen.Lua
 			this.funcAllocator = funcAllocator;
 			this.writer = writer;
 			this.root = root;
-			rootGroup = new BranchAnalysis(function).Group;
+			rootGroup = new BranchAnalysis(function).EntryPoint;
 
 			string prefix = funcAllocator[function];
 			refs = new NameAllocator<IValue>(prefix + "ref_{0}");

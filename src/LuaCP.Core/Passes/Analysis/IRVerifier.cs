@@ -169,7 +169,7 @@ namespace LuaCP.Passes.Analysis
 		{
 			function.Dominators.Invalidate(); // FIXME: Ensure that all passes do this anyway.
 			function.Dominators.Evaluate();
-			foreach (Block block in function.Blocks)
+			foreach (Block block in function.EntryPoint.ReachableLazy())
 			{
 				ValidateBlock(block, messager);
 			}

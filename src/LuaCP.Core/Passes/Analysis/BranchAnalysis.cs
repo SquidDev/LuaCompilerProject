@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using LuaCP.IR.Instructions;
 using LuaCP.Debug;
+using LuaCP.Graph;
 
 namespace LuaCP.Passes.Analysis
 {
@@ -101,6 +102,7 @@ namespace LuaCP.Passes.Analysis
 
 		public sealed class JumpNode : ControlNode
 		{
+			public bool IsLoopTail = false;
 			public readonly Block From;
 			public readonly Block Target;
 
@@ -124,6 +126,7 @@ namespace LuaCP.Passes.Analysis
 			public override void Dump(NodeNumberer numberer, IndentedTextWriter writer)
 			{
 				writer.WriteLine("Jump " + (From == null ? "?" : numberer.PrettyGetBlock(From)) + " => " + numberer.PrettyGetBlock(Target));
+				if (IsLoopTail) writer.WriteLine("(Loop Tail)");
 			}
 		}
 
@@ -151,6 +154,7 @@ namespace LuaCP.Passes.Analysis
 
 	public sealed class ControlGroup
 	{
+		public bool IsLoopHead = false;
 		public readonly Block Entry;
 		public readonly IReadOnlyList<ControlNode> Nodes;
 		public readonly List<ControlGroup> Children = new List<ControlGroup>();
@@ -169,6 +173,7 @@ namespace LuaCP.Passes.Analysis
 		{
 			if (Entry != null) writer.WriteLine("Group: " + numberer.PrettyGetBlock(Entry));
 			writer.Indent++;
+			if (IsLoopHead) writer.WriteLine("(Loop Head)");
 
 			foreach (ControlNode node in Nodes) node.Dump(numberer, writer);
 			foreach (ControlGroup group in Children) group.Dump(numberer, writer);
@@ -192,27 +197,42 @@ namespace LuaCP.Passes.Analysis
 		 * for i = 0, 10 do end
 		 */
 
-		public readonly ControlGroup Group;
+		public readonly ControlGroup EntryPoint;
+
+		public IReadOnlyDictionary<Block, ControlGroup> Groups { get { return groups; } }
 
 		private readonly HashSet<Block> todo;
 		private readonly HashSet<Block> jumps = new HashSet<Block>();
+		private readonly Dictionary<Block, ControlGroup> groups = new Dictionary<Block, ControlGroup>();
 
 		public BranchAnalysis(Function function)
 		{
-			todo = new HashSet<Block>(function.Blocks);
+			todo = function.EntryPoint.ReachableEager();
 			jumps.Add(function.EntryPoint);
 
-			var groups = new Dictionary<Block, ControlGroup>();
-
+			var rootGroups = new Dictionary<Block, ControlGroup>();
 			while (jumps.Count > 0)
 			{
 				var group = CreateGroup(jumps.First());
-				groups.Add(group.Entry, group);
+				rootGroups.Add(group.Entry, group);
 			}
 
 			if (todo.Count > 0) throw new Exception("Unvisited blocks");
 
 			foreach (ControlGroup group in groups.Values)
+			{
+				var last = group.Last;
+				if (last.Kind != ControlNode.ControlKind.Jump) continue;
+
+				var jump = (ControlNode.JumpNode)last;
+				if (jump.Target.Dominates(jump.From))
+				{
+					groups[jump.Target].IsLoopHead = true;
+					jump.IsLoopTail = true;
+				}
+			}
+
+			foreach (ControlGroup group in rootGroups.Values)
 			{
 				if (group.Entry == function.EntryPoint) continue;
 				Block block = group.Entry.ImmediateDominator;
@@ -226,11 +246,11 @@ namespace LuaCP.Passes.Analysis
 						break;
 					}
 
-					block = group.Entry.ImmediateDominator;
+					block = block.ImmediateDominator;
 				}
 			}
 
-			Group = groups[function.EntryPoint];
+			EntryPoint = groups[function.EntryPoint];
 		}
 
 		private ControlGroup CreateGroup(Block entry)
@@ -249,7 +269,7 @@ namespace LuaCP.Passes.Analysis
 				{
 					case Opcode.Return:
 						// End of line.
-						return new ControlGroup(blocks, entry);
+						return AddGroup(blocks, entry);
 					case Opcode.Branch:
 						{
 							var next = ((Branch)last).Target;
@@ -257,7 +277,7 @@ namespace LuaCP.Passes.Analysis
 							{
 								if (todo.Contains(next)) jumps.Add(next);
 								blocks.Add(new ControlNode.JumpNode(next, block));
-								return new ControlGroup(blocks, entry);
+								return AddGroup(blocks, entry);
 							}
 
 							block = next;
@@ -285,7 +305,7 @@ namespace LuaCP.Passes.Analysis
 								}
 							}
 
-							return new ControlGroup(blocks, entry);
+							return AddGroup(blocks, entry);
 						}
 					default:
 						throw new Exception(last.Opcode + " is not a terminator");
@@ -304,6 +324,13 @@ namespace LuaCP.Passes.Analysis
 			{
 				return CreateGroup(block);
 			}
+		}
+
+		private ControlGroup AddGroup(List<ControlNode> blocks, Block entry)
+		{
+			var group = new ControlGroup(blocks, entry);
+			groups.Add(entry, group);
+			return group;
 		}
 	}
 }
