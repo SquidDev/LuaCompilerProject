@@ -11,11 +11,10 @@ using LuaCP.Passes.Analysis;
 
 namespace LuaCP.CodeGen
 {
-	public static class RegisterAllocation
+	public static class RegisterAllocator
 	{
 		public static Dictionary<IValue, HashSet<Block>> GetLiveBlocks(Function function, Func<IValue, bool> predicate)
 		{
-			// We exclude tuples & references because they require special handling
 			var insns = function.Blocks
 				.SelectMany(x => x)
 				.OfType<ValueInstruction>();

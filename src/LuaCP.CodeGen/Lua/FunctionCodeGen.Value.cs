@@ -5,6 +5,7 @@ using LuaCP.Collections;
 using LuaCP.IR;
 using LuaCP.IR.Components;
 using LuaCP.IR.Instructions;
+using System.Text;
 
 namespace LuaCP.CodeGen.Lua
 {
@@ -15,6 +16,8 @@ namespace LuaCP.CodeGen.Lua
 			if (value is Constant) return ((Constant)value).ToString();
 			if (value is Upvalue) return upvalues[(Upvalue)value];
 			if (value.Kind == ValueKind.Reference) return refs[value];
+
+			if (value is ValueInstruction && simpleComparisons.Contains(value)) return SimpleValue((ValueInstruction)value);
 			return GetName(value);
 		}
 
@@ -38,44 +41,38 @@ namespace LuaCP.CodeGen.Lua
 			return "[" + Format(value) + "]";
 		}
 
-		private void WriteValue(ValueInstruction insn)
+		private string SimpleValue(ValueInstruction insn)
 		{
 			if (insn.Opcode.IsBinaryOperator())
 			{
 				BinaryOp op = (BinaryOp)insn;
-				writer.WriteLine("{0} = {1} {2} {3}", GetName(insn), Format(op.Left), op.Opcode.GetSymbol(), Format(op.Right));
+				return String.Format("{0} {1} {2}", Format(op.Left), op.Opcode.GetSymbol(), Format(op.Right));
 			}
 			else if (insn.Opcode.IsUnaryOperator())
 			{
 				UnaryOp op = (UnaryOp)insn;
-				writer.WriteLine("{0} = {1} {2}", GetName(insn), op.Opcode.GetSymbol(), Format(op.Operand));
+				return String.Format("{0} {1}", op.Opcode.GetSymbol(), Format(op.Operand));
 			}
 			else
 			{
 				switch (insn.Opcode)
 				{
 					case Opcode.ValueCondition:
+					case Opcode.ClosureNew:
+					case Opcode.ReferenceNew:
+					case Opcode.TupleGet:
 						{
-							ValueCondition valueCond = (ValueCondition)insn;
-
-							writer.WriteLine(
-								"if {1} then {0} = {2} else {0} = {3} end",
-								GetName(insn),
-								Format(valueCond.Test),
-								Format(valueCond.Success),
-								Format(valueCond.Failure)
-							);
-							break;
+							throw new ArgumentException(insn.Opcode + " cannot be emitted inline");
 						}
 					case Opcode.TableGet:
 						{
 							TableGet getter = (TableGet)insn;
-							writer.WriteLine("{0} = {1}{2}", GetName(insn), Format(getter.Table), FormatKey(getter.Key));
-							break;
+							return String.Format("{0}{1}", Format(getter.Table), FormatKey(getter.Key));
 						}
 					case Opcode.TableNew:
 						{
 							TableNew tblNew = (TableNew)insn;
+							StringBuilder builder = new StringBuilder();
 							writer.Write("{0} =", GetName(insn));
 							writer.Write("{");
 							foreach (IValue value in tblNew.ArrayPart)
@@ -93,48 +90,73 @@ namespace LuaCP.CodeGen.Lua
 							}
 
 							writer.WriteLine("}");
-							break;
-						}
-					case Opcode.ClosureNew:
-						{
-							ClosureNew closNew = (ClosureNew)insn;
-
-							var lookup = new Dictionary<Upvalue, string>();
-							foreach (Tuple<IValue, Upvalue> closed in Enumerable.Zip(closNew.ClosedUpvalues, closNew.Function.ClosedUpvalues, Tuple.Create))
-							{
-								string name = refs[closed.Item1];
-								writer.Write("local {0} = {1}", name, Format(closed.Item1));
-								lookup.Add(closed.Item2, name);
-							}
-
-							foreach (Tuple<IValue, Upvalue> open in Enumerable.Zip(closNew.OpenUpvalues, closNew.Function.OpenUpvalues, Tuple.Create))
-							{
-								lookup.Add(open.Item2, Format(open.Item1));
-							}
-
-							writer.Write("{0} = ", GetName(insn));
-							new FunctionCodeGen(closNew.Function, writer, lookup, funcAllocator).Write();
-							break;
+							return builder.ToString();
 						}
 					case Opcode.ReferenceGet:
 						{
-							writer.WriteLine("{0} = {1}", GetName(insn), Format(((ReferenceGet)insn).Reference));
-							break;
-						}
-					case Opcode.ReferenceNew:
-						{
-							ReferenceNew refNew = (ReferenceNew)insn;
-							writer.WriteLine("local {0} = {1}", refs[refNew], Format(refNew.Value));
-							break;
-						}
-					case Opcode.TupleGet:
-						{
-							writer.WriteLine("{0} = nil -- Error: getting tuple", GetName(insn));
-							break;
+							return Format(((ReferenceGet)insn).Reference);
 						}
 					default:
 						throw new ArgumentException("Expected Value, got " + insn.Opcode);
 				}
+			}
+		}
+
+		private void WriteValue(ValueInstruction insn)
+		{
+			// We can skip this
+			if (simpleComparisons.Contains(insn)) return;
+
+			switch (insn.Opcode)
+			{
+				case Opcode.ValueCondition:
+					{
+						ValueCondition valueCond = (ValueCondition)insn;
+							
+						writer.WriteLine(
+							"if {1} then {0} = {2} else {0} = {3} end",
+							GetName(insn),
+							Format(valueCond.Test),
+							Format(valueCond.Success),
+							Format(valueCond.Failure)
+						);
+						break;
+					}
+				case Opcode.ClosureNew:
+					{
+						ClosureNew closNew = (ClosureNew)insn;
+
+						var lookup = new Dictionary<Upvalue, string>();
+						foreach (Tuple<IValue, Upvalue> closed in Enumerable.Zip(closNew.ClosedUpvalues, closNew.Function.ClosedUpvalues, Tuple.Create))
+						{
+							string name = refs[closed.Item1];
+							writer.Write("local {0} = {1}", name, Format(closed.Item1));
+							lookup.Add(closed.Item2, name);
+						}
+
+						foreach (Tuple<IValue, Upvalue> open in Enumerable.Zip(closNew.OpenUpvalues, closNew.Function.OpenUpvalues, Tuple.Create))
+						{
+							lookup.Add(open.Item2, Format(open.Item1));
+						}
+
+						writer.Write("{0} = ", GetName(insn));
+						new FunctionCodeGen(closNew.Function, writer, lookup, funcAllocator).Write();
+						break;
+					}
+				case Opcode.ReferenceNew:
+					{
+						ReferenceNew refNew = (ReferenceNew)insn;
+						writer.WriteLine("local {0} = {1}", refs[refNew], Format(refNew.Value));
+						break;
+					}
+				case Opcode.TupleGet:
+					{
+						writer.WriteLine("{0} = nil -- Error: getting tuple", GetName(insn));
+						break;
+					}
+				default:
+					writer.WriteLine("{0} = {1}", GetName(insn), SimpleValue(insn));
+					break;
 			}
 		}
 

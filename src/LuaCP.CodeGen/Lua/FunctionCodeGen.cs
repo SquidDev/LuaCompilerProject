@@ -1,7 +1,9 @@
 using System.Collections.Generic;
+using System.Linq;
 using LuaCP.IR;
 using LuaCP.IR.Components;
 using LuaCP.Passes.Analysis;
+using LuaCP.IR.Instructions;
 
 namespace LuaCP.CodeGen.Lua
 {
@@ -56,6 +58,8 @@ namespace LuaCP.CodeGen.Lua
 
 		private readonly ControlGroup rootGroup;
 
+		private readonly HashSet<ValueInstruction> simpleComparisons = new HashSet<ValueInstruction>();
+
 		internal FunctionCodeGen(Function function, IndentedTextWriter writer, IReadOnlyDictionary<Upvalue, string> upvalues, NameAllocator<Function> funcAllocator, bool root = false)
 		{
 			this.upvalues = upvalues;
@@ -69,9 +73,24 @@ namespace LuaCP.CodeGen.Lua
 			refs = new NameAllocator<IValue>(prefix + "ref_{0}");
 			blocks = new NameAllocator<Block>(prefix + "lbl_{0}");
 
-			var live = RegisterAllocation.GetLiveBlocks(function, x => x.Kind == ValueKind.Value);
-			var equal = RegisterAllocation.BuildPhiMap(function, live);
-			slots = RegisterAllocation.Allocate(function, live, equal, out slotCount);
+			var live = RegisterAllocator.GetLiveBlocks(function, x =>
+			{
+				// We exclude tuples & references because they require special handling
+				if (x.Kind != ValueKind.Value) return false;
+
+				// Look for simple comparisons
+				ValueInstruction insn = x as ValueInstruction;
+				if (insn != null && FunctionCodeGenHelpers.IsSimpleComparison(insn))
+				{
+					simpleComparisons.Add(insn);
+					return false;
+				}
+
+				return true;
+			});
+
+			var equal = RegisterAllocator.BuildPhiMap(function, live);
+			slots = RegisterAllocator.Allocate(function, live, equal, out slotCount);
 			varPrefix = prefix + "var_";
 		}
 

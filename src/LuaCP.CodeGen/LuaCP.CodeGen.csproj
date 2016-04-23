@@ -39,9 +39,10 @@
     <Compile Include="Bytecode\LasmBytecodeWriter.cs" />
     <Compile Include="Bytecode\BytecodeCodegen.cs" />
     <Compile Include="Bytecode\WriterExtensions.cs" />
-    <Compile Include="RegisterAllocation.cs" />
     <Compile Include="Lua\FunctionCodeGen.Value.cs" />
     <Compile Include="Lua\FunctionCodeGen.Block.cs" />
+    <Compile Include="RegisterAllocator.cs" />
+    <Compile Include="Lua\FunctionCodeGen.Helpers.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

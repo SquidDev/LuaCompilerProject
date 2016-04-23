@@ -69,6 +69,11 @@ namespace LuaCP.IR.Instructions
 			return x >= Opcode.Add && x <= Opcode.LessThanEquals;
 		}
 
+		public static bool IsComparisonOperator(this Opcode x)
+		{
+			return x >= Opcode.Equals && x <= Opcode.LessThanEquals;
+		}
+
 		public static bool IsTerminator(this Opcode x)
 		{
 			return x >= Opcode.Branch && x <= Opcode.Return;
