@@ -1,5 +1,4 @@
-﻿using System;
-using LuaCP.IR.Instructions;
+﻿using LuaCP.IR.Instructions;
 using System.Linq;
 using LuaCP.IR.User;
 using LuaCP.IR;
@@ -10,8 +9,11 @@ namespace LuaCP.CodeGen.Lua
 	{
 		public static bool IsSimpleComparison(ValueInstruction insn)
 		{
-			// Must be a comparison operator
-			if (!insn.Opcode.IsComparisonOperator() || insn.Users.TotalCount != 1) return false;
+			// Can only be used once
+			if (insn.Users.TotalCount != 1) return false;
+
+			// Must be a trivial operator
+			if (!insn.Opcode.IsComparisonOperator() && insn.Opcode != Opcode.Not) return false;
 
 			// Must be the next instruction
 			var user = insn.Users.First<IUser<IValue>>() as Instruction;

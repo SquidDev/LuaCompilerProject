@@ -60,6 +60,7 @@ namespace LuaCP.Debug
 				Phi(phi, Writer, numberer);
 
 				Writer.Write(" Total: " + phi.Users.TotalCount + ", Unique: " + phi.Users.UniqueCount);
+				Writer.Write(" => " + String.Join(", ", phi.Users.Select<IUser<IValue>, string>(x => Choose(x, numberer))));
 				Writer.WriteLine();
 			}
 

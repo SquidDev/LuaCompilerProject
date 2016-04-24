@@ -43,7 +43,7 @@ namespace LuaCP.Passes.Optimisation
 
 					foreach (Phi phi in next.PhiNodes.ToList())
 					{
-						phi.Replace(phi, phi.Source[block]);
+						phi.ReplaceWith(phi.Source[block]);
 						phi.Remove();
 					}
 

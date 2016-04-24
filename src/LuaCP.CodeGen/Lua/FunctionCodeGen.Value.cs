@@ -112,14 +112,25 @@ namespace LuaCP.CodeGen.Lua
 				case Opcode.ValueCondition:
 					{
 						ValueCondition valueCond = (ValueCondition)insn;
-							
-						writer.WriteLine(
-							"if {1} then {0} = {2} else {0} = {3} end",
-							GetName(insn),
-							Format(valueCond.Test),
-							Format(valueCond.Success),
-							Format(valueCond.Failure)
-						);
+
+						if (valueCond.Test == valueCond.Success)
+						{
+							writer.WriteLine("{0} = {1} or {2}", GetName(insn), Format(valueCond.Test), Format(valueCond.Failure));
+						}
+						else if (valueCond.Test == valueCond.Failure)
+						{
+							writer.WriteLine("{0} = {1} and {2}", GetName(insn), Format(valueCond.Test), Format(valueCond.Failure));
+						}
+						else
+						{
+							writer.WriteLine(
+								"if {1} then {0} = {2} else {0} = {3} end",
+								GetName(insn),
+								Format(valueCond.Test),
+								Format(valueCond.Success),
+								Format(valueCond.Failure)
+							);
+						}
 						break;
 					}
 				case Opcode.ClosureNew:

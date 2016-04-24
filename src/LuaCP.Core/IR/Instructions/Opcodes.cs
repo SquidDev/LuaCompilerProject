@@ -90,7 +90,7 @@ namespace LuaCP.IR.Instructions
 			switch (x)
 			{
 				case Opcode.Not:
-					return "not ";
+					return "not";
 				case Opcode.UnaryMinus:
 					return "-";
 				case Opcode.BNot:
