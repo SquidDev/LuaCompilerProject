@@ -187,7 +187,7 @@ type TypeProvider() =
         else 
             match (current, target) with
             | ({ ReadOnly = false }, { ReadOnly = false }) -> isBiwaySubtype current.Value target.Value // The value type must be equal if we are converting
-            | (_, { ReadOnly = true }) -> isSubtype current.Key target.Key // We can assign any subtype to a readonly field
+            | (_, { ReadOnly = true }) -> isSubtype current.Value target.Value // We can assign any subtype to a readonly field
             | _ -> Failure
     and isOperatorSubtype (current : ValueType) (target : ValueType) : SubtypeResult = 
         if target = Nil then Success
@@ -224,6 +224,11 @@ type TypeProvider() =
                     | _ -> raise (ArgumentException(sprintf "Cannot get operator for %A" ty))
             unaryMap.[key] <- res
             res
+    
+    static member IsPrimitiveSubtype current target = 
+        match (current, target) with
+        | (LiteralKind.Integer, LiteralKind.Number) -> true // Integers are a subtype of number
+        | _ -> current = target
     
     member this.IsBaseSubtype current target = isBaseSubtype current target
     member this.IsTypeEqual current target = (isBiwaySubtype current target).ToBoolean()

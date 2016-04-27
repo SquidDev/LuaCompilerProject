@@ -27,16 +27,18 @@
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
     <Reference Include="nunit.framework">
-      <HintPath>..\..\packages\NUnit.3.2.0\lib\net45\nunit.framework.dll</HintPath>
+      <HintPath>..\..\packages\NUnit.3.2.1\lib\net45\nunit.framework.dll</HintPath>
     </Reference>
     <Reference Include="nunitlite">
-      <HintPath>..\..\packages\NUnitLite.3.2.0\lib\net45\nunitlite.dll</HintPath>
+      <HintPath>..\..\packages\NUnitLite.3.2.1\lib\net45\nunitlite.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="Data.fs" />
     <Compile Include="Types\TypeCheckerTest.fs" />
     <Compile Include="Types\OperatorCheck.fs" />
+    <Compile Include="Types\TypeMergerCheck.fs" />
     <Compile Include="Passes\ReferenceToValueTest.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>

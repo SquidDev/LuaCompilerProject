@@ -23,17 +23,17 @@ let InferType (scope : TypeScope) (insn : Instruction) =
     | BinaryOp insn -> scope.VConstraint(WithBinOp(insn.Opcode.AsOperator, insn.Left, insn.Right, upcast insn))
     | UnaryOp insn -> scope.VConstraint(WithUnOp(insn.Opcode.AsOperator, insn.Operand, upcast insn))
     | ValueCondition insn -> 
-        scope.EquateValuesWith insn (Union [ scope.Get insn.Success
-                                             scope.Get insn.Failure ])
-    | Return insn -> scope.TupleSubtype (scope.TupleGet insn.Values) (scope.ReturnGet insn.Block.Function)
+        scope.EquateValueWith insn (Union [ scope.Get insn.Success
+                                            scope.Get insn.Failure ])
+    | Return insn -> scope.TupleSubtype insn.Values (scope.ReturnGet insn.Block.Function)
     | TableGet insn -> 
-        scope.Subtype (scope.Get insn.Table) (Table([ { Key = scope.Get insn.Key
-                                                        Value = scope.Get insn
-                                                        ReadOnly = true } ], OperatorHelpers.Empty))
+        scope.ValueSubtype insn.Table (Table([ { Key = scope.Get insn.Key
+                                                 Value = scope.Get insn
+                                                 ReadOnly = true } ], OperatorHelpers.Empty))
     | TableSet insn -> 
-        scope.Subtype (scope.Get insn.Table) (Table([ { Key = scope.Get insn.Key
-                                                        Value = scope.Get insn.Value
-                                                        ReadOnly = false } ], OperatorHelpers.Empty))
+        scope.ValueSubtype insn.Table (Table([ { Key = scope.Get insn.Key
+                                                 Value = scope.Get insn.Value
+                                                 ReadOnly = false } ], OperatorHelpers.Empty))
     | TableNew insn -> 
         let keys = 
             Seq.map (fun (x : KeyValuePair<_, _>) -> 
@@ -42,22 +42,22 @@ let InferType (scope : TypeScope) (insn : Instruction) =
                   ReadOnly = false }) insn.HashPart
             |> Seq.toList
         // TODO: Handle array part
-        scope.Subtype (Table(keys, OperatorHelpers.Empty)) (scope.Get insn)
-    | Call insn -> scope.Subtype (scope.Get insn.Method) (Function(scope.TupleGet insn.Arguments, scope.TupleGet insn))
+        scope.ValueSubtypeOf (Table(keys, OperatorHelpers.Empty)) insn
+    | Call insn -> scope.ValueSubtype insn.Method (Function(scope.TupleGet insn.Arguments, scope.TupleGet insn))
     | TupleNew insn when insn.Remaining.IsNil() -> 
-        scope.EquateTuplesWith insn (Single(Seq.map scope.Get insn.Values |> Seq.toList, None))
+        scope.EquateTupleWith insn (Single(Seq.map scope.Get insn.Values |> Seq.toList, None))
     | ReferenceGet insn -> scope.EquateValues insn.Reference insn
     | ReferenceSet insn -> scope.EquateValues insn.Value insn.Reference
     | ReferenceNew insn -> scope.EquateValues insn.Value insn
     | ClosureNew insn -> 
         Seq.iteri (fun i (x : IValue) -> scope.EquateValues x (insn.Function.OpenUpvalues.[i])) insn.OpenUpvalues
-        Seq.iteri (fun i (x : IValue) -> scope.Subtype (scope.Get x) (scope.Get(insn.Function.ClosedUpvalues.[i]))) 
+        Seq.iteri (fun i (x : IValue) -> scope.ValueSubtype x (scope.Get(insn.Function.ClosedUpvalues.[i]))) 
             insn.ClosedUpvalues
         let mapped = 
             List.map scope.Get (Seq.filter (fun (x : Argument) -> x.Kind = ValueKind.Value) insn.Function.Arguments
                                 |> Seq.map (fun x -> x :> IValue)
                                 |> Seq.toList)
-        scope.EquateValuesWith insn (Function(Single(mapped, None), scope.ReturnGet insn.Function))
+        scope.EquateValueWith insn (Function(Single(mapped, None), scope.ReturnGet insn.Function))
     | Branch _ | BranchCondition _ -> ()
     | _ -> printfn "Cannot handle %A" insn
 
@@ -65,7 +65,7 @@ let InferTypes (scope : TypeScope) (func : Function) =
     for block in func.EntryPoint.VisitPreorder() do
         for phi in block.PhiNodes do
             match phi.Kind with
-            | ValueKind.Value -> scope.EquateValuesWith phi (Union(Seq.map scope.Get phi.Source.Values |> Seq.toList))
+            | ValueKind.Value -> scope.EquateValueWith phi (Union(Seq.map scope.Get phi.Source.Values |> Seq.toList))
             | ValueKind.Tuple -> () // TODO: Handle this
         for item in block do
             InferType scope item

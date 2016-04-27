@@ -3,6 +3,7 @@
 open NUnit.Framework
 open System
 open System.Text
+open LuaCP
 open LuaCP.IR
 open LuaCP.Collections
 open LuaCP.Types
@@ -13,10 +14,6 @@ let AssertSubtype func current target =
 
 let AssertNotSubtype func current target = 
     if func current target then Assert.Fail(sprintf "Should not be able to convert %A to %A" current target)
-
-type Data() = 
-    // This works as a member function, but not a let binding.
-    static member Make([<ParamArray>] args : Object []) = TestCaseData(args).SetName(sprintf "%A" args)
 
 let tStr, tNum, tInt, tBoo = Primitives.String, Primitives.Number, Primitives.Integer, Primitives.Boolean
 let tVoid = TupleType.Empty

@@ -2,13 +2,10 @@
 
 open System
 open NUnit.Framework
+open LuaCP
 open LuaCP.Types
 open LuaCP.Types.OperatorExtensions
 open LuaCP.IR.Instructions
-
-type Data() = 
-    // This works as a member function, but not a let binding.
-    static member Make([<ParamArray>] args : Object []) = TestCaseData(args).SetName(sprintf "%A" args)
 
 let Names = Seq.map (fun (x : string) -> Data.Make x) (Enum.GetNames(typedefof<Opcode>))
 

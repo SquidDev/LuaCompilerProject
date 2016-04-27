@@ -58,10 +58,19 @@ namespace LuaCP
 			base.Dispose(disposing);
 		}
 
-
 		public override void Flush()
 		{
 			writer.Flush();
+		}
+
+		public void AddIndent()
+		{
+			Indent++;
+		}
+
+		public void Unindent()
+		{
+			Indent--;
 		}
 
 		private void OutputTabs()
