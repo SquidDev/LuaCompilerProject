@@ -5,40 +5,52 @@ open NUnit.Framework
 open LuaCP
 open LuaCP.Collections
 open LuaCP.Types
+open LuaCP.Types.Extensions
 open LuaCP.Types.Primitives
 
-let merger = new TypeEquator()
 
 [<Test>]
 let ``Simple equate`` () = 
-    let root = new IdentRef<_>(Unbound)
+    printfn "Running Simple equate"
+    let merger = new TypeMerger()
+    let root = merger.ValueNew()
     let number = Number
 
-    let merged = merger.Value (EquateMode.Equal) (Reference root) number
+    let merged = merger.Value (EquateMode.Equal) root.Type number
     Assert.AreEqual(number, merged, "Incorrect result of merging")
-    match root.Value with
-    | Unbound -> Assert.Fail "Unbound has not been bound"
-    | Link ty -> Assert.AreEqual(ty, number, "Unbound was bound incorrectly")
+    Assert.AreEqual(root.Type.Root, number, "Unbound was bound incorrectly")
 
 [<Test>]
 let ``Simple minimum`` () = 
-    let root = new IdentRef<_>(Unbound)
+    printfn "Running Simple min"
+    let merger = new TypeMerger()
+    let root = merger.ValueNew()
     let number = Number
 
-    let merged = merger.Value (EquateMode.Minimum) (Reference root) number
+    let merged = merger.Value (EquateMode.Minimum) root.Type number
     Assert.AreEqual(number, merged, "Incorrect result of merging")
-    match root.Value with
-    | Unbound -> Assert.Fail "Unbound has not been bound"
-    | Link ty -> Assert.AreEqual(ty, number, "Unbound was bound incorrectly")
+    Assert.AreEqual(Some number, root.Minimum)
 
 
 [<Test>]
 let ``Simple maximum`` () = 
-    let root = new IdentRef<_>(Unbound)
+    printfn "Running Simple max"
+    let merger = new TypeMerger()
+    let root = merger.ValueNew()
     let number = Number
 
-    let merged = merger.Value (EquateMode.Maximum) (Reference root) number
+    let merged = merger.Value (EquateMode.Maximum) root.Type number
     Assert.AreEqual(number, merged, "Incorrect result of merging")
-    match root.Value with
-    | Unbound -> Assert.Fail "Unbound has not been bound"
-    | Link ty -> Assert.AreEqual(ty, number, "Unbound was bound incorrectly")
+    Assert.AreEqual(Some number, root.Maximum)
+
+(*
+    _ENV :> { print : (any)->() }
+
+    a : 't = _ENV.print
+    _ENV :> { print : 't }
+
+    Maximum of { print : (any)->() } & { print : 't }
+        yields { print : (any)->() }
+
+        't = (any)->()
+*)

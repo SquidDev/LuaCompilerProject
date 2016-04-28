@@ -42,7 +42,7 @@ let InferType (scope : TypeScope) (insn : Instruction) =
                   ReadOnly = false }) insn.HashPart
             |> Seq.toList
         // TODO: Handle array part
-        scope.ValueSubtypeOf (Table(keys, OperatorHelpers.Empty)) insn
+        scope.ValueSupertype (Table(keys, OperatorHelpers.Empty)) insn
     | Call insn -> scope.ValueSubtype insn.Method (Function(scope.TupleGet insn.Arguments, scope.TupleGet insn))
     | TupleNew insn when insn.Remaining.IsNil() -> 
         scope.EquateTupleWith insn (Single(Seq.map scope.Get insn.Values |> Seq.toList, None))

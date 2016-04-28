@@ -30,34 +30,13 @@ type Constraint<'tv, 'tt when 'tv : equality and 'tt : equality> =
         | WithUnOp(_, a, b) -> a = ty || b = ty
         | WithBinOp(_, a, b, c) -> a = ty || b = ty || c = ty
 
-type TypeConstraint<'t>(ty : 't) = 
-    let subtypes = new HashSet<'t>()
-    let subtypeOf = new HashSet<'t>()
-    let equal = new HashSet<'t>()
-    member this.Type = ty
-    member this.Subtypes = subtypes
-    member this.SubtypeOf = subtypeOf
-    member this.Equal = equal
-    member this.Dump() = 
-        let writer = new IndentedTextWriter(Console.Out)
-        writer.WriteLine ty
-        writer.Indent <- writer.Indent + 1
-        for ty in subtypes do
-            writer.WriteLine(">: {0}", ty)
-        for ty in subtypeOf do
-            writer.WriteLine("<: {0}", ty)
-        // TODO: Remove this
-        for ty in equal do
-            writer.WriteLine("= {0}", ty)
-        writer.Indent <- writer.Indent - 1
-
 type TypeScope() = 
-    let values = new Dictionary<IValue, TypeConstraint<ValueType>>()
-    let tuples = new Dictionary<IValue, TypeConstraint<TupleType>>()
+    let values = new Dictionary<IValue, ValueType>()
+    let tuples = new Dictionary<IValue, TupleType>()
     let returns = new Dictionary<Function, TupleType>()
     let constraints = new HashSet<Constraint<ValueType, TupleType>>()
     let checker = new TypeProvider()
-    let equator = new TypeEquator()
+    let equator = new TypeMerger()
     member this.Checker = checker
     
     member this.Get(value : IValue) = 
@@ -65,10 +44,10 @@ type TypeScope() =
         if value :? Constant then ValueType.Literal (value :?> Constant).Literal
         else 
             let exists, ty = values.TryGetValue(value)
-            if exists then ty.Type
+            if exists then ty
             else 
-                let ty = Reference(new IdentRef<_>(Unbound))
-                values.Add(value, new TypeConstraint<_>(ty))
+                let ty = equator.ValueNew().Type
+                values.Add(value, ty)
                 ty
     
     member this.GetConstraint(value : IValue) = 
@@ -76,10 +55,13 @@ type TypeScope() =
         if value :? Constant then raise (ArgumentException "Expected value, got constant")
         else 
             let exists, ty = values.TryGetValue(value)
-            if exists then ty
+            if exists then 
+                match ty with
+                | Reference ref -> equator.ValueGet ref
+                | _ -> raise (ArgumentException(sprintf "%A is not a reference" ty))
             else 
-                let ty = new TypeConstraint<_>(Reference(new IdentRef<_>(Unbound)))
-                values.Add(value, ty)
+                let ty = equator.ValueNew()
+                values.Add(value, ty.Type)
                 ty
     
     member this.TryGet(value : IValue) = 
@@ -87,7 +69,7 @@ type TypeScope() =
         if value :? Constant then Some(ValueType.Literal (value :?> Constant).Literal)
         else 
             let exists, ty = values.TryGetValue(value)
-            if exists then Some(ty.Type)
+            if exists then Some(ty)
             else None
     
     member this.Create(value : IValue) = this.Get value |> ignore
@@ -103,19 +85,19 @@ type TypeScope() =
         let exists, ty = returns.TryGetValue func
         if exists then ty
         else 
-            let ty = TReference(IdentRef<_>(Unbound))
-            returns.Add(func, ty)
-            ty
+            let ty = equator.TupleNew()
+            returns.Add(func, ty.Type)
+            ty.Type
     
     member this.TupleGet(value : IValue) = 
         if value.IsNil() then Single([], None)
         elif value.Kind <> ValueKind.Tuple then Single([ this.Get value ], None)
         else 
             let exists, ty = tuples.TryGetValue value
-            if exists then ty.Type
+            if exists then ty
             else 
-                let ty = TReference(IdentRef<_>(Unbound))
-                tuples.Add(value, new TypeConstraint<_>(ty))
+                let ty = equator.TupleNew().Type
+                tuples.Add(value, ty)
                 ty
     
     member this.GetTupleConstraint(value : IValue) = 
@@ -123,40 +105,48 @@ type TypeScope() =
         elif value.Kind <> ValueKind.Tuple then raise (ArgumentException "Expected tuple, got value")
         else 
             let exists, ty = tuples.TryGetValue(value)
-            if exists then ty
+            if exists then 
+                match ty with
+                | TReference ref -> equator.TupleGet ref
+                | _ -> raise (ArgumentException(sprintf "%A is not a reference" ty))
             else 
-                let ty = new TypeConstraint<_>(TReference(new IdentRef<_>(Unbound)))
-                tuples.Add(value, ty)
+                let ty = equator.TupleNew()
+                tuples.Add(value, ty.Type)
                 ty
     
     member this.EquateTupleWith (value : IValue) (ty : TupleType) = 
         let success, cons = tuples.TryGetValue value
-        if success then cons.Equal.Add ty |> ignore
-        else tuples.Add(value, new TypeConstraint<_>(ty))
+        match success, cons with
+        | true, TReference ref -> (equator.TupleGet ref).Equal.Add ty |> ignore
+        | true, _ -> raise (ArgumentException(sprintf "%A is not a reference" ty))
+        | false, _ -> tuples.Add(value, ty)
     
     member this.EquateValueWith (value : IValue) (ty : ValueType) = 
         let success, cons = values.TryGetValue value
-        if success then cons.Equal.Add ty |> ignore
-        else values.Add(value, new TypeConstraint<_>(ty))
+        match success, cons with
+        | true, Reference ref -> (equator.ValueGet ref).Equal.Add ty |> ignore
+        | true, _ -> raise (ArgumentException(sprintf "%A is not a reference" ty))
+        | false, _ -> values.Add(value, ty)
     
     member this.EquateValues (left : IValue) (right : IValue) = 
         match values.TryGetValue left, values.TryGetValue right with
         | (true, l), (true, r) -> 
-            l.Equal.Add r.Type |> ignore
-            r.Equal.Add l.Type |> ignore
+            // l.Equal.Add r.Type |> ignore
+            // r.Equal.Add l.Type |> ignore
+            printfn "Passing equating %A and %A" l r
         | (false, _), (true, r) -> values.Add(left, r)
         | (true, l), (false, _) -> values.Add(right, l)
         | (false, _), (false, _) -> 
-            let cons = new TypeConstraint<_>(Reference(new IdentRef<_>(Unbound)))
+            let cons = equator.ValueNew().Type
             values.Add(left, cons)
             values.Add(right, cons)
     
     member this.ValueSubtype (value : IValue) (target : ValueType) = 
-        (this.GetConstraint value).Subtypes.Add target |> ignore
-    member this.ValueSubtypeOf (ty : ValueType) (target : IValue) = 
-        (this.GetConstraint target).SubtypeOf.Add ty |> ignore
+        equator.Value EquateMode.Maximum (this.Get value) target |> ignore
+    member this.ValueSupertype (ty : ValueType) (target : IValue) = 
+        equator.Value EquateMode.Minimum ty (this.Get target) |> ignore
     member this.TupleSubtype (value : IValue) (target : TupleType) = 
-        (this.GetTupleConstraint value).Subtypes.Add target |> ignore
+        equator.Tuple EquateMode.Maximum (this.TupleGet value) target |> ignore
     
     member this.DumpFunction(num : NodeNumberer) = 
         printfn "# Function: %A" num.Function
@@ -167,13 +157,17 @@ type TypeScope() =
             | :? IBelongs<Function> as b when b.Owner = num.Function -> true
             | _ -> false
         for cons in Seq.filter belongs values do
-            printf "%s : " (Formatter.Default.Choose(cons.Key, num))
-            cons.Value.Dump()
-            for item in Seq.filter (fun (x : Constraint<_, _>) -> x.ContainsValue cons.Value.Type) constraints do
+            printfn "%s : %A" (Formatter.Default.Choose(cons.Key, num)) cons.Value
+            match cons.Value with
+            | Reference(IdentRef(Unbound) as tRef) -> printfn "%A" (equator.ValueGet tRef)
+            | _ -> ()
+            for item in Seq.filter (fun (x : Constraint<_, _>) -> x.ContainsValue cons.Value) constraints do
                 printfn "    %A" item
         for cons in Seq.filter belongs tuples do
-            printf "%s : " (Formatter.Default.Choose(cons.Key, num))
-            cons.Value.Dump()
+            printfn "%s : %A" (Formatter.Default.Choose(cons.Key, num)) cons.Value
+            match cons.Value with
+            | TReference(IdentRef(Unbound) as tRef) -> printfn "%A" (equator.TupleGet tRef)
+            | _ -> ()
         printfn "## Returns: %A" (this.ReturnGet num.Function)
     
     interface IScope with
