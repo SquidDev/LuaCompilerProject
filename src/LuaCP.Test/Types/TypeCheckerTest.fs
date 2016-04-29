@@ -9,10 +9,10 @@ open LuaCP.Collections
 open LuaCP.Types
 open LuaCP.Types.TypeFactory
 
-let AssertSubtype func current target = 
+let AssertSubtype func current target =
     if not (func current target) then Assert.Fail(sprintf "Should be able to convert %A to %A" current target)
 
-let AssertNotSubtype func current target = 
+let AssertNotSubtype func current target =
     if func current target then Assert.Fail(sprintf "Should not be able to convert %A to %A" current target)
 
 let tStr, tNum, tInt, tBoo = Primitives.String, Primitives.Number, Primitives.Integer, Primitives.Boolean
@@ -23,37 +23,37 @@ let funcL x y = Function(Single(x, None), Single(y, None))
 let tabl x = Table(x, OperatorHelpers.Empty)
 let checker = new TypeProvider()
 
-let a = 
+let a =
     let tyRef = new IdentRef<_>(Unbound)
     let ty = Reference tyRef
-    
-    let table = 
+
+    let table =
         Table
             ([ { Key = tInt
                  Value = tInt
-                 ReadOnly = true } ], 
+                 ReadOnly = true } ],
              OperatorHelpers.Singleton (Function(Single([ ty; ty ], None), Single([ tBoo ], None))) Operator.Equals)
     tyRef.Value <- Link table
     table
 
-let b = 
+let b =
     let tyRef = new IdentRef<_>(Unbound)
     let ty = Reference tyRef
-    let table = 
+    let table =
         Table
             ([], OperatorHelpers.Singleton (Function(Single([ ty; ty ], None), Single([ tBoo ], None))) Operator.Equals)
     tyRef.Value <- Link table
     table
 
-let addable = 
+let addable =
     let tyRef = new IdentRef<_>(Unbound)
     let ty = Reference tyRef
-    let table = 
+    let table =
         Table([], OperatorHelpers.Singleton (Function(Single([ ty; ty ], None), Single([ ty ], None))) Operator.Add)
     tyRef.Value <- Link table
     table
 
-let ValueSubtypes = 
+let ValueSubtypes =
     [| // Primitive conversions
        Data.Make(tInt, tNum, true)
        Data.Make(tNum, tInt, false)
@@ -85,27 +85,27 @@ let ValueSubtypes =
        Data.Make(func [ tNum ], func [ tStr ], false)
        Data.Make(func [ tNum ], func [ tInt ], true)
        // Intersections
-       Data.Make(FunctionIntersection [ func [ tNum ]
-                                        func [ tStr ] ], func [ tInt ], true)
-       Data.Make(func [ tInt ], 
-                 FunctionIntersection [ func [ tNum ]
-                                        func [ tStr ] ], false)
+       Data.Make(Intersection [ func [ tNum ]
+                                func [ tStr ] ], func [ tInt ], true)
+       Data.Make(func [ tInt ],
+                 Intersection [ func [ tNum ]
+                                func [ tStr ] ], false)
        // Tables
        Data.Make(tabl [ { Key = tNum
                           Value = tNum
-                          ReadOnly = false } ], 
+                          ReadOnly = false } ],
                  tabl [ { Key = tNum
                           Value = tNum
                           ReadOnly = false } ], true)
        Data.Make(tabl [ { Key = tNum
                           Value = tNum
-                          ReadOnly = false } ], 
+                          ReadOnly = false } ],
                  tabl [ { Key = tNum
                           Value = Value
                           ReadOnly = false } ], false)
        Data.Make(tabl [ { Key = tNum
                           Value = tNum
-                          ReadOnly = false } ], 
+                          ReadOnly = false } ],
                  tabl [ { Key = tNum
                           Value = Value
                           ReadOnly = true } ], true)
@@ -123,7 +123,7 @@ let ValueSubtypes =
 let empty = List.empty<ValueType>
 let emptyTuples = List.empty<TupleType>
 
-let TupleSubtypes = 
+let TupleSubtypes =
     [| Data.Make([ tStr ], None, empty, None, true)
        Data.Make(empty, None, [ tStr ], None, false)
        Data.Make([ tInt ], None, [ tNum ], None, true)
@@ -131,28 +131,28 @@ let TupleSubtypes =
        Data.Make([ tInt; tInt ], None, [ tInt ], None, true)
        Data.Make([ tInt; tInt; tInt ], None, [ tInt ], Some tInt, true)
        Data.Make([ tInt ], Some tInt, [ tInt; tInt; tInt ], None, false)
-       Data.Make([ tInt ], Some tInt, 
+       Data.Make([ tInt ], Some tInt,
                  [ tInt
                    Union [ tInt; Nil ]
                    Union [ tInt; Nil ] ], None, true) |]
 
-let Functions = 
+let Functions =
     [| Data.Make
-           (Function(Single([ tStr ], None), tVoid), [ tStr ], None, Some(Function(Single([ tStr ], None), tVoid)), 
+           (Function(Single([ tStr ], None), tVoid), [ tStr ], None, Some(Function(Single([ tStr ], None), tVoid)),
             empty)
        Data.Make(Function(Single([ tStr ], None), tVoid), [ tNum ], None, None, empty)
-       Data.Make(FunctionIntersection [ func [ tStr ]
-                                        func [ lStr "foo" ] ], [ tStr ], None, Some(func [ tStr ]), empty)
-       Data.Make(FunctionIntersection [ func [ tStr ]
-                                        func [ lStr "foo" ] ], [ lStr "foo" ], None, Some(func [ lStr "foo" ]), empty)
-       Data.Make(FunctionIntersection [ func [ tStr ]
-                                        func [ lStr "foo" ] ], [ lStr "bar" ], None, Some(func [ tStr ]), empty)
-       Data.Make(FunctionIntersection [ func [ tStr ]
-                                        func [ Value ] ], [ lStr "bar" ], None, Some(func [ tStr ]), empty)
-       Data.Make(FunctionIntersection [ func [ tStr ]
-                                        func [ tNum ] ], [ lStr "bar" ], None, Some(func [ tStr ]), empty) |]
+       Data.Make(Intersection [ func [ tStr ]
+                                func [ lStr "foo" ] ], [ tStr ], None, Some(func [ tStr ]), empty)
+       Data.Make(Intersection [ func [ tStr ]
+                                func [ lStr "foo" ] ], [ lStr "foo" ], None, Some(func [ lStr "foo" ]), empty)
+       Data.Make(Intersection [ func [ tStr ]
+                                func [ lStr "foo" ] ], [ lStr "bar" ], None, Some(func [ tStr ]), empty)
+       Data.Make(Intersection [ func [ tStr ]
+                                func [ Value ] ], [ lStr "bar" ], None, Some(func [ tStr ]), empty)
+       Data.Make(Intersection [ func [ tStr ]
+                                func [ tNum ] ], [ lStr "bar" ], None, Some(func [ tStr ]), empty) |]
 
-let Unions = 
+let Unions =
     [| Data.Make([ tStr; tStr ], tStr)
        Data.Make([ tStr
                    lStr "foo" ], tStr)
@@ -163,7 +163,7 @@ let Unions =
                    tNum
                    Nil ], Union [ tStr; tNum; Nil ]) |]
 
-let Constraints = 
+let Constraints =
     [| Data.Make(tStr, tStr, Some tStr)
        Data.Make(tStr, tNum, None)
        Data.Make(Union [ tStr; tNum ], tStr, Some tStr)
@@ -173,14 +173,14 @@ let Constraints =
 
 [<Test>]
 [<TestCaseSource("ValueSubtypes")>]
-let ``Value subtypes`` (current : ValueType) (target : ValueType) (pass : bool) = 
+let ``Value subtypes`` (current : ValueType) (target : ValueType) (pass : bool) =
     if pass then AssertSubtype checker.IsSubtype current target
     else AssertNotSubtype checker.IsSubtype current target
 
 [<Test>]
 [<TestCaseSource("TupleSubtypes")>]
-let ``Tuple subtypes`` (current : ValueType list) (currentRem : ValueType option) (target : ValueType list) 
-    (targetRem : ValueType option) (pass : bool) = 
+let ``Tuple subtypes`` (current : ValueType list) (currentRem : ValueType option) (target : ValueType list)
+    (targetRem : ValueType option) (pass : bool) =
     let current = Single(current, currentRem)
     let target = Single(target, targetRem)
     if pass then AssertSubtype checker.IsTupleSubtype current target
@@ -188,8 +188,8 @@ let ``Tuple subtypes`` (current : ValueType list) (currentRem : ValueType option
 
 [<Test>]
 [<TestCaseSource("Functions")>]
-let ``Best functions`` (func : ValueType) (args : ValueType list) (argsRem : ValueType option) 
-    (eFunc : option<ValueType>) (eAlt : ValueType list) = 
+let ``Best functions`` (func : ValueType) (args : ValueType list) (argsRem : ValueType option)
+    (eFunc : option<ValueType>) (eAlt : ValueType list) =
     let args = Single(args, argsRem)
     let aFunc, aAlt = checker.FindBestFunction func args
     Assert.AreEqual(eFunc, aFunc, sprintf "Function %A with %O: expected %A, got %A + %A" func args eFunc aFunc aAlt)
@@ -198,21 +198,21 @@ let ``Best functions`` (func : ValueType) (args : ValueType list) (argsRem : Val
 
 [<Test>]
 [<TestCaseSource("Unions")>]
-let ``Union simplification`` (current : ValueType list) (expected : ValueType) = 
+let ``Union simplification`` (current : ValueType list) (expected : ValueType) =
     let aCurrent = checker.Union current
     Assert.True
-        (checker.IsTypeEqual expected aCurrent, 
+        (checker.IsTypeEqual expected aCurrent,
          sprintf "Union %A: expected %A, got %A" (Union current) expected aCurrent)
 
 [<Test>]
 [<TestCaseSource("Constraints")>]
-let ``Type constraints`` (ty : ValueType) (constrain : ValueType) (expected : ValueType option) = 
+let ``Type constraints`` (ty : ValueType) (constrain : ValueType) (expected : ValueType option) =
     let aCurrent = checker.Constrain ty constrain
     match (expected, aCurrent) with
     | None, None -> ()
-    | Some _, None | None, Some _ -> 
+    | Some _, None | None, Some _ ->
         raise (AssertionException(sprintf "%A <: %A: expected %A, got %A" constrain ty expected aCurrent))
-    | Some expected, Some aCurrent -> 
+    | Some expected, Some aCurrent ->
         Assert.True
-            (checker.IsTypeEqual expected aCurrent, 
+            (checker.IsTypeEqual expected aCurrent,
              sprintf "%A <: %A: expected %A, got %A" constrain ty expected aCurrent)

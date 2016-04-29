@@ -6,7 +6,7 @@ open LuaCP.Collections
 open LuaCP.Collections.Matching
 
 [<StructuredFormatDisplay("{AsString}")>]
-type ValueType = 
+type ValueType =
     | Literal of Literal
     | Primitive of LiteralKind
     | Nil
@@ -15,10 +15,10 @@ type ValueType =
     | Function of TupleType * TupleType
     | Table of TableField list * Operators
     | Union of ValueType list
-    | FunctionIntersection of ValueType list
+    | Intersection of ValueType list
     | Reference of IdentRef<VariableType<ValueType>>
-    
-    static member Format (this : ValueType) (alloc : StringAllocator<int>) = 
+
+    static member Format (this : ValueType) (alloc : StringAllocator<int>) =
         let format x = ValueType.Format x alloc
         match this with
         | Primitive x -> x.ToString().ToLowerInvariant()
@@ -27,70 +27,70 @@ type ValueType =
         | Value -> "value"
         | Dynamic -> "any"
         | Union(items) -> (String.concat " | " (Seq.map format items))
-        | FunctionIntersection(items) -> (String.concat " & " (Seq.map format items))
-        | Function(args, ret) -> 
+        | Intersection(items) -> (String.concat " & " (Seq.map format items))
+        | Function(args, ret) ->
             let formatTuple x = TupleType.Format x alloc
             formatTuple args + "->" + formatTuple ret
-        | Table(items, meta) -> 
-            let fields = 
-                items |> Seq.map (fun item -> 
+        | Table(items, meta) ->
+            let fields =
+                items |> Seq.map (fun item ->
                              (if item.ReadOnly then "readonly "
                               else "") + format item.Key + ":" + format item.Value)
-            
-            let items = 
+
+            let items =
                 meta
                 |> Seq.mapi (fun x y -> x, y)
                 |> Seq.filter (fun (x, y) -> y <> Nil)
                 |> Seq.map (fun (x, y) -> "meta " + (enum<Operator> (x)).ToString() + ":" + format y)
-            
+
             "{" + String.concat ", " (Seq.append fields items) + "}"
-        | Reference ref -> 
+        | Reference ref ->
             match ref.Value with
             | Unbound -> "'0x" + ref.GetHashCode().ToString("X8") + "?"
             | Link ty -> "'0x" + ref.GetHashCode().ToString("X8")
-    
+
     override this.ToString() = ValueType.Format this (new StringAllocator<int>())
     member this.AsString = this.ToString()
-    member this.WithLabel() = 
+    member this.WithLabel() =
         match this with
         | Reference(IdentRef(Link item)) -> this.ToString() + " : " + item.ToString()
         | _ -> this.ToString()
 
-and VariableType<'t> = 
+and VariableType<'t> =
     | Unbound
     | Link of 't
 
-and [<StructuredFormatDisplay("{AsString}")>] TupleType = 
+and [<StructuredFormatDisplay("{AsString}")>] TupleType =
     | Single of ValueType list * Option<ValueType>
     | TReference of IdentRef<VariableType<TupleType>>
     static member Empty = Single([], None)
-    
-    static member Format (this : TupleType) (alloc : StringAllocator<int>) : string = 
+
+    static member Format (this : TupleType) (alloc : StringAllocator<int>) : string =
         let format x = ValueType.Format x alloc
         match this with
         | Single([], Some x) -> "(" + format x + "...)"
         | Single(items, Some x) -> "(" + (String.concat ", " (Seq.map format items)) + ", " + format x + "...)"
         | Single(items, None) -> "(" + (String.concat ", " (Seq.map format items)) + ")"
-        | TReference ref -> 
+        | TReference ref ->
             match ref.Value with
             | Unbound -> "'0x" + ref.GetHashCode().ToString("X8") + "?"
             | Link ty -> "'0x" + ref.GetHashCode().ToString("X8")
-    
+
     override this.ToString() = TupleType.Format this (new StringAllocator<int>())
     member this.AsString = this.ToString()
-    member this.WithLabel() = 
+    member this.WithLabel() =
         match this with
         | TReference(IdentRef(Link item)) -> this.ToString() + " : " + item.ToString()
         | _ -> this.ToString()
 
-and TableField = 
+and TableField =
     { Key : ValueType
       Value : ValueType
       ReadOnly : bool }
 
 and Operators = ValueType []
 
-module Primitives = 
+module Primitives =
     let Number = Primitive LiteralKind.Number
     let Integer = Primitive LiteralKind.Integer
     let String = Primitive LiteralKind.String

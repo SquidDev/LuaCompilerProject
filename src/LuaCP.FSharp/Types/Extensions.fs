@@ -11,7 +11,7 @@ let rec private hasUnbound (visited : HashSet<Object>) (ty : ValueType) =
     | Reference(IdentRef Unbound) -> true
     | Reference(IdentRef(Link(item)) as ref) -> visited.Add(ref :> Object) && hasUnbound visited item
     | Primitive _ | Literal _ | Nil | Dynamic | Value -> false
-    | FunctionIntersection items | Union items -> List.exists (hasUnbound visited) items
+    | Intersection items | Union items -> List.exists (hasUnbound visited) items
     | Table(tbl, ops) -> List.exists (tableUnbound visited) tbl || Array.exists (hasUnbound visited) ops
     | Function(args, ret) -> (tupleUnbound visited) args || tupleUnbound visited ret
 

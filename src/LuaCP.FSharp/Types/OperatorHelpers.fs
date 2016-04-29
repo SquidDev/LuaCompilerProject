@@ -11,16 +11,16 @@ let BinOp(x : ValueType) = Function(Single([ x; x ], None), Single([ x ], None))
 let Compare(x : ValueType) = Function(Single([ x; x ], None), Single([ Primitives.Boolean ], None))
 let Empty : Operators = Array.create lastIndex Nil
 
-let Singleton (x : ValueType) (op : Operator) = 
+let Singleton (x : ValueType) (op : Operator) =
     let ops : Operators = Array.create lastIndex Nil
     ops.[int op] <- x
     ops
 
-let private concat = 
+let private concat =
     let union = Union [ Primitives.Number; Primitives.String ]
     Function(Single([ union; union ], None), Single([ Primitives.String ], None))
 
-let Number = 
+let Number =
     let un, bin, cmp = UnOp Primitives.Number, BinOp Primitives.Number, Compare Primitives.Number
     let ops : ValueType [] = Array.create lastIndex Nil
     // Can do -x
@@ -33,13 +33,12 @@ let Number =
     ops.[int Operator.LessThan] <- cmp
     ops
 
-let Integer = 
+let Integer =
     let un, bin, cmp = UnOp Primitives.Integer, BinOp Primitives.Integer, Compare Primitives.Number
-    
-    let binJoint = 
-        FunctionIntersection [ bin
-                               BinOp Primitives.Number ]
-    
+
+    let binJoint =
+        Intersection [ bin; BinOp Primitives.Number ]
+
     let ops : ValueType [] = Array.create lastIndex Nil
     // Add everything
     ops.[int Operator.UnaryMinus] <- un
@@ -53,7 +52,7 @@ let Integer =
     ops.[int Operator.LessThan] <- cmp
     ops
 
-let String = 
+let String =
     let cmp = Compare Primitives.String
     let ops : ValueType [] = Array.create lastIndex Nil
     ops.[int Operator.Length] <- Function(Single([ Primitives.String ], None), Single([ Primitives.Integer ], None))
@@ -64,7 +63,7 @@ let String =
 
 let Boolean : ValueType [] = Array.create lastIndex Nil
 
-let Dynamic = 
+let Dynamic =
     let un, bin, cmp = UnOp Dynamic, BinOp Dynamic, Compare Dynamic
     let ops : ValueType [] = Array.create lastIndex Nil
     for i = int Operator.UnaryMinus to int Operator.Length do
@@ -78,7 +77,7 @@ let Dynamic =
     ops.[int Operator.Call] <- Function(Single([], Some(Dynamic)), Single([], Some(Dynamic)))
     ops
 
-let GetPrimitiveLookup(ty : LiteralKind) = 
+let GetPrimitiveLookup(ty : LiteralKind) =
     match ty with
     | LiteralKind.Number -> Number
     | LiteralKind.Integer -> Integer
