@@ -1,4 +1,4 @@
-﻿module LuaCP.Types.TypeMergerCheck
+module LuaCP.Types.TypeMergerCheck
 
 open System
 open NUnit.Framework
@@ -8,9 +8,8 @@ open LuaCP.Types
 open LuaCP.Types.Extensions
 open LuaCP.Types.Primitives
 
-
 [<Test>]
-let ``Simple equate`` () = 
+let ``Simple equate`` () =
     printfn "Running Simple equate"
     let merger = new TypeMerger()
     let root = merger.ValueNew()
@@ -21,7 +20,7 @@ let ``Simple equate`` () =
     Assert.AreEqual(root.Type.Root, number, "Unbound was bound incorrectly")
 
 [<Test>]
-let ``Simple minimum`` () = 
+let ``Simple minimum`` () =
     printfn "Running Simple min"
     let merger = new TypeMerger()
     let root = merger.ValueNew()
@@ -29,11 +28,11 @@ let ``Simple minimum`` () =
 
     let merged = merger.Value (EquateMode.Minimum) root.Type number
     Assert.AreEqual(number, merged, "Incorrect result of merging")
-    Assert.AreEqual(Some number, root.Minimum)
+    Assert.AreEqual(Some number, root.Maximum)
 
 
 [<Test>]
-let ``Simple maximum`` () = 
+let ``Simple maximum`` () =
     printfn "Running Simple max"
     let merger = new TypeMerger()
     let root = merger.ValueNew()
@@ -41,16 +40,4 @@ let ``Simple maximum`` () =
 
     let merged = merger.Value (EquateMode.Maximum) root.Type number
     Assert.AreEqual(number, merged, "Incorrect result of merging")
-    Assert.AreEqual(Some number, root.Maximum)
-
-(*
-    _ENV :> { print : (any)->() }
-
-    a : 't = _ENV.print
-    _ENV :> { print : 't }
-
-    Maximum of { print : (any)->() } & { print : 't }
-        yields { print : (any)->() }
-
-        't = (any)->()
-*)
+    Assert.AreEqual(Some number, root.Minimum)
