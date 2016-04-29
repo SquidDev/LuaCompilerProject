@@ -1,4 +1,4 @@
-﻿open LuaCP.Parser
+open LuaCP.Parser
 open System
 open LuaCP
 open LuaCP.IR.Components

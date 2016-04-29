@@ -1,4 +1,4 @@
-﻿namespace LuaCP.IR.Instructions.Union
+namespace LuaCP.IR.Instructions.Union
 
 open System
 open LuaCP.IR.Instructions

@@ -1,4 +1,4 @@
-﻿module LuaCP.Types.Inferer
+module LuaCP.Types.Inferer
 
 open System.Collections.Generic
 open LuaCP.IR

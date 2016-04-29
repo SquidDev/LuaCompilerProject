@@ -1,4 +1,4 @@
-﻿module LuaCP.Utils
+module LuaCP.Utils
 
 open System
 

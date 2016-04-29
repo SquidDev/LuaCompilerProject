@@ -1,4 +1,4 @@
-﻿module LuaCP.Types.TypeFactory
+module LuaCP.Types.TypeFactory
 
 open System
 open System.Collections.Generic

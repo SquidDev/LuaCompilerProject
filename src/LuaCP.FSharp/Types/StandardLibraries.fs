@@ -1,4 +1,4 @@
-﻿module LuaCP.Types.StandardLibraries
+module LuaCP.Types.StandardLibraries
 
 open LuaCP.IR
 open LuaCP.Types

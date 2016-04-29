@@ -1,4 +1,4 @@
-﻿module LuaCP.FSharp.AssemblyInfo
+module LuaCP.FSharp.AssemblyInfo
 
 open System.Reflection
 open System.Runtime.CompilerServices

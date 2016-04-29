@@ -1,4 +1,4 @@
-﻿using LuaCP.Collections;
+using LuaCP.Collections;
 using System.Collections.Generic;
 using System;
 using LuaCP.IR.Components;

@@ -1,4 +1,4 @@
-﻿using LuaCP.IR.Instructions;
+using LuaCP.IR.Instructions;
 using System.Linq;
 using LuaCP.IR.User;
 using LuaCP.IR;

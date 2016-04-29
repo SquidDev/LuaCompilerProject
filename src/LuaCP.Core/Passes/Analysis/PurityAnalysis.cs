@@ -1,4 +1,4 @@
-﻿using LuaCP.IR.Instructions;
+using LuaCP.IR.Instructions;
 
 namespace LuaCP.Passes.Analysis
 {

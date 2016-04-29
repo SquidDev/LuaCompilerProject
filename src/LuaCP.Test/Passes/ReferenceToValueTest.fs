@@ -1,4 +1,4 @@
-﻿module LuaCP.Passes.ReferenceToValueTest
+module LuaCP.Passes.ReferenceToValueTest
 
 open NUnit.Framework
 open LuaCP.IR.Components

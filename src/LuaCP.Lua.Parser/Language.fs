@@ -1,4 +1,4 @@
-﻿namespace LuaCP.Parser
+namespace LuaCP.Parser
 
 open System
 open LuaCP

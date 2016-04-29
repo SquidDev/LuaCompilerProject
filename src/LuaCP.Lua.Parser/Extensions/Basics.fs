@@ -1,4 +1,4 @@
-﻿namespace LuaCP.Parser.Extensions
+namespace LuaCP.Parser.Extensions
 
 open System
 open FParsec

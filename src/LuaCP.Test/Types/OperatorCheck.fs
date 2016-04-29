@@ -1,4 +1,4 @@
-﻿module LuaCP.Types.OperatorCheck
+module LuaCP.Types.OperatorCheck
 
 open System
 open NUnit.Framework

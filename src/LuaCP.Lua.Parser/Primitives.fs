@@ -1,4 +1,4 @@
-﻿module LuaCP.Parser.Primitives
+module LuaCP.Parser.Primitives
 
 open System
 open FParsec

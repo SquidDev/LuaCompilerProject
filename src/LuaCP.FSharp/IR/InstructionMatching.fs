@@ -1,4 +1,4 @@
-﻿module LuaCP.IR.Instructions.Matching
+module LuaCP.IR.Instructions.Matching
 
 let inline (|BinaryOp|_|) (op : Instruction) = 
     if op.Opcode.IsBinaryOperator() then Some(op :?> BinaryOp)

@@ -1,4 +1,4 @@
-﻿module LuaCP.Parser.Parsers
+module LuaCP.Parser.Parsers
 
 open FParsec
 open LuaCP.Parser.Extensions

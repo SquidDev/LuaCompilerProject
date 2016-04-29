@@ -1,4 +1,4 @@
-﻿module LuaCP.Types.ConstraintGenerator
+module LuaCP.Types.ConstraintGenerator
 
 open System
 open System.Collections.Generic

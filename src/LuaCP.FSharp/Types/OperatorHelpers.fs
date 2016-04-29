@@ -1,4 +1,4 @@
-﻿module LuaCP.Types.OperatorHelpers
+module LuaCP.Types.OperatorHelpers
 
 open System
 open LuaCP.Types

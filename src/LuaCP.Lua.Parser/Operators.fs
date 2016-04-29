@@ -1,4 +1,4 @@
-﻿module LuaCP.Parser.Operators
+module LuaCP.Parser.Operators
 
 open LuaCP.IR.Instructions
 open LuaCP.Parser

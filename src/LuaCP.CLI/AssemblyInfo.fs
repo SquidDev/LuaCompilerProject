@@ -1,4 +1,4 @@
-﻿module LuaCP.REPL.AssemblyInfo
+module LuaCP.REPL.AssemblyInfo
 
 open System.Reflection
 open System.Runtime.CompilerServices

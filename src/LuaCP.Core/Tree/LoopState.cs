@@ -1,4 +1,4 @@
-﻿namespace LuaCP.Tree
+namespace LuaCP.Tree
 {
 	/// <summary>
 	/// The state of the current loop.

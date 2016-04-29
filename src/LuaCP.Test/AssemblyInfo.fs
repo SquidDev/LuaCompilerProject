@@ -1,4 +1,4 @@
-﻿module LuaCP.Test.AssemblyInfo
+module LuaCP.Test.AssemblyInfo
 
 open System.Reflection
 open System.Runtime.CompilerServices

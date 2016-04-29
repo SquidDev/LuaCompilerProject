@@ -1,4 +1,4 @@
-﻿namespace LuaCP
+namespace LuaCP
 
 open System
 open NUnit.Framework

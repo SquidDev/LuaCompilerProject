@@ -1,4 +1,4 @@
-﻿namespace LuaCP.Collections
+namespace LuaCP.Collections
 
 open System
 

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using LuaCP.IR.Instructions;
 using LuaCP.IR.Components;
 using LuaCP.Reporting;

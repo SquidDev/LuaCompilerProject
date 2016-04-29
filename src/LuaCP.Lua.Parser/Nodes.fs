@@ -1,4 +1,4 @@
-﻿module LuaCP.Parser.Nodes
+module LuaCP.Parser.Nodes
 
 open LuaCP.Tree
 open LuaCP.Tree.Expression

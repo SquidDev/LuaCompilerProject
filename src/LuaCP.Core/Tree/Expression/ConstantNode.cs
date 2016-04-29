@@ -1,4 +1,4 @@
-﻿using LuaCP.IR;
+using LuaCP.IR;
 
 namespace LuaCP.Tree.Expression
 {

@@ -1,4 +1,4 @@
-﻿module LuaCP.Parser.AssemblyInfo
+module LuaCP.Parser.AssemblyInfo
 
 open System.Reflection
 open System.Runtime.CompilerServices

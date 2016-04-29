@@ -1,4 +1,4 @@
-﻿open System
+open System
 open System.Reflection
 open NUnitLite
 open NUnit.Common

@@ -1,4 +1,4 @@
-﻿module LuaCP.Types.TypeCheckerTest
+module LuaCP.Types.TypeCheckerTest
 
 open NUnit.Framework
 open System

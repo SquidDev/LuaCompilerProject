@@ -1,4 +1,4 @@
-﻿using LuaCP.IR;
+using LuaCP.IR;
 using LuaCP.Reporting;
 
 namespace LuaCP.Tree

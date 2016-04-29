@@ -1,4 +1,4 @@
-﻿namespace LuaCP.Types
+namespace LuaCP.Types
 
 open System
 open System.Collections.Generic
