@@ -142,9 +142,9 @@ type TypeScope() =
             values.Add(right, cons)
 
     member this.ValueSubtype (value : IValue) (target : ValueType) =
-        equator.Value BoundMode.Maximum (this.Get value) target |> ignore
+        equator.MergeValues (this.Get value) target
     member this.ValueSupertype (ty : ValueType) (target : IValue) =
-        equator.Value BoundMode.Minimum ty (this.Get target) |> ignore
+        equator.MergeValues ty (this.Get target)
     member this.TupleSubtype (value : IValue) (target : TupleType) =
         equator.Tuple BoundMode.Maximum (this.TupleGet value) target |> ignore
 
