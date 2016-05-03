@@ -46,6 +46,8 @@ let InferType (scope : TypeScope) (insn : Instruction) =
     | Call insn -> scope.ValueSubtype insn.Method (Function(scope.TupleGet insn.Arguments, scope.TupleGet insn))
     | TupleNew insn when insn.Remaining.IsNil() -> 
         scope.EquateTupleWith insn (Single(Seq.map scope.Get insn.Values |> Seq.toList, None))
+    | TupleNew insn when insn.Values.Count = 0 -> 
+        scope.EquateTupleWith insn (scope.TupleGet insn.Remaining)
     | ReferenceGet insn -> scope.EquateValues insn.Reference insn
     | ReferenceSet insn -> scope.EquateValues insn.Value insn.Reference
     | ReferenceNew insn -> scope.EquateValues insn.Value insn

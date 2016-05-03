@@ -112,6 +112,7 @@ module TypeBounds =
 
 [<StructuredFormatDisplay("{AsString}")>]
 type TypeConstraint<'t>(ty : 't, bound : BoundMode -> 't -> 't -> 't, merge : 't -> 't -> unit) = 
+    let mutable ty = ty
     let mutable minimum : 't option = None
     let mutable maximum : 't option = None
     let subtypes = new HashSet<'t>()
@@ -122,29 +123,44 @@ type TypeConstraint<'t>(ty : 't, bound : BoundMode -> 't -> 't -> 't, merge : 't
     member this.Minimum = minimum
     member this.Maximum = maximum
     
-    member this.AddSubtype ty = 
-        if subtypes.Add ty then 
+    member this.AddSubtype sub = 
+        if subtypes.Add sub then 
             let min = 
                 match minimum with
-                | None -> ty
+                | None -> sub
                 | Some min -> 
-                    printfn "Maximum of %A and %A" ty min
-                    bound (BoundMode.Maximum) ty min
+                    printfn "Maximum of %A and %A" sub min
+                    bound (BoundMode.Maximum) sub min
             minimum <- Some min
             merge ty min
+            match maximum with
+            | Some max -> merge max min
+            | None -> ()
         minimum.Value
     
-    member this.AddSupertype ty = 
-        if supertypes.Add ty then 
+    member this.AddSupertype sup = 
+        if supertypes.Add sup then 
             let max = 
                 match minimum with
-                | None -> ty
+                | None -> sup
                 | Some max -> 
-                    printfn "Minimum of %A and %A" ty min
-                    bound (BoundMode.Minimum) ty max
+                    printfn "Minimum of %A and %A" sup min
+                    bound (BoundMode.Minimum) sup max
             maximum <- Some max
             merge max ty
+            match minimum  with
+            | Some min -> merge max min
+            | None -> ()
         maximum.Value
+    
+    member this.Equate nTy = 
+        match maximum with
+        | None -> ()
+        | Some max -> merge max nTy
+        match minimum with
+        | None -> ()
+        | Some min -> merge nTy min
+        ty <- nTy
     
     override this.ToString() = 
         let writer = new StringBuilder()
@@ -184,7 +200,7 @@ and TypeMerger() =
                 values.[currentRef].AddSubtype target |> ignore
                 values.[targetRef].AddSupertype current |> ignore
             | Reference(IdentRef(Unbound) as current), target -> values.[current].AddSubtype target |> ignore
-            | current, Reference(IdentRef(Unbound) as target) -> values.[target].AddSubtype current |> ignore
+            | current, Reference(IdentRef(Unbound) as target) -> values.[target].AddSupertype current |> ignore
             | Reference(_), _ | _, Reference(_) -> 
                 raise (Exception(sprintf "Unexpected state merging %A :> %A" current target))
             | (Nil | Value | Dynamic | Primitive _ | Literal _), (Nil | Value | Dynamic | Primitive _ | Literal _) -> 
@@ -195,9 +211,12 @@ and TypeMerger() =
                     match List.tryFind (fun x -> x.Key = targetField.Key) currentFields with
                     | Some currentField -> mergeValues currentField.Value targetField.Value
                     | None -> ()
+            | Function(currentA, currentR), Function(targetA, targetR) ->
+                mergeTuples targetA currentA
+                mergeTuples currentR targetR
             | _, _ -> printfn "Skipping %A :> %A" current target // TODO: Implement other types
     
-    let rec mergeTuples (current : TupleType) (target : TupleType) = 
+    and mergeTuples (current : TupleType) (target : TupleType) = 
         let current = current.Root
         let target = target.Root
         if current <> target then 
@@ -206,7 +225,7 @@ and TypeMerger() =
                 tuples.[currentRef].AddSubtype target |> ignore
                 tuples.[targetRef].AddSupertype current |> ignore
             | TReference(IdentRef(Unbound) as current), target -> tuples.[current].AddSubtype target |> ignore
-            | current, TReference(IdentRef(Unbound) as target) -> tuples.[target].AddSubtype current |> ignore
+            | current, TReference(IdentRef(Unbound) as target) -> tuples.[target].AddSupertype current |> ignore
             | TReference(_), _ | _, TReference(_) -> 
                 raise (Exception(sprintf "Unexpected state merging %A :> %A" current target))
             | Single(_, _), Single(_, _) -> printfn "Skipping %A :> %A" current target // TODO: Implement normal merging
@@ -229,3 +248,35 @@ and TypeMerger() =
     member this.Value = TypeBounds.Value
     member this.MergeValues = mergeValues
     member this.Tuple = TypeBounds.Tuple
+    member this.MergeTuples = mergeTuples
+    member this.Bake() = 
+        let rec applyV existing (cons : TypeConstraint<_>) = 
+            match cons.Type, cons.Maximum with
+            | Reference(IdentRef(Unbound) as tRef), Some ty -> 
+                match ty.Root with
+                | Reference(IdentRef(Unbound) as oRef) when oRef = tRef -> existing
+                | _ ->
+                    printfn "Linking %A <- %A" (Reference tRef) ty
+                    tRef.Value <- Link ty
+                    cons.Equate ty
+                    true
+            | _ -> existing
+        let rec applyT existing (cons : TypeConstraint<_>) = 
+            match cons.Type, cons.Maximum with
+            | TReference(IdentRef(Unbound) as tRef), Some ty -> 
+                match ty.Root with
+                | TReference(IdentRef(Unbound) as oRef) when oRef = tRef -> existing
+                | _ ->
+                    printfn "Linking %A <- %A" (TReference tRef) ty
+                    tRef.Value <- Link ty
+                    cons.Equate ty
+                    true
+            | _ -> existing
+
+        let rec applyRec() = 
+            let values = Seq.fold applyV false values.Values
+            let tuples = Seq.fold applyT false tuples.Values
+            if values || tuples then applyRec()
+            else ()
+        
+        applyRec()

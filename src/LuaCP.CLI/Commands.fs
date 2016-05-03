@@ -19,8 +19,8 @@ let Build(tree : INode) =
     builder.Accept(tree) |> ignore
     let types = builder.EntryPoint.Scopes.Get<TypeScope>()
     let variables = builder.EntryPoint.Scopes.Get<IVariableScope>()
-    // types.EquateValueWith variables.Globals StandardLibraries.Base
-    types.ValueSubtype variables.Globals StandardLibraries.Base
+    types.EquateValueWith variables.Globals StandardLibraries.Base
+    // types.ValueSubtype variables.Globals StandardLibraries.Base
     for func in modu.Functions do
         ConstraintGenerator.InferTypes types func
     // try
@@ -37,6 +37,7 @@ let RunCommand (command : string) (modu : Module) (builder : FunctionBuilder) =
         Console.WriteLine("!lasm:   Dump LASM code of the module")
         Console.WriteLine("!lua:    Dump Lua code of the module")
         Console.WriteLine("!types:  Dump the types and constraints of all values")
+        Console.WriteLine("!bake:   Make as many types as possible concrete")
         Console.WriteLine("!branch: Dump a simplified branching model of the code")
     | "dump" -> (new Exporter(Console.Out)).ModuleLong(modu)
     | "graph" -> DotExporter.Write(modu)
@@ -59,6 +60,12 @@ let RunCommand (command : string) (modu : Module) (builder : FunctionBuilder) =
         Console.WriteLine(builder)
     | "types" -> 
         let scope = builder.EntryPoint.Scopes.Get<TypeScope>()
+        for func in modu.Functions do
+            let numberer = new NodeNumberer(builder.Function)
+            scope.DumpFunction numberer
+    | "bake" -> 
+        let scope = builder.EntryPoint.Scopes.Get<TypeScope>()
+        scope.Bake()
         for func in modu.Functions do
             let numberer = new NodeNumberer(builder.Function)
             scope.DumpFunction numberer
