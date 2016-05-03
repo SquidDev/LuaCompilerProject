@@ -50,7 +50,7 @@ let InferType (scope : TypeScope) (insn : Instruction) =
         scope.EquateTupleWith insn (scope.TupleGet insn.Remaining)
     | ReferenceGet insn -> scope.EquateValues insn.Reference insn
     | ReferenceSet insn -> scope.EquateValues insn.Value insn.Reference
-    | ReferenceNew insn -> scope.EquateValues insn.Value insn
+    | ReferenceNew insn -> scope.ValueSupertype (scope.Get insn.Value) insn
     | ClosureNew insn -> 
         Seq.iteri (fun i (x : IValue) -> scope.EquateValues x (insn.Function.OpenUpvalues.[i])) insn.OpenUpvalues
         Seq.iteri (fun i (x : IValue) -> scope.ValueSubtype x (scope.Get(insn.Function.ClosedUpvalues.[i]))) 

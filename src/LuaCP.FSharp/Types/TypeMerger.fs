@@ -210,7 +210,7 @@ and TypeMerger() =
                 for targetField in targetFields do
                     match List.tryFind (fun x -> x.Key = targetField.Key) currentFields with
                     | Some currentField -> mergeValues currentField.Value targetField.Value
-                    | None -> ()
+                    | None -> printfn "Missing field %A in %A" targetField.Key current
             | Function(currentA, currentR), Function(targetA, targetR) ->
                 mergeTuples targetA currentA
                 mergeTuples currentR targetR
@@ -250,27 +250,43 @@ and TypeMerger() =
     member this.Tuple = TypeBounds.Tuple
     member this.MergeTuples = mergeTuples
     member this.Bake() = 
-        let rec applyV existing (cons : TypeConstraint<_>) = 
-            match cons.Type, cons.Maximum with
-            | Reference(IdentRef(Unbound) as tRef), Some ty -> 
-                match ty.Root with
+        let bindV (cons : TypeConstraint<_>) tRef (ty : ValueType) existing = 
+            match ty.Root with
                 | Reference(IdentRef(Unbound) as oRef) when oRef = tRef -> existing
-                | _ ->
+                | ty ->
                     printfn "Linking %A <- %A" (Reference tRef) ty
                     tRef.Value <- Link ty
                     cons.Equate ty
                     true
+        let rec applyV existing (cons : TypeConstraint<_>) = 
+            match cons.Type, cons.Maximum, cons.Minimum with
+            | Reference(IdentRef(Unbound) as tRef), Some ty, _ -> 
+                // If we have a maximum then use that.
+                // TODO: Simply check if this is compatible with minimum 
+                // and use minimum instead
+                bindV cons tRef ty existing
+            | Reference(IdentRef(Unbound) as tRef), None, Some ty -> 
+                // If we have no maximum, then we should use this
+                bindV cons tRef ty existing
             | _ -> existing
+        let bindT (cons : TypeConstraint<_>) tRef (ty : TupleType) existing = 
+            match ty.Root with
+            | TReference(IdentRef(Unbound) as oRef) when oRef = tRef -> existing
+            | ty ->
+                printfn "Linking %A <- %A" (TReference tRef) ty
+                tRef.Value <- Link ty
+                cons.Equate ty
+                true
         let rec applyT existing (cons : TypeConstraint<_>) = 
-            match cons.Type, cons.Maximum with
-            | TReference(IdentRef(Unbound) as tRef), Some ty -> 
-                match ty.Root with
-                | TReference(IdentRef(Unbound) as oRef) when oRef = tRef -> existing
-                | _ ->
-                    printfn "Linking %A <- %A" (TReference tRef) ty
-                    tRef.Value <- Link ty
-                    cons.Equate ty
-                    true
+            match cons.Type, cons.Maximum, cons.Minimum with
+            | TReference(IdentRef(Unbound) as tRef), Some ty, _ -> 
+                // If we have a maximum then use that.
+                // TODO: Simply check if this is compatible with minimum 
+                // and use minimum instead
+                bindT cons tRef ty existing
+            | TReference(IdentRef(Unbound) as tRef), None, Some ty -> 
+                // If we have no maximum, then we should use this
+                bindT cons tRef ty existing
             | _ -> existing
 
         let rec applyRec() = 

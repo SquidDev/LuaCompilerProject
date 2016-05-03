@@ -61,13 +61,13 @@ let RunCommand (command : string) (modu : Module) (builder : FunctionBuilder) =
     | "types" -> 
         let scope = builder.EntryPoint.Scopes.Get<TypeScope>()
         for func in modu.Functions do
-            let numberer = new NodeNumberer(builder.Function)
+            let numberer = new NodeNumberer(func)
             scope.DumpFunction numberer
     | "bake" -> 
         let scope = builder.EntryPoint.Scopes.Get<TypeScope>()
         scope.Bake()
         for func in modu.Functions do
-            let numberer = new NodeNumberer(builder.Function)
+            let numberer = new NodeNumberer(func)
             scope.DumpFunction numberer
     | "branch" -> 
         let group = (new Analysis.BranchAnalysis(modu.EntryPoint)).EntryPoint
