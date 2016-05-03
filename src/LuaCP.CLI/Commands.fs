@@ -7,11 +7,13 @@ open LuaCP
 open LuaCP.CodeGen
 open LuaCP.Debug
 open LuaCP.IR.Components
+open LuaCP.IR.Instructions
 open LuaCP.Lua.Tree
 open LuaCP.Passes
 open LuaCP.Passes.Analysis
 open LuaCP.Tree
 open LuaCP.Types
+open LuaCP.Types.Extensions
 
 let Build(tree : INode) = 
     let modu = new Module()
@@ -20,13 +22,26 @@ let Build(tree : INode) =
     let types = builder.EntryPoint.Scopes.Get<TypeScope>()
     let variables = builder.EntryPoint.Scopes.Get<IVariableScope>()
     types.EquateValueWith variables.Globals StandardLibraries.Base
-    // types.ValueSubtype variables.Globals StandardLibraries.Base
     for func in modu.Functions do
         ConstraintGenerator.InferTypes types func
     // try
     // PassManager.Run(modu, PassExtensions.Default, true)
     // with :? VerificationException as e -> printfn "Cannot verify: %A" e
     modu, builder
+
+let Write (modu : Module) (builder : FunctionBuilder) stream = 
+    let types = builder.EntryPoint.Scopes.Get<TypeScope>()
+    types.Bake()
+    
+    let decorator (insn : Instruction) = 
+        match insn with
+        | :? ValueInstruction as value when value.Kind = IR.ValueKind.Tuple -> (types.TupleGet value).Root.ToString()
+        | :? ValueInstruction as value -> (types.Get value).Root.ToString()
+        | _ -> null
+    
+    let writer = new IndentedTextWriter(stream)
+    let gen = new Lua.FunctionCodeGen(modu.EntryPoint, writer, new Func<_, _>(decorator))
+    gen.Write()
 
 let RunCommand (command : string) (modu : Module) (builder : FunctionBuilder) = 
     match command with
@@ -41,7 +56,7 @@ let RunCommand (command : string) (modu : Module) (builder : FunctionBuilder) =
         Console.WriteLine("!branch: Dump a simplified branching model of the code")
     | "dump" -> (new Exporter(Console.Out)).ModuleLong(modu)
     | "graph" -> DotExporter.Write(modu)
-    | "lua" -> (new Lua.FunctionCodeGen(modu.EntryPoint, new IndentedTextWriter(Console.Out))).Write()
+    | "lua" -> Write modu builder Console.Out
     | "exec" -> 
         let startInfo = new ProcessStartInfo()
         startInfo.FileName <- "lua5.2"

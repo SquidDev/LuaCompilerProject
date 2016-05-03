@@ -1,6 +1,7 @@
 open LuaCP.Parser
 open System
 open LuaCP
+open LuaCP.IR.Instructions
 open LuaCP.IR.Components
 open LuaCP.Passes
 open LuaCP.Lua.Tree
@@ -33,10 +34,11 @@ let main argv =
     | [| file |] -> 
         match ReadFile file language with
         | None -> 1
-        | Some(modu, _) -> 
+        | Some(modu, builder) -> 
             let path = Path.Combine(Path.GetDirectoryName file, Path.GetFileNameWithoutExtension file) + ".out.lua"
             use writer = new IO.StreamWriter(path)
-            (new Lua.FunctionCodeGen(modu.EntryPoint, new IndentedTextWriter(writer))).Write()
+            
+            CLI.Commands.Write modu builder writer
             0
     | [| file; command |] -> 
         match ReadFile file language with

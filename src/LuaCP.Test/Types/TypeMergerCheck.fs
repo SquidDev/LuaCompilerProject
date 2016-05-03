@@ -56,3 +56,12 @@ let ``Simple maximum`` () =
     Assert.AreEqual(number, merged, "Incorrect result of merging")
     Assert.AreEqual(Some number, root.Minimum)
 *)
+
+(* Basic lua test cases
+    return (...)=>print(...)
+
+    local x : string = 2
+
+    local x = { hello = 2 }
+    return x.hello
+*)

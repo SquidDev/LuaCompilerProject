@@ -151,7 +151,7 @@ namespace LuaCP.CodeGen.Lua
 						}
 
 						writer.Write("{0} = ", GetName(insn));
-						new FunctionCodeGen(closNew.Function, writer, lookup, funcAllocator).Write();
+						new FunctionCodeGen(closNew.Function, writer, lookup, funcAllocator, decorator).Write();
 						break;
 					}
 				case Opcode.ReferenceNew:

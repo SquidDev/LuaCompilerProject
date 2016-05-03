@@ -4,6 +4,7 @@ using LuaCP.IR;
 using LuaCP.IR.Components;
 using LuaCP.Passes.Analysis;
 using LuaCP.IR.Instructions;
+using System;
 
 namespace LuaCP.CodeGen.Lua
 {
@@ -60,13 +61,16 @@ namespace LuaCP.CodeGen.Lua
 
 		private readonly HashSet<ValueInstruction> simpleComparisons = new HashSet<ValueInstruction>();
 
-		internal FunctionCodeGen(Function function, IndentedTextWriter writer, IReadOnlyDictionary<Upvalue, string> upvalues, NameAllocator<Function> funcAllocator, bool root = false)
+		private readonly Func<Instruction, string> decorator;
+
+		private FunctionCodeGen(Function function, IndentedTextWriter writer, IReadOnlyDictionary<Upvalue, string> upvalues, NameAllocator<Function> funcAllocator, Func<Instruction, string> decorator = null, bool root = false)
 		{
 			this.upvalues = upvalues;
 			Function = function;
 			this.funcAllocator = funcAllocator;
 			this.writer = writer;
 			this.root = root;
+			this.decorator = decorator;
 			rootGroup = new BranchAnalysis(function).EntryPoint;
 
 			string prefix = funcAllocator[function];
@@ -94,8 +98,8 @@ namespace LuaCP.CodeGen.Lua
 			varPrefix = prefix + "var_";
 		}
 
-		public FunctionCodeGen(Function function, IndentedTextWriter writer)
-			: this(function, writer, DefaultUpvalues(function), new NameAllocator<Function>("f{0}_"), true)
+		public FunctionCodeGen(Function function, IndentedTextWriter writer, Func<Instruction, string> decorator = null)
+			: this(function, writer, DefaultUpvalues(function), new NameAllocator<Function>("f{0}_"), decorator, true)
 		{
 		}
 

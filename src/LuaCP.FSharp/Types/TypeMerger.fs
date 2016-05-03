@@ -25,7 +25,6 @@ module TypeBounds =
         let b = b.Root
         if a = b then a
         else 
-            printfn "Finding %A of %A and %A" mode a b
             match a, b with
             | Literal lit, Primitive kind | Primitive kind, Literal lit -> 
                 match mode with
@@ -58,10 +57,14 @@ module TypeBounds =
                 Function(Tuple mode aArgs bArgs, Tuple (opposite mode) aArgs bArgs)
             | Table(aFields, aOps), Table(bFields, bOps) -> 
                 // TODO: Actually do modes correctly
+                let flag a b = match mode with
+                               | BoundMode.Equal -> a || b
+                               | BoundMode.Minimum -> a && b
+                               | BoundMode.Maximum -> a || b
                 let convertPair a b = 
                     { Key = Value BoundMode.Equal a.Key b.Key
                       Value = Value mode a.Value b.Value
-                      ReadOnly = a.ReadOnly || b.ReadOnly }
+                      ReadOnly = flag a.ReadOnly b.ReadOnly }
                 
                 let convert (_, field) = Seq.skip 1 field |> Seq.fold convertPair (Seq.head field)
                 
@@ -76,7 +79,7 @@ module TypeBounds =
             | Reference(_), _ | _, Reference(_) -> 
                 raise (Exception(sprintf "Unexpected state intersecting %A and %A" a b))
             | _, _ -> 
-                printfn "TODO: %A and %A" a b
+                printfn "TODO: %A of %A and %A" mode a b
                 a
     
     and Tuple (mode : BoundMode) (a : TupleType) (b : TupleType) = 
@@ -84,7 +87,6 @@ module TypeBounds =
         let b = b.Root
         if a = b then a
         else 
-            printfn "Finding %A of %A and %A" mode a b
             match a, b with
             | TReference(IdentRef(Unbound) as tRef), ty | ty, TReference(IdentRef(Unbound) as tRef) -> 
                 match mode with
@@ -92,7 +94,7 @@ module TypeBounds =
                     tRef.Value <- Link ty
                     ty
                 | _ -> 
-                    printfn "Cannot merge %A and %A" a b
+                    printfn "TODO: %A of %A and %A" mode a b
                     ty
             | Single(aArgs, aRem), Single(bArgs, bRem) -> 
                 let args = List.map2 (Value mode) aArgs bArgs
@@ -129,7 +131,6 @@ type TypeConstraint<'t>(ty : 't, bound : BoundMode -> 't -> 't -> 't, merge : 't
                 match minimum with
                 | None -> sub
                 | Some min -> 
-                    printfn "Maximum of %A and %A" sub min
                     bound (BoundMode.Maximum) sub min
             minimum <- Some min
             merge ty min
@@ -141,10 +142,9 @@ type TypeConstraint<'t>(ty : 't, bound : BoundMode -> 't -> 't -> 't, merge : 't
     member this.AddSupertype sup = 
         if supertypes.Add sup then 
             let max = 
-                match minimum with
+                match maximum with
                 | None -> sup
                 | Some max -> 
-                    printfn "Minimum of %A and %A" sup min
                     bound (BoundMode.Minimum) sup max
             maximum <- Some max
             merge max ty
@@ -214,7 +214,7 @@ and TypeMerger() =
             | Function(currentA, currentR), Function(targetA, targetR) ->
                 mergeTuples targetA currentA
                 mergeTuples currentR targetR
-            | _, _ -> printfn "Skipping %A :> %A" current target // TODO: Implement other types
+            | _, _ -> printfn "TODO: %A :> %A" current target // TODO: Implement other types
     
     and mergeTuples (current : TupleType) (target : TupleType) = 
         let current = current.Root
@@ -228,7 +228,7 @@ and TypeMerger() =
             | current, TReference(IdentRef(Unbound) as target) -> tuples.[target].AddSupertype current |> ignore
             | TReference(_), _ | _, TReference(_) -> 
                 raise (Exception(sprintf "Unexpected state merging %A :> %A" current target))
-            | Single(_, _), Single(_, _) -> printfn "Skipping %A :> %A" current target // TODO: Implement normal merging
+            | Single(_, _), Single(_, _) -> printfn "TODO: %A :> %A" current target // TODO: Implement normal merging
     
     member this.ValueGet ref = values.[ref]
     member this.TupleGet ref = tuples.[ref]
@@ -254,7 +254,6 @@ and TypeMerger() =
             match ty.Root with
                 | Reference(IdentRef(Unbound) as oRef) when oRef = tRef -> existing
                 | ty ->
-                    printfn "Linking %A <- %A" (Reference tRef) ty
                     tRef.Value <- Link ty
                     cons.Equate ty
                     true
@@ -273,7 +272,6 @@ and TypeMerger() =
             match ty.Root with
             | TReference(IdentRef(Unbound) as oRef) when oRef = tRef -> existing
             | ty ->
-                printfn "Linking %A <- %A" (TReference tRef) ty
                 tRef.Value <- Link ty
                 cons.Equate ty
                 true

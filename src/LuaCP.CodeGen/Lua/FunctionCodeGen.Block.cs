@@ -101,6 +101,9 @@ namespace LuaCP.CodeGen.Lua
 			Instruction insn = block.First;
 			while (insn != null)
 			{
+				string message = Decorate(insn);
+				if (message != null) writer.WriteLine(message);
+
 				var value = insn as ValueInstruction;
 				if (value != null && value.Kind != ValueKind.Tuple)
 				{
@@ -182,6 +185,13 @@ namespace LuaCP.CodeGen.Lua
 					if (name != sourceName) writer.WriteLine("{0} = {1}", name, sourceName);
 				}
 			}
+		}
+
+		public string Decorate(Instruction insn)
+		{
+			if (decorator == null) return null;
+			string message = decorator(insn);
+			return String.IsNullOrEmpty(message) ? null : "-- " + message;
 		}
 	}
 }

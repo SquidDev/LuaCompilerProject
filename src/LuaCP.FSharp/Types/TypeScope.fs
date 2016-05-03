@@ -40,7 +40,7 @@ type TypeScope() =
     member this.Checker = checker
     
     member this.Get(value : IValue) = 
-        if value.Kind = ValueKind.Tuple then raise (ArgumentException "Expected value, got reference")
+        if value.Kind = ValueKind.Tuple then raise (ArgumentException "Expected value, got tuple")
         if value :? Constant then ValueType.Literal (value :?> Constant).Literal
         else 
             let exists, ty = values.TryGetValue(value)
@@ -65,7 +65,7 @@ type TypeScope() =
                 ty
     
     member this.TryGet(value : IValue) = 
-        if value.Kind = ValueKind.Tuple then raise (ArgumentException "Expected value, got reference")
+        if value.Kind = ValueKind.Tuple then raise (ArgumentException "Expected value, got tuple")
         if value :? Constant then Some(ValueType.Literal (value :?> Constant).Literal)
         else 
             let exists, ty = values.TryGetValue(value)
@@ -146,7 +146,12 @@ type TypeScope() =
     member this.TupleSubtype (value : IValue) (target : TupleType) =  equator.MergeTuples (this.TupleGet value) target
     member this.TupleSupertype (value : TupleType) (target : IValue) =  equator.MergeTuples value (this.TupleGet target)
 
-    member this.Bake = equator.Bake
+    member this.Bake() = 
+        equator.Bake()
+        for key in (System.Linq.Enumerable.ToList values.Keys) do
+            values.[key] <- values.[key].Flattened
+        for key in (System.Linq.Enumerable.ToList tuples.Keys) do
+            tuples.[key] <- tuples.[key].Flattened
     
     member this.DumpFunction(num : NodeNumberer) = 
         printfn "# Function: %A" num.Function
