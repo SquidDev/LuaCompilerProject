@@ -57,10 +57,12 @@ module TypeBounds =
                 Function(Tuple mode aArgs bArgs, Tuple (opposite mode) aArgs bArgs)
             | Table(aFields, aOps), Table(bFields, bOps) -> 
                 // TODO: Actually do modes correctly
-                let flag a b = match mode with
-                               | BoundMode.Equal -> a || b
-                               | BoundMode.Minimum -> a && b
-                               | BoundMode.Maximum -> a || b
+                let flag a b = 
+                    match mode with
+                    | BoundMode.Equal -> a || b
+                    | BoundMode.Minimum -> a && b
+                    | BoundMode.Maximum -> a || b
+                
                 let convertPair a b = 
                     { Key = Value BoundMode.Equal a.Key b.Key
                       Value = Value mode a.Value b.Value
@@ -80,7 +82,10 @@ module TypeBounds =
                 raise (Exception(sprintf "Unexpected state intersecting %A and %A" a b))
             | _, _ -> 
                 printfn "TODO: %A of %A and %A" mode a b
-                a
+                match mode with
+                | BoundMode.Equal -> a
+                | BoundMode.Minimum -> Union [ a; b ]
+                | BoundMode.Maximum -> Intersection [ a; b ]
     
     and Tuple (mode : BoundMode) (a : TupleType) (b : TupleType) = 
         let a = a.Root
@@ -130,8 +135,7 @@ type TypeConstraint<'t>(ty : 't, bound : BoundMode -> 't -> 't -> 't, merge : 't
             let min = 
                 match minimum with
                 | None -> sub
-                | Some min -> 
-                    bound (BoundMode.Maximum) sub min
+                | Some min -> bound (BoundMode.Maximum) sub min
             minimum <- Some min
             merge ty min
             match maximum with
@@ -144,11 +148,10 @@ type TypeConstraint<'t>(ty : 't, bound : BoundMode -> 't -> 't -> 't, merge : 't
             let max = 
                 match maximum with
                 | None -> sup
-                | Some max -> 
-                    bound (BoundMode.Minimum) sup max
+                | Some max -> bound (BoundMode.Minimum) sup max
             maximum <- Some max
             merge max ty
-            match minimum  with
+            match minimum with
             | Some min -> merge max min
             | None -> ()
         maximum.Value
@@ -211,11 +214,10 @@ and TypeMerger() =
                     match List.tryFind (fun x -> x.Key = targetField.Key) currentFields with
                     | Some currentField -> mergeValues currentField.Value targetField.Value
                     | None -> printfn "Missing field %A in %A" targetField.Key current
-            | Function(currentA, currentR), Function(targetA, targetR) ->
+            | Function(currentA, currentR), Function(targetA, targetR) -> 
                 mergeTuples targetA currentA
                 mergeTuples currentR targetR
             | _, _ -> printfn "TODO: %A :> %A" current target // TODO: Implement other types
-    
     and mergeTuples (current : TupleType) (target : TupleType) = 
         let current = current.Root
         let target = target.Root
@@ -228,7 +230,31 @@ and TypeMerger() =
             | current, TReference(IdentRef(Unbound) as target) -> tuples.[target].AddSupertype current |> ignore
             | TReference(_), _ | _, TReference(_) -> 
                 raise (Exception(sprintf "Unexpected state merging %A :> %A" current target))
-            | Single(_, _), Single(_, _) -> printfn "TODO: %A :> %A" current target // TODO: Implement normal merging
+            | Single(current, currentVar), Single(target, targetVar) -> 
+                let extractCurrent (x : Option<ValueType>) = 
+                    if x.IsNone then Nil
+                    else Union [ x.Value; Nil ]
+                
+                let extractTarget (x : Option<ValueType>) = 
+                    if x.IsNone then Union [ Value; Nil ]
+                    else Union [ x.Value; Nil ]
+                
+                let rec check current target = 
+                    match current, target with
+                    | [], [] -> ()
+                    | cFirst :: cRem, tFirst :: tRem -> 
+                        mergeValues cFirst tFirst
+                        check cRem tRem
+                    | [], tRem -> 
+                        let c = extractCurrent currentVar
+                        List.iter (mergeValues c) tRem
+                        mergeValues c (extractTarget targetVar)
+                    | cRem, [] -> 
+                        let t = extractTarget targetVar
+                        List.iter (fun x -> mergeValues x t) cRem
+                        mergeValues (extractCurrent currentVar) t
+                
+                check current target
     
     member this.ValueGet ref = values.[ref]
     member this.TupleGet ref = tuples.[ref]
@@ -252,11 +278,12 @@ and TypeMerger() =
     member this.Bake() = 
         let bindV (cons : TypeConstraint<_>) tRef (ty : ValueType) existing = 
             match ty.Root with
-                | Reference(IdentRef(Unbound) as oRef) when oRef = tRef -> existing
-                | ty ->
-                    tRef.Value <- Link ty
-                    cons.Equate ty
-                    true
+            | Reference(IdentRef(Unbound) as oRef) when oRef = tRef -> existing
+            | ty -> 
+                tRef.Value <- Link ty
+                cons.Equate ty
+                true
+        
         let rec applyV existing (cons : TypeConstraint<_>) = 
             match cons.Type, cons.Maximum, cons.Minimum with
             | Reference(IdentRef(Unbound) as tRef), Some ty, _ -> 
@@ -268,13 +295,15 @@ and TypeMerger() =
                 // If we have no maximum, then we should use this
                 bindV cons tRef ty existing
             | _ -> existing
+        
         let bindT (cons : TypeConstraint<_>) tRef (ty : TupleType) existing = 
             match ty.Root with
             | TReference(IdentRef(Unbound) as oRef) when oRef = tRef -> existing
-            | ty ->
+            | ty -> 
                 tRef.Value <- Link ty
                 cons.Equate ty
                 true
+        
         let rec applyT existing (cons : TypeConstraint<_>) = 
             match cons.Type, cons.Maximum, cons.Minimum with
             | TReference(IdentRef(Unbound) as tRef), Some ty, _ -> 
@@ -286,7 +315,7 @@ and TypeMerger() =
                 // If we have no maximum, then we should use this
                 bindT cons tRef ty existing
             | _ -> existing
-
+        
         let rec applyRec() = 
             let values = Seq.fold applyV false values.Values
             let tuples = Seq.fold applyT false tuples.Values

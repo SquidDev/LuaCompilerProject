@@ -16,7 +16,6 @@ namespace LuaCP.Passes.Optimisation
 	/// and redirects that edge to the new block.
 	/// Constant folding does not occur here.
 	/// 
-	/// FIXME: Don't do this for loop branches, only for if 
 	/// </summary>
 	public static class JumpThreading
 	{
