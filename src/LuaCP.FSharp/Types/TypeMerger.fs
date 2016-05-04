@@ -56,7 +56,6 @@ module TypeBounds =
             | Function(aArgs, aRet), Function(bArgs, bRet) -> 
                 Function(Tuple mode aArgs bArgs, Tuple (opposite mode) aArgs bArgs)
             | Table(aFields, aOps), Table(bFields, bOps) -> 
-                // TODO: Actually do modes correctly
                 let flag a b = 
                     match mode with
                     | BoundMode.Equal -> a || b
@@ -64,7 +63,8 @@ module TypeBounds =
                     | BoundMode.Maximum -> a || b
                 
                 let convertPair a b = 
-                    { Key = Value BoundMode.Equal a.Key b.Key
+                    assert (a.Key = b.Key)
+                    { Key = a.Key
                       Value = Value mode a.Value b.Value
                       ReadOnly = flag a.ReadOnly b.ReadOnly }
                 
@@ -80,6 +80,40 @@ module TypeBounds =
                 Table(fields, ops)
             | Reference(_), _ | _, Reference(_) -> 
                 raise (Exception(sprintf "Unexpected state intersecting %A and %A" a b))
+            | Dynamic, other | other, Dynamic -> 
+                match mode with
+                | BoundMode.Equal -> 
+                    if a = b then a
+                    else raise (Exception(sprintf "Cannot merge %A and %A" a b))
+                | BoundMode.Minimum -> Dynamic
+                | BoundMode.Maximum -> other
+            | Intersection a, Intersection b -> 
+                match mode with
+                | BoundMode.Equal -> Intersection a // TODO: Check that they are the same
+                // This is wrong: we should be getting distinct ones and intersecting them.
+                // Minimum of (a & b) and a is a
+                | BoundMode.Minimum -> 
+                    Seq.append a b
+                    |> Seq.distinct
+                    |> Seq.toList
+                    |> Union
+                | BoundMode.Maximum -> 
+                    Seq.append a b
+                    |> Seq.distinct
+                    |> Seq.toList
+                    |> Intersection
+            | Intersection items, ty | ty, Intersection items -> 
+                match mode with
+                | BoundMode.Equal -> raise (Exception(sprintf "Cannot merge %A and %A" a b))
+                // See above
+                | BoundMode.Minimum -> 
+                    ty :: items
+                    |> List.distinct
+                    |> Union
+                | BoundMode.Maximum -> 
+                    ty :: items
+                    |> List.distinct
+                    |> Intersection
             | _, _ -> 
                 printfn "TODO: %A of %A and %A" mode a b
                 match mode with
@@ -189,92 +223,101 @@ type TypeConstraint<'t>(ty : 't, bound : BoundMode -> 't -> 't -> 't, merge : 't
 
 and RefLookup<'t> = Dictionary<IdentRef<VariableType<'t>>, TypeConstraint<'t>>
 
+type VisitedList<'t> = HashSet<'t * 't>
+
 and TypeMerger() = 
     let values = new RefLookup<ValueType>()
     let tuples = new RefLookup<TupleType>()
     let provider = new TypeProvider()
     
-    let rec mergeValues (current : ValueType) (target : ValueType) = 
-        let current = current.Root
-        let target = target.Root
-        if current <> target then 
-            match current, target with
-            | Reference(IdentRef(Unbound) as currentRef), Reference(IdentRef(Unbound) as targetRef) -> 
-                values.[currentRef].AddSubtype target |> ignore
-                values.[targetRef].AddSupertype current |> ignore
-            | Reference(IdentRef(Unbound) as current), target -> values.[current].AddSubtype target |> ignore
-            | current, Reference(IdentRef(Unbound) as target) -> values.[target].AddSupertype current |> ignore
-            | Reference(_), _ | _, Reference(_) -> 
-                raise (Exception(sprintf "Unexpected state merging %A :> %A" current target))
-            | (Nil | Value | Dynamic | Primitive _ | Literal _), (Nil | Value | Dynamic | Primitive _ | Literal _) -> 
-                if not (provider.IsSubtype current target) then 
-                    raise (Exception(sprintf "Cannot cast %A to %A" current target))
-            | Table(currentFields, currentOps), Table(targetFields, targetOps) -> 
-                for targetField in targetFields do
-                    match List.tryFind (fun x -> x.Key = targetField.Key) currentFields with
-                    | Some currentField -> mergeValues currentField.Value targetField.Value
-                    | None -> printfn "Missing field %A in %A" targetField.Key current
-            | Function(currentA, currentR), Function(targetA, targetR) -> 
-                mergeTuples targetA currentA
-                mergeTuples currentR targetR
-            | _, _ -> printfn "TODO: %A :> %A" current target // TODO: Implement other types
-    and mergeTuples (current : TupleType) (target : TupleType) = 
-        let current = current.Root
-        let target = target.Root
-        if current <> target then 
-            match current, target with
-            | TReference(IdentRef(Unbound) as currentRef), TReference(IdentRef(Unbound) as targetRef) -> 
-                tuples.[currentRef].AddSubtype target |> ignore
-                tuples.[targetRef].AddSupertype current |> ignore
-            | TReference(IdentRef(Unbound) as current), target -> tuples.[current].AddSubtype target |> ignore
-            | current, TReference(IdentRef(Unbound) as target) -> tuples.[target].AddSupertype current |> ignore
-            | TReference(_), _ | _, TReference(_) -> 
-                raise (Exception(sprintf "Unexpected state merging %A :> %A" current target))
-            | Single(current, currentVar), Single(target, targetVar) -> 
-                let extractCurrent (x : Option<ValueType>) = 
-                    if x.IsNone then Nil
-                    else Union [ x.Value; Nil ]
-                
-                let extractTarget (x : Option<ValueType>) = 
-                    if x.IsNone then Union [ Value; Nil ]
-                    else Union [ x.Value; Nil ]
-                
-                let rec check current target = 
-                    match current, target with
-                    | [], [] -> ()
-                    | cFirst :: cRem, tFirst :: tRem -> 
-                        mergeValues cFirst tFirst
-                        check cRem tRem
-                    | [], tRem -> 
-                        let c = extractCurrent currentVar
-                        List.iter (mergeValues c) tRem
-                        mergeValues c (extractTarget targetVar)
-                    | cRem, [] -> 
-                        let t = extractTarget targetVar
-                        List.iter (fun x -> mergeValues x t) cRem
-                        mergeValues (extractCurrent currentVar) t
-                
-                check current target
+    let rec mergeValues (vVisited : VisitedList<_>) (tVisited : VisitedList<_>) (current : ValueType) 
+            (target : ValueType) = 
+        if vVisited.Add(current, target) then 
+            let current = current.Root
+            let target = target.Root
+            if current <> target then 
+                match current, target with
+                | Reference(IdentRef(Unbound) as currentRef), Reference(IdentRef(Unbound) as targetRef) -> 
+                    values.[currentRef].AddSubtype target |> ignore
+                    values.[targetRef].AddSupertype current |> ignore
+                | Reference(IdentRef(Unbound) as current), target -> values.[current].AddSubtype target |> ignore
+                | current, Reference(IdentRef(Unbound) as target) -> values.[target].AddSupertype current |> ignore
+                | Reference(_), _ | _, Reference(_) -> 
+                    raise (Exception(sprintf "Unexpected state merging %A :> %A" current target))
+                | Union current, _ -> List.iter (fun v -> mergeValues vVisited tVisited v target) current
+                | _, Intersection target -> List.iter (fun v -> mergeValues vVisited tVisited current v) target
+                | (Nil | Value | Dynamic | Primitive _ | Literal _), (Nil | Value | Dynamic | Primitive _ | Literal _) -> 
+                    if not (provider.IsSubtype current target) then 
+                        raise (Exception(sprintf "Cannot cast %A to %A" current target))
+                | Table(currentFields, currentOps), Table(targetFields, targetOps) -> 
+                    for targetField in targetFields do
+                        match List.tryFind (fun x -> x.Key = targetField.Key) currentFields with
+                        | Some currentField -> mergeValues vVisited tVisited currentField.Value targetField.Value
+                        | None -> printfn "Missing field %A in %A" targetField.Key current
+                | Function(currentA, currentR), Function(targetA, targetR) -> 
+                    mergeTuples vVisited tVisited targetA currentA
+                    mergeTuples vVisited tVisited currentR targetR
+                | _, _ -> printfn "TODO: %A :> %A" current target // TODO: Implement other types
+    and mergeTuples (vVisited : VisitedList<_>) (tVisited : VisitedList<_>) (current : TupleType) (target : TupleType) = 
+        if tVisited.Add(current, target) then 
+            let current = current.Root
+            let target = target.Root
+            if current <> target then 
+                match current, target with
+                | TReference(IdentRef(Unbound) as currentRef), TReference(IdentRef(Unbound) as targetRef) -> 
+                    tuples.[currentRef].AddSubtype target |> ignore
+                    tuples.[targetRef].AddSupertype current |> ignore
+                | TReference(IdentRef(Unbound) as current), target -> tuples.[current].AddSubtype target |> ignore
+                | current, TReference(IdentRef(Unbound) as target) -> tuples.[target].AddSupertype current |> ignore
+                | TReference(_), _ | _, TReference(_) -> 
+                    raise (Exception(sprintf "Unexpected state merging %A :> %A" current target))
+                | Single(current, currentVar), Single(target, targetVar) -> 
+                    let extractCurrent (x : Option<ValueType>) = 
+                        if x.IsNone then Nil
+                        else Union [ x.Value; Nil ]
+                    
+                    let extractTarget (x : Option<ValueType>) = 
+                        if x.IsNone then Union [ Value; Nil ]
+                        else Union [ x.Value; Nil ]
+                    
+                    let rec check current target = 
+                        match current, target with
+                        | [], [] -> ()
+                        | cFirst :: cRem, tFirst :: tRem -> 
+                            mergeValues vVisited tVisited cFirst tFirst
+                            check cRem tRem
+                        | [], tRem -> 
+                            let c = extractCurrent currentVar
+                            List.iter (mergeValues vVisited tVisited c) tRem
+                            mergeValues vVisited tVisited c (extractTarget targetVar)
+                        | cRem, [] -> 
+                            let t = extractTarget targetVar
+                            List.iter (fun x -> mergeValues vVisited tVisited x t) cRem
+                            mergeValues vVisited tVisited (extractCurrent currentVar) t
+                    
+                    check current target
     
+    let mergeValuesImpl current target = mergeValues (new VisitedList<_>()) (new VisitedList<_>()) current target
+    let mergeTuplesImpl current target = mergeTuples (new VisitedList<_>()) (new VisitedList<_>()) current target
     member this.ValueGet ref = values.[ref]
     member this.TupleGet ref = tuples.[ref]
     
     member this.ValueNew() = 
         let ref = new IdentRef<_>(Unbound)
-        let cons = new TypeConstraint<_>(Reference ref, TypeBounds.Value, mergeValues)
+        let cons = new TypeConstraint<_>(Reference ref, TypeBounds.Value, mergeValuesImpl)
         values.Add(ref, cons)
         cons
     
     member this.TupleNew() = 
         let ref = new IdentRef<_>(Unbound)
-        let cons = new TypeConstraint<_>(TReference ref, TypeBounds.Tuple, mergeTuples)
+        let cons = new TypeConstraint<_>(TReference ref, TypeBounds.Tuple, mergeTuplesImpl)
         tuples.Add(ref, cons)
         cons
     
     member this.Value = TypeBounds.Value
-    member this.MergeValues = mergeValues
+    member this.MergeValues = mergeValuesImpl
     member this.Tuple = TypeBounds.Tuple
-    member this.MergeTuples = mergeTuples
+    member this.MergeTuples = mergeTuplesImpl
     member this.Bake() = 
         let bindV (cons : TypeConstraint<_>) tRef (ty : ValueType) existing = 
             match ty.Root with

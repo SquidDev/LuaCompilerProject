@@ -59,10 +59,10 @@ type TypeProvider() =
                 let result = 
                     match (current, target) with
                     // Do unions/intersections first:
-                    | (Union contents, _) -> SubtypeResult.ForAll (fun v -> isSubtype v target) contents
-                    | (_, Union contents) -> SubtypeResult.Exists (fun v -> isSubtype current v) contents
-                    | (Intersection contents, _) -> SubtypeResult.Exists (fun v -> isSubtype v target) contents
-                    | (_, Intersection contents) -> SubtypeResult.ForAll (fun v -> isSubtype current v) contents
+                    | (Union current, _) -> SubtypeResult.ForAll (fun v -> isSubtype v target) current
+                    | (_, Union target) -> SubtypeResult.Exists (fun v -> isSubtype current v) target
+                    | (Intersection current, _) -> SubtypeResult.Exists (fun v -> isSubtype v target) current
+                    | (_, Intersection target) -> SubtypeResult.ForAll (fun v -> isSubtype current v) target
                     // Any type can be cast to/from anything
                     | (_, Dynamic) | (Dynamic, _) -> Success
                     | (Nil, Nil) | (Value, Value) -> Success

@@ -48,12 +48,12 @@ let InferType (scope : TypeScope) (insn : Instruction) =
         scope.EquateTupleWith insn (Single(Seq.map scope.Get insn.Values |> Seq.toList, None))
     | TupleNew insn when insn.Values.Count = 0 -> 
         scope.EquateTupleWith insn (scope.TupleGet insn.Remaining)
-    | ReferenceGet insn -> scope.ValueSubtype insn.Reference (scope.Get insn)
-    | ReferenceSet insn -> scope.ValueSupertype (scope.Get insn.Value) insn.Reference
-    | ReferenceNew insn -> scope.ValueSupertype (scope.Get insn.Value) insn
+    | ReferenceGet insn -> scope.EquateValues insn.Reference insn
+    | ReferenceSet insn -> scope.ValueAssign insn.Value insn.Reference
+    | ReferenceNew insn -> scope.ValueAssign insn.Value insn
     | ClosureNew insn -> 
         Seq.iteri (fun i (x : IValue) -> scope.EquateValues x (insn.Function.OpenUpvalues.[i])) insn.OpenUpvalues
-        Seq.iteri (fun i (x : IValue) -> scope.ValueSubtype x (scope.Get(insn.Function.ClosedUpvalues.[i]))) 
+        Seq.iteri (fun i (x : IValue) -> scope.ValueAssign x insn.Function.ClosedUpvalues.[i])
             insn.ClosedUpvalues
         let mapped = 
             List.map scope.Get (Seq.filter (fun (x : Argument) -> x.Kind = ValueKind.Value) insn.Function.Arguments

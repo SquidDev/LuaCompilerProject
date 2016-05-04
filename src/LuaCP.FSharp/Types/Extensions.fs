@@ -32,8 +32,8 @@ let rec private valueFlatten (visitedV : Dictionary<_, _>) (visitedT : Dictionar
     | Nil | Value | Dynamic | Primitive _ | Literal _ | Reference(IdentRef(Unbound)) -> ty
     | Table(fields, ops) -> 
         Table(List.map (fieldFlatten visitedV visitedT) fields, Array.map (valueFlatten visitedV visitedT) ops)
-    | Union items -> Union(List.map (valueFlatten visitedV visitedT) items)
-    | Intersection items -> Intersection(List.map (valueFlatten visitedV visitedT) items)
+    | Union items -> Union(List.map (valueFlatten visitedV visitedT) items |> List.distinct)
+    | Intersection items -> Intersection(List.map (valueFlatten visitedV visitedT) items |> List.distinct)
     | Function(args, ret) -> Function(tupleFlatten visitedV visitedT args, tupleFlatten visitedV visitedT ret)
     | Reference(IdentRef(Link child) as tRef) -> 
         let exists, cached = visitedV.TryGetValue tRef

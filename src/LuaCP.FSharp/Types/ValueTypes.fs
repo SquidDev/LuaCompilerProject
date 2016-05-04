@@ -18,13 +18,10 @@ type ValueType =
     | Intersection of ValueType list
     | Reference of IdentRef<VariableType<ValueType>>
     
-    static member Format (this : ValueType) (alloc : StringAllocator<int>) = 
-        let format x = ValueType.Format x alloc
-        
-        let needsB ty = 
-            match ty with
-            | Intersection _ | Union _ -> true
-            | _ -> false
+    static member Format (this : ValueType) (alloc : StringAllocator<int>) (brackets : bool) = 
+        let formatB x = ValueType.Format x alloc true
+        let format x = ValueType.Format x alloc false
+
         match this with
         | Primitive x -> x.ToString().ToLowerInvariant()
         | Literal x -> x.ToString()
@@ -32,12 +29,12 @@ type ValueType =
         | Value -> "value"
         | Dynamic -> "any"
         | Union(items) -> 
-            let str = (String.concat " | " (Seq.map format items))
-            if List.exists needsB items then "(" + str + ")"
+            let str = (String.concat " | " (Seq.map formatB items))
+            if brackets then "(" + str + ")"
             else str
         | Intersection(items) -> 
-            let str = (String.concat " & " (Seq.map format items))
-            if List.exists needsB items then "(" + str + ")"
+            let str = (String.concat " & " (Seq.map formatB items))
+            if brackets then "(" + str + ")"
             else str
         | Function(args, ret) -> 
             let formatTuple x = TupleType.Format x alloc
@@ -60,7 +57,7 @@ type ValueType =
             | Unbound -> "'0x" + ref.GetHashCode().ToString("X8") + "?"
             | Link ty -> "'0x" + ref.GetHashCode().ToString("X8")
     
-    override this.ToString() = ValueType.Format this (new StringAllocator<int>())
+    override this.ToString() = ValueType.Format this (new StringAllocator<int>()) false
     member this.AsString = this.ToString()
     member this.WithLabel() = 
         match this with
@@ -77,7 +74,7 @@ and [<StructuredFormatDisplay("{AsString}")>] TupleType =
     static member Empty = Single([], None)
     
     static member Format (this : TupleType) (alloc : StringAllocator<int>) : string = 
-        let format x = ValueType.Format x alloc
+        let format x = ValueType.Format x alloc false
         match this with
         | Single([], Some x) -> "(" + format x + "...)"
         | Single(items, Some x) -> "(" + (String.concat ", " (Seq.map format items)) + ", " + format x + "...)"

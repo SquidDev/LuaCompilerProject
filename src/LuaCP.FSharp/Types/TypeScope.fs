@@ -35,9 +35,7 @@ type TypeScope() =
     let tuples = new Dictionary<IValue, TupleType>()
     let returns = new Dictionary<Function, TupleType>()
     let constraints = new HashSet<Constraint<ValueType, TupleType>>()
-    let checker = new TypeProvider()
     let equator = new TypeMerger()
-    member this.Checker = checker
     
     member this.Get(value : IValue) = 
         if value.Kind = ValueKind.Tuple then raise (ArgumentException "Expected value, got tuple")
@@ -48,20 +46,6 @@ type TypeScope() =
             else 
                 let ty = equator.ValueNew().Type
                 values.Add(value, ty)
-                ty
-    
-    member this.GetConstraint(value : IValue) = 
-        if value.Kind = ValueKind.Tuple then raise (ArgumentException "Expected value, got tuple")
-        if value :? Constant then raise (ArgumentException "Expected value, got constant")
-        else 
-            let exists, ty = values.TryGetValue(value)
-            if exists then 
-                match ty with
-                | Reference ref -> equator.ValueGet ref
-                | _ -> raise (ArgumentException(sprintf "%A is not a reference" ty))
-            else 
-                let ty = equator.ValueNew()
-                values.Add(value, ty.Type)
                 ty
     
     member this.TryGet(value : IValue) = 
@@ -100,20 +84,6 @@ type TypeScope() =
                 tuples.Add(value, ty)
                 ty
     
-    member this.GetTupleConstraint(value : IValue) = 
-        if value.IsNil() then raise (ArgumentException "Expected tuple, got nil")
-        elif value.Kind <> ValueKind.Tuple then raise (ArgumentException "Expected tuple, got value")
-        else 
-            let exists, ty = tuples.TryGetValue(value)
-            if exists then 
-                match ty with
-                | TReference ref -> equator.TupleGet ref
-                | _ -> raise (ArgumentException(sprintf "%A is not a reference" ty))
-            else 
-                let ty = equator.TupleNew()
-                tuples.Add(value, ty.Type)
-                ty
-    
     member this.EquateTupleWith (value : IValue) (ty : TupleType) = 
         let success, cons = tuples.TryGetValue value
         match success, cons with
@@ -131,9 +101,8 @@ type TypeScope() =
     member this.EquateValues (left : IValue) (right : IValue) = 
         match values.TryGetValue left, values.TryGetValue right with
         | (true, l), (true, r) -> 
-            // l.Equal.Add r.Type |> ignore
-            // r.Equal.Add l.Type |> ignore
-            printfn "Passing equating %A and %A" l r
+            // TODO: Equating types
+            printfn "TODO: Equating %A and %A" l r
         | (false, _), (true, r) -> values.Add(left, r)
         | (true, l), (false, _) -> values.Add(right, l)
         | (false, _), (false, _) -> 
@@ -143,9 +112,13 @@ type TypeScope() =
     
     member this.ValueSubtype (value : IValue) (target : ValueType) = equator.MergeValues (this.Get value) target
     member this.ValueSupertype (ty : ValueType) (target : IValue) = equator.MergeValues ty (this.Get target)
-    member this.TupleSubtype (value : IValue) (target : TupleType) =  equator.MergeTuples (this.TupleGet value) target
-    member this.TupleSupertype (value : TupleType) (target : IValue) =  equator.MergeTuples value (this.TupleGet target)
-
+    member this.ValueAssign (current : IValue) (target : IValue) = 
+        equator.MergeValues (this.Get current) (this.Get target)
+    member this.TupleSubtype (value : IValue) (target : TupleType) = equator.MergeTuples (this.TupleGet value) target
+    member this.TupleSupertype (value : TupleType) (target : IValue) = equator.MergeTuples value (this.TupleGet target)
+    member this.TupleAssign (current : IValue) (target : IValue) = 
+        equator.MergeTuples (this.TupleGet current) (this.TupleGet target)
+    
     member this.Bake() = 
         equator.Bake()
         for key in (System.Linq.Enumerable.ToList values.Keys) do
