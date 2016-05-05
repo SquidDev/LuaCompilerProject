@@ -20,7 +20,7 @@ let tVoid = TupleType.Empty
 let lStr x = Literal(Literal.String x)
 let func x = Function(Single(x, None), tVoid)
 let funcL x y = Function(Single(x, None), Single(y, None))
-let tabl x = Table(x, OperatorHelpers.Empty)
+let tabl x = Table(Set.ofList x, OperatorHelpers.Empty)
 let checker = new TypeProvider()
 
 let a =
@@ -29,9 +29,9 @@ let a =
 
     let table =
         Table
-            ([ { Key = tInt
-                 Value = tInt
-                 ReadOnly = true } ],
+            (Set.singleton { Key = tInt
+                             Value = tInt
+                             ReadOnly = true } ,
              OperatorHelpers.Singleton (Function(Single([ ty; ty ], None), Single([ tBoo ], None))) Operator.Equals)
     tyRef.Value <- Link table
     table
@@ -41,7 +41,7 @@ let b =
     let ty = Reference tyRef
     let table =
         Table
-            ([], OperatorHelpers.Singleton (Function(Single([ ty; ty ], None), Single([ tBoo ], None))) Operator.Equals)
+            (Set.empty, OperatorHelpers.Singleton (Function(Single([ ty; ty ], None), Single([ tBoo ], None))) Operator.Equals)
     tyRef.Value <- Link table
     table
 
@@ -49,10 +49,12 @@ let addable =
     let tyRef = new IdentRef<_>(Unbound)
     let ty = Reference tyRef
     let table =
-        Table([], OperatorHelpers.Singleton (Function(Single([ ty; ty ], None), Single([ ty ], None))) Operator.Add)
+        Table(Set.empty, OperatorHelpers.Singleton (Function(Single([ ty; ty ], None), Single([ ty ], None))) Operator.Add)
     tyRef.Value <- Link table
     table
 
+let Union x = Set.ofList x |> Union
+let Intersection x = Set.ofList x |> Intersection
 let ValueSubtypes =
     [| // Primitive conversions
        Data.Make(tInt, tNum, true)
@@ -110,7 +112,7 @@ let ValueSubtypes =
                           Value = Value
                           ReadOnly = true } ], true)
        // Opcodes
-       Data.Make(tNum, Table([], OperatorHelpers.Singleton (funcL [ tNum; tNum ] [ tNum ]) Operator.Add), true)
+       Data.Make(tNum, Table(Set.empty, OperatorHelpers.Singleton (funcL [ tNum; tNum ] [ tNum ]) Operator.Add), true)
        // Recursive types
        Data.Make(a, b, true)
        Data.Make(b, a, false)
@@ -200,9 +202,7 @@ let ``Best functions`` (func : ValueType) (args : ValueType list) (argsRem : Val
 [<TestCaseSource("Unions")>]
 let ``Union simplification`` (current : ValueType list) (expected : ValueType) =
     let aCurrent = checker.Union current
-    Assert.True
-        (checker.IsTypeEqual expected aCurrent,
-         sprintf "Union %A: expected %A, got %A" (Union current) expected aCurrent)
+    Assert.AreEqual(expected, aCurrent, sprintf "Union %A" (Union current))
 
 [<Test>]
 [<TestCaseSource("Constraints")>]
@@ -213,6 +213,4 @@ let ``Type constraints`` (ty : ValueType) (constrain : ValueType) (expected : Va
     | Some _, None | None, Some _ ->
         raise (AssertionException(sprintf "%A <: %A: expected %A, got %A" constrain ty expected aCurrent))
     | Some expected, Some aCurrent ->
-        Assert.True
-            (checker.IsTypeEqual expected aCurrent,
-             sprintf "%A <: %A: expected %A, got %A" constrain ty expected aCurrent)
+        Assert.AreEqual(expected, aCurrent, sprintf "%A <: %A" constrain ty)

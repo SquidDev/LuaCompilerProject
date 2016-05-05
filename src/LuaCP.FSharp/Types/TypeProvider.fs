@@ -6,6 +6,7 @@ open LuaCP.Types
 open LuaCP.Types.Extensions
 open LuaCP.IR
 open LuaCP.Collections
+open LuaCP.Collections.Matching
 
 type private SubtypeResult = 
     /// <summary>The type is assignable</summary>
@@ -44,6 +45,7 @@ type TypeProvider() =
     let tupleMap = new Dictionary<TupleType * TupleType, SubtypeResult>()
     let unaryMap = new Dictionary<Operator * ValueType, ValueType>()
     let binaryMap = new Dictionary<Operator * ValueType * ValueType, ValueType>()
+    let valueNil = Set.ofArray [| Value; Nil |] |> Union
     
     let isBaseSubtype (current : LiteralKind) (target : LiteralKind) : bool = 
         match (current, target) with
@@ -90,15 +92,15 @@ type TypeProvider() =
                                tFields = Failure then Failure
                         else isOperatorsSubtype cOpcodes tOpcodes
                     | (Primitive current, Table(tFields, tOpcodes)) -> 
-                        if List.isEmpty tFields then 
+                        if Set.isEmpty tFields then 
                             isOperatorsSubtype (OperatorHelpers.GetPrimitiveLookup current) tOpcodes
                         else Failure
                     | (Literal current, Table(tFields, tOpcodes)) -> 
-                        if List.isEmpty tFields then 
+                        if Set.isEmpty tFields then 
                             isOperatorsSubtype (OperatorHelpers.GetPrimitiveLookup current.Kind) tOpcodes
                         else Failure
                     | Function(_, _), Table(tFields, tOpcodes) -> 
-                        if List.isEmpty tFields then 
+                        if Set.isEmpty tFields then 
                             let ops : ValueType [] = Array.create OperatorExtensions.LastIndex Nil
                             ops.[int Operator.Call] <- current
                             isOperatorsSubtype ops tOpcodes
@@ -149,11 +151,11 @@ type TypeProvider() =
                     | Single(current, currentVar), Single(target, targetVar) -> 
                         let extractCurrent (x : Option<ValueType>) = 
                             if x.IsNone then Nil
-                            else Union [ x.Value; Nil ]
+                            else Set.ofArray [| x.Value; Nil |] |> Union
                         
                         let extractTarget (x : Option<ValueType>) = 
-                            if x.IsNone then Union [ Value; Nil ]
-                            else Union [ x.Value; Nil ]
+                            if x.IsNone then valueNil
+                            else Set.ofArray [| x.Value; Nil |] |> Union
                         
                         let rec check current target = 
                             match current, target with
@@ -210,7 +212,7 @@ type TypeProvider() =
                     if op = Operator.Call then ty
                     else Nil
                 | Table(_, ops) -> ops.[int op]
-                | Union items -> Union(List.map (fun x -> getOperator x op) items)
+                | Union items -> Union(Set.map (fun x -> getOperator x op) items)
                 | Reference item -> 
                     match item.Value with
                     | Link ty -> 
@@ -224,12 +226,7 @@ type TypeProvider() =
                     | _ -> raise (ArgumentException(sprintf "Cannot get operator for %A" ty))
             unaryMap.[key] <- res
             res
-    
-    static member IsPrimitiveSubtype current target = 
-        match (current, target) with
-        | (LiteralKind.Integer, LiteralKind.Number) -> true // Integers are a subtype of number
-        | _ -> current = target
-    
+
     member this.IsBaseSubtype current target = isBaseSubtype current target
     member this.IsTypeEqual current target = (isBiwaySubtype current target).ToBoolean()
     member this.IsSubtype current target = (isSubtype current target).ToBoolean()
@@ -238,30 +235,22 @@ type TypeProvider() =
         (isTupleSubtype current target).ToBoolean() && (isTupleSubtype target current).ToBoolean()
     
     /// <summary>Find the best function given a set of arguments</summary>
-    member this.FindBestFunction (func : ValueType) (args : TupleType) = 
-        let rec findBest (func : ValueType) (best : ValueType list) = 
+    member this.FindBestFunction (func : ValueType) (args : TupleType) : ValueType option * ValueType Set = 
+        let rec findBest (best : ValueType Set) (func : ValueType)  = 
             match func with
-            | Intersection funcs -> findBests funcs best
+            | Intersection funcs -> SeqX.foldAbort findBest best funcs
             | Function(fArgs, _) -> 
                 if isTupleSubtype args fArgs <> Failure then 
-                    if isTupleSubtype fArgs args <> Failure then Some(func), []
-                    else None, func :: best
+                    if isTupleSubtype fArgs args <> Failure then Some func, Set.empty
+                    else None, Set.add func best
                 else None, best
             | Nil -> None, best
             | _ -> raise (ArgumentException(sprintf "Expected function type, got %A" func, "func"))
         
-        and findBests (funcs : ValueType list) (best : ValueType list) = 
-            match funcs with
-            | [] -> None, best
-            | item :: remaining -> 
-                let found, best = findBest item best
-                if found.IsSome then found, []
-                else findBests remaining best
-        
-        let func, bests = findBest func []
+        let func, bests = findBest Set.empty func 
         match func, bests with
-        | (Some _, _) | (None, []) -> func, bests
-        | (None, [ item ]) -> Some item, []
+        | (Some _, _) | (None, EmptySet) -> func, bests
+        | (None, SingleSet item) -> Some item, Set.empty
         | (None, _) -> 
             // Strip constants
             let literalToPrim x = 
@@ -282,8 +271,8 @@ type TypeProvider() =
                 | Function(fArgs, _) -> isTupleSubtype fArgs mapped <> Failure
                 | _ -> raise (ArgumentException(sprintf "Expected function type, got %A" func, "func"))
             
-            match List.tryFind equal bests with
-            | Some x -> Some x, []
+            match Seq.tryFind equal bests with
+            | Some x -> Some x, Set.empty
             | None -> func, bests
     
     member this.FindBestPair (fields : TableField list) (key : ValueType) = 
@@ -319,7 +308,7 @@ type TypeProvider() =
                 let best, remainder = this.FindBestFunction rightOp (Single([ left; right ], None))
                 match best, remainder with
                 | Some x, _ -> x
-                | None, [] -> Nil
+                | None, EmptySet -> Nil
                 | None, items -> Intersection items
             else Nil
         
@@ -328,6 +317,6 @@ type TypeProvider() =
             let best, remainder = this.FindBestFunction leftOp (Single([ left; right ], None))
             match best, remainder with
             | Some x, _ -> x
-            | None, [] -> handleRight()
+            | None, EmptySet -> handleRight()
             | None, items -> Intersection items
         else handleRight()

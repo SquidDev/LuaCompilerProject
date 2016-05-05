@@ -30,29 +30,29 @@ module TypeBounds =
                 match mode with
                 | BoundMode.Equal -> raise (Exception(sprintf "Cannot equate %A and %A" a b))
                 | BoundMode.Minimum -> 
-                    if TypeProvider.IsPrimitiveSubtype lit.Kind kind then Primitive kind
+                    if TypeComparison.isPrimitiveSubtype lit.Kind kind then Primitive kind
                     else raise (Exception(sprintf "Cannot assign %A to %A" lit kind))
                 | BoundMode.Maximum -> 
-                    if TypeProvider.IsPrimitiveSubtype lit.Kind kind then Literal lit
+                    if TypeComparison.isPrimitiveSubtype lit.Kind kind then Literal lit
                     else raise (Exception(sprintf "Cannot assign %A to %A" lit kind))
             | Primitive a, Primitive b -> 
                 match mode with
                 | BoundMode.Equal -> raise (Exception(sprintf "Cannot equate %A and %A" a b))
                 | BoundMode.Minimum -> 
-                    if TypeProvider.IsPrimitiveSubtype a b then Primitive a
-                    elif TypeProvider.IsPrimitiveSubtype b a then Primitive b
+                    if TypeComparison.isPrimitiveSubtype a b then Primitive a
+                    elif TypeComparison.isPrimitiveSubtype b a then Primitive b
                     else raise (Exception(sprintf "Cannot merge %A and %A" a b))
                 | BoundMode.Maximum -> 
-                    if TypeProvider.IsPrimitiveSubtype a b then Primitive b
-                    elif TypeProvider.IsPrimitiveSubtype b a then Primitive a
+                    if TypeComparison.isPrimitiveSubtype a b then Primitive b
+                    elif TypeComparison.isPrimitiveSubtype b a then Primitive a
                     else raise (Exception(sprintf "Cannot merge %A and %A" a b))
             | Reference(IdentRef(Unbound) as tRef), ty | ty, Reference(IdentRef(Unbound) as tRef) -> 
                 match mode with
                 | BoundMode.Equal -> 
                     tRef.Value <- Link ty
                     ty
-                | BoundMode.Minimum -> Union [ a; b ]
-                | BoundMode.Maximum -> Intersection [ a; b ]
+                | BoundMode.Minimum -> Set.ofArray [| a; b |] |> Union
+                | BoundMode.Maximum -> Set.ofArray [| a; b |] |> Intersection
             | Function(aArgs, aRet), Function(bArgs, bRet) -> 
                 Function(Tuple mode aArgs bArgs, Tuple (opposite mode) aArgs bArgs)
             | Table(aFields, aOps), Table(bFields, bOps) -> 
@@ -74,7 +74,7 @@ module TypeBounds =
                     Seq.concat [ aFields; bFields ]
                     |> Seq.groupBy (fun x -> x.Key)
                     |> Seq.map convert
-                    |> Seq.toList
+                    |> Set.ofSeq
                 
                 let ops = Array.map2 (Value mode) aOps bOps
                 Table(fields, ops)
@@ -93,33 +93,23 @@ module TypeBounds =
                 // This is wrong: we should be getting distinct ones and intersecting them.
                 // Minimum of (a & b) and a is a
                 | BoundMode.Minimum -> 
-                    Seq.append a b
-                    |> Seq.distinct
-                    |> Seq.toList
-                    |> Union
+                    Seq.append a b |> Set.ofSeq |> Union
                 | BoundMode.Maximum -> 
-                    Seq.append a b
-                    |> Seq.distinct
-                    |> Seq.toList
-                    |> Intersection
+                    Seq.append a b |> Set.ofSeq |> Intersection
             | Intersection items, ty | ty, Intersection items -> 
                 match mode with
                 | BoundMode.Equal -> raise (Exception(sprintf "Cannot merge %A and %A" a b))
                 // See above
                 | BoundMode.Minimum -> 
-                    ty :: items
-                    |> List.distinct
-                    |> Union
+                    Set.add ty items |> Union
                 | BoundMode.Maximum -> 
-                    ty :: items
-                    |> List.distinct
-                    |> Intersection
+                    Set.add ty items |> Intersection
             | _, _ -> 
                 printfn "TODO: %A of %A and %A" mode a b
                 match mode with
                 | BoundMode.Equal -> a
-                | BoundMode.Minimum -> Union [ a; b ]
-                | BoundMode.Maximum -> Intersection [ a; b ]
+                | BoundMode.Minimum -> Set.ofArray [| a; b |] |> Union
+                | BoundMode.Maximum -> Set.ofArray [| a; b |] |> Intersection
     
     and Tuple (mode : BoundMode) (a : TupleType) (b : TupleType) = 
         let a = a.Root
@@ -229,6 +219,7 @@ and TypeMerger() =
     let values = new RefLookup<ValueType>()
     let tuples = new RefLookup<TupleType>()
     let provider = new TypeProvider()
+    let valueNil = Set.ofArray [| Value; Nil |] |> Union
     
     let rec mergeValues (vVisited : VisitedList<_>) (tVisited : VisitedList<_>) (current : ValueType) 
             (target : ValueType) = 
@@ -244,14 +235,14 @@ and TypeMerger() =
                 | current, Reference(IdentRef(Unbound) as target) -> values.[target].AddSupertype current |> ignore
                 | Reference(_), _ | _, Reference(_) -> 
                     raise (Exception(sprintf "Unexpected state merging %A :> %A" current target))
-                | Union current, _ -> List.iter (fun v -> mergeValues vVisited tVisited v target) current
-                | _, Intersection target -> List.iter (fun v -> mergeValues vVisited tVisited current v) target
+                | Union current, _ -> Set.iter (fun v -> mergeValues vVisited tVisited v target) current
+                | _, Intersection target -> Set.iter (fun v -> mergeValues vVisited tVisited current v) target
                 | (Nil | Value | Dynamic | Primitive _ | Literal _), (Nil | Value | Dynamic | Primitive _ | Literal _) -> 
-                    if not (provider.IsSubtype current target) then 
+                    if not (TypeComparison.isBasicSubtype current target) then 
                         raise (Exception(sprintf "Cannot cast %A to %A" current target))
                 | Table(currentFields, currentOps), Table(targetFields, targetOps) -> 
                     for targetField in targetFields do
-                        match List.tryFind (fun x -> x.Key = targetField.Key) currentFields with
+                        match Seq.tryFind (fun x -> x.Key = targetField.Key) currentFields with
                         | Some currentField -> mergeValues vVisited tVisited currentField.Value targetField.Value
                         | None -> printfn "Missing field %A in %A" targetField.Key current
                 | Function(currentA, currentR), Function(targetA, targetR) -> 
@@ -274,11 +265,11 @@ and TypeMerger() =
                 | Single(current, currentVar), Single(target, targetVar) -> 
                     let extractCurrent (x : Option<ValueType>) = 
                         if x.IsNone then Nil
-                        else Union [ x.Value; Nil ]
+                        else Set.ofArray [| x.Value; Nil |] |> Union
                     
                     let extractTarget (x : Option<ValueType>) = 
-                        if x.IsNone then Union [ Value; Nil ]
-                        else Union [ x.Value; Nil ]
+                        if x.IsNone then valueNil
+                        else Set.ofArray [| x.Value; Nil |] |> Union
                     
                     let rec check current target = 
                         match current, target with

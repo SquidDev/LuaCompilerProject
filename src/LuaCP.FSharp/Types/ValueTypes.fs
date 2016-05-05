@@ -13,9 +13,9 @@ type ValueType =
     | Value
     | Dynamic
     | Function of TupleType * TupleType
-    | Table of TableField list * Operators
-    | Union of ValueType list
-    | Intersection of ValueType list
+    | Table of TableField Set * Operators
+    | Union of ValueType Set
+    | Intersection of ValueType Set
     | Reference of IdentRef<VariableType<ValueType>>
     
     static member Format (this : ValueType) (alloc : StringAllocator<int>) (brackets : bool) = 
@@ -69,7 +69,7 @@ and VariableType<'t> =
     | Link of 't
 
 and [<StructuredFormatDisplay("{AsString}")>] TupleType = 
-    | Single of ValueType list * Option<ValueType>
+    | Single of ValueType list * ValueType option
     | TReference of IdentRef<VariableType<TupleType>>
     static member Empty = Single([], None)
     

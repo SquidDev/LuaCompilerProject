@@ -23,24 +23,23 @@ let InferType (scope : TypeScope) (insn : Instruction) =
     | BinaryOp insn -> scope.VConstraint(WithBinOp(insn.Opcode.AsOperator, insn.Left, insn.Right, upcast insn))
     | UnaryOp insn -> scope.VConstraint(WithUnOp(insn.Opcode.AsOperator, insn.Operand, upcast insn))
     | ValueCondition insn -> 
-        scope.EquateValueWith insn (Union [ scope.Get insn.Success
-                                            scope.Get insn.Failure ])
+        scope.EquateValueWith insn (Set.singleton (scope.Get insn.Success) |> Set.add (scope.Get insn.Failure) |> Union )
     | Return insn -> scope.TupleSubtype insn.Values (scope.ReturnGet insn.Block.Function)
     | TableGet insn -> 
-        scope.ValueSubtype insn.Table (Table([ { Key = scope.Get insn.Key
-                                                 Value = scope.Get insn
-                                                 ReadOnly = true } ], OperatorHelpers.Empty))
+        scope.ValueSubtype insn.Table (Table(Set.singleton { Key = scope.Get insn.Key
+                                                             Value = scope.Get insn
+                                                             ReadOnly = true }, OperatorHelpers.Empty))
     | TableSet insn -> 
-        scope.ValueSubtype insn.Table (Table([ { Key = scope.Get insn.Key
-                                                 Value = scope.Get insn.Value
-                                                 ReadOnly = false } ], OperatorHelpers.Empty))
+        scope.ValueSubtype insn.Table (Table(Set.singleton { Key = scope.Get insn.Key
+                                                             Value = scope.Get insn.Value
+                                                             ReadOnly = false }, OperatorHelpers.Empty))
     | TableNew insn -> 
         let keys = 
             Seq.map (fun (x : KeyValuePair<_, _>) -> 
                 { Key = scope.Get x.Key
                   Value = scope.Get x.Value
                   ReadOnly = false }) insn.HashPart
-            |> Seq.toList
+            |> Set.ofSeq
         // TODO: Handle array part
         scope.ValueSupertype (Table(keys, OperatorHelpers.Empty)) insn
     | Call insn -> scope.ValueSubtype insn.Method (Function(scope.TupleGet insn.Arguments, scope.TupleGet insn))
@@ -67,7 +66,7 @@ let InferTypes (scope : TypeScope) (func : Function) =
     for block in func.EntryPoint.VisitPreorder() do
         for phi in block.PhiNodes do
             match phi.Kind with
-            | ValueKind.Value -> scope.EquateValueWith phi (Union(Seq.map scope.Get phi.Source.Values |> Seq.toList))
+            | ValueKind.Value -> scope.EquateValueWith phi (Seq.map scope.Get phi.Source.Values |> Set.ofSeq |> Union)
             | ValueKind.Tuple -> () // TODO: Handle this
         for item in block do
             InferType scope item

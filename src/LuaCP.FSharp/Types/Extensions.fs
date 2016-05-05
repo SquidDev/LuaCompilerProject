@@ -11,8 +11,8 @@ let rec private hasUnbound (visited : HashSet<Object>) (ty : ValueType) =
     | Reference(IdentRef Unbound) -> true
     | Reference(IdentRef(Link(item)) as ref) -> visited.Add(ref :> Object) && hasUnbound visited item
     | Primitive _ | Literal _ | Nil | Dynamic | Value -> false
-    | Intersection items | Union items -> List.exists (hasUnbound visited) items
-    | Table(tbl, ops) -> List.exists (tableUnbound visited) tbl || Array.exists (hasUnbound visited) ops
+    | Intersection items | Union items -> Set.exists (hasUnbound visited) items
+    | Table(tbl, ops) -> Set.exists (tableUnbound visited) tbl || Array.exists (hasUnbound visited) ops
     | Function(args, ret) -> (tupleUnbound visited) args || tupleUnbound visited ret
 
 and tupleUnbound (visited : HashSet<Object>) (ty : TupleType) = 
@@ -31,9 +31,9 @@ let rec private valueFlatten (visitedV : Dictionary<_, _>) (visitedT : Dictionar
     match ty with
     | Nil | Value | Dynamic | Primitive _ | Literal _ | Reference(IdentRef(Unbound)) -> ty
     | Table(fields, ops) -> 
-        Table(List.map (fieldFlatten visitedV visitedT) fields, Array.map (valueFlatten visitedV visitedT) ops)
-    | Union items -> Union(List.map (valueFlatten visitedV visitedT) items |> List.distinct)
-    | Intersection items -> Intersection(List.map (valueFlatten visitedV visitedT) items |> List.distinct)
+        Table(Set.map (fieldFlatten visitedV visitedT) fields, Array.map (valueFlatten visitedV visitedT) ops)
+    | Union items -> Union(Set.map (valueFlatten visitedV visitedT) items)
+    | Intersection items -> Intersection(Set.map (valueFlatten visitedV visitedT) items)
     | Function(args, ret) -> Function(tupleFlatten visitedV visitedT args, tupleFlatten visitedV visitedT ret)
     | Reference(IdentRef(Link child) as tRef) -> 
         let exists, cached = visitedV.TryGetValue tRef
@@ -70,12 +70,12 @@ let rec private nth ty rem n =
     match n with
     | 0 -> 
         match ty, rem with
-        | [], Some x -> Union [ x; Nil ]
+        | [], Some x -> Set.ofArray [| x; Nil |] |> Union
         | [], None -> Nil
         | item :: _, _ -> item
     | n -> 
         match ty, rem with
-        | [], Some x -> Union [ x; Nil ]
+        | [], Some x -> Set.ofArray [| x; Nil |] |> Union
         | [], None -> Nil
         | _ :: rest, _ -> nth rest rem (n - 1)
 

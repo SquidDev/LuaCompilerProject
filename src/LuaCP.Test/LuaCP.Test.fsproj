@@ -59,7 +59,5 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-    <None Include="Program.cs" />
-    <None Include="Program.vb" />
   </ItemGroup>
 </Project>

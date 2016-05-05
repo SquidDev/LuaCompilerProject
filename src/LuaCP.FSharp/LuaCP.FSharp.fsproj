@@ -36,6 +36,7 @@
     <Compile Include="Types\Operators.fs" />
     <Compile Include="Types\ValueTypes.fs" />
     <Compile Include="Types\Extensions.fs" />
+    <Compile Include="Types\TypeComparison.fs" />
     <Compile Include="Types\OperatorHelpers.fs" />
     <Compile Include="Types\TypeProvider.fs" />
     <Compile Include="Types\Factories.fs" />
@@ -43,7 +44,6 @@
     <Compile Include="Types\TypeScope.fs" />
     <Compile Include="Types\ConstraintGenerator.fs" />
     <Compile Include="Types\StandardLibraries.fs" />
-    <Compile Include="Types\TypeComparison.fs" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.1\Framework\v4.0\Microsoft.FSharp.Targets" />
   <ItemGroup>

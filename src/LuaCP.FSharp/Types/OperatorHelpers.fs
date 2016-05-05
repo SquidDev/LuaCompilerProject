@@ -17,7 +17,7 @@ let Singleton (x : ValueType) (op : Operator) =
     ops
 
 let private concat =
-    let union = Union [ Primitives.Number; Primitives.String ]
+    let union = Set.ofArray [| Primitives.Number; Primitives.String |] |> Union
     Function(Single([ union; union ], None), Single([ Primitives.String ], None))
 
 let Number =
@@ -37,7 +37,7 @@ let Integer =
     let un, bin, cmp = UnOp Primitives.Integer, BinOp Primitives.Integer, Compare Primitives.Number
 
     let binJoint =
-        Intersection [ bin; BinOp Primitives.Number ]
+        Set.ofArray [| bin; BinOp Primitives.Number |] |> Intersection
 
     let ops : ValueType [] = Array.create lastIndex Nil
     // Add everything

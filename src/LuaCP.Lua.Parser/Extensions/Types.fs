@@ -72,20 +72,20 @@ type Types(lang : Language) =
         let table = Symbol "{" >>. sepBy field (Symbol ",") .>> Symbol "}"
 
         let convert (x : FieldType list) : ValueType =
-            let rec doConvert (x : FieldType list) (fields : TableField list) (meta : Operators) =
+            let rec doConvert (x : FieldType list) (fields : TableField Set) (meta : Operators) =
                 match x with
                 | [] -> fields
                 | item :: remaining ->
                     let newFields =
                         match item with
-                        | Field x -> x :: fields
+                        | Field x -> Set.add x fields
                         | Meta(op, value) ->
                             meta.[int op] <- value
                             fields
                     doConvert remaining newFields meta
 
             let ops : Operators = Array.create OperatorExtensions.LastIndex ValueType.Nil
-            let fields = doConvert x [] ops
+            let fields = doConvert x Set.empty ops
             ValueType.Table(fields, ops)
         table |>> convert
 
@@ -110,8 +110,8 @@ type Types(lang : Language) =
         | [ item ] -> item
         | _ -> factory lst
 
-    let union = sepBy1 root (Symbol "|") |>> ofOne ValueType.Union
-    let intersection = sepBy1 union (Symbol "&") |>> ofOne ValueType.Intersection
+    let union = sepBy1 root (Symbol "|") |>> ofOne (fun x -> Set.ofList x |> ValueType.Union)
+    let intersection = sepBy1 union (Symbol "&") |>> ofOne (fun x -> Set.ofList x |> ValueType.Intersection)
 
     do
         rootRef.Parsers.Add(Symbol "(" >>. intersection .>> Symbol ")")

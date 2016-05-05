@@ -29,33 +29,8 @@ let Bounds =
 [<TestCaseSource("Bounds")>]
 let ``ValueType bounds`` (mode : BoundMode) (a : ValueType) (b : ValueType) (expected : ValueType) =
     let current = TypeBounds.Value mode a b
-    Assert.True
-        (checker.IsTypeEqual expected current,
-         sprintf "%A(%A, %A): expected %A, got %A" mode a b expected current)
-(*
-[<Test>]
-let ``Simple minimum`` () =
-    printfn "Running Simple min"
-    let merger = new TypeMerger()
-    let root = merger.ValueNew()
-    let number = Number
+    Assert.AreEqual(expected,  current, sprintf "%A(%A, %A)" mode a b)
 
-    let merged = merger.Value (BoundMode.Minimum) root.Type number
-    Assert.AreEqual(number, merged, "Incorrect result of merging")
-    Assert.AreEqual(Some number, root.Maximum)
-
-
-[<Test>]
-let ``Simple maximum`` () =
-    printfn "Running Simple max"
-    let merger = new TypeMerger()
-    let root = merger.ValueNew()
-    let number = Number
-
-    let merged = merger.Value (BoundMode.Maximum) root.Type number
-    Assert.AreEqual(number, merged, "Incorrect result of merging")
-    Assert.AreEqual(Some number, root.Minimum)
-*)
 
 (* Basic lua test cases
     return (...)=>print(...)

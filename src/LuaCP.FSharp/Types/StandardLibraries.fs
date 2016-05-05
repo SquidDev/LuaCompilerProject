@@ -8,7 +8,7 @@ let private tVoid = TupleType.Empty
 let private lStr x = Literal(Literal.String x)
 let private func x = Function(Single(x, None), tVoid)
 let private funcL x y = Function(Single(x, None), Single(y, None))
-let private tabl x = Table(x, OperatorHelpers.Empty)
+let private tabl x = Table(x |> Set.ofList, OperatorHelpers.Empty)
 
 let Base = 
     tabl [ { Key = lStr "print"
