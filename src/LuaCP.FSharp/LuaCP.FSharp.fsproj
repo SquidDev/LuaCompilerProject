@@ -43,6 +43,7 @@
     <Compile Include="Types\TypeScope.fs" />
     <Compile Include="Types\ConstraintGenerator.fs" />
     <Compile Include="Types\StandardLibraries.fs" />
+    <Compile Include="Types\TypeComparison.fs" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.1\Framework\v4.0\Microsoft.FSharp.Targets" />
   <ItemGroup>

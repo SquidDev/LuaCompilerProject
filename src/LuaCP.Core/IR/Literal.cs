@@ -11,7 +11,7 @@ namespace LuaCP.IR
 		Nil = 4,
 	}
 
-	public class Literal : IEquatable<Literal>
+	public class Literal : IEquatable<Literal>, IComparable<Literal>, IComparable
 	{
 		#region Implementations
 
@@ -186,6 +186,46 @@ namespace LuaCP.IR
 				}
 			}
 			return false;
+		}
+
+		public int CompareTo(Literal other)
+		{
+			if (Kind != other.Kind) return (int)(Kind - other.Kind);
+
+			switch (Kind)
+			{
+				case LiteralKind.String:
+					{
+						var a = (String)this;
+						var b = (String)other;
+						return string.CompareOrdinal(a.Item, b.item);
+					}
+				case LiteralKind.Integer:
+					{
+						var a = (Integer)this;
+						var b = (Integer)other;
+						return a.Item.CompareTo(b.item);
+					}
+				case LiteralKind.Number:
+					{
+						var a = (Number)this;
+						var b = (Number)other;
+						return a.Item.CompareTo(b.item);
+					}
+				case LiteralKind.Boolean:
+					{
+						var a = (Boolean)this;
+						var b = (Boolean)other;
+						return a.Item.CompareTo(b.item);
+					}
+				default:
+					return 0;
+			}
+		}
+
+		public int CompareTo(object obj)
+		{
+			return CompareTo((Literal)obj);
 		}
 
 		public sealed override bool Equals(object obj)
