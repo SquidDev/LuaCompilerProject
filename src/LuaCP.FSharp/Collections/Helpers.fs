@@ -26,3 +26,7 @@ module SeqX =
             res <- result
             state <- other
         res, state
+        
+module SetX = 
+    let of2 a b = Set.empty |> Set.add a |> Set.add b
+    let of3 a b c = Set.empty |> Set.add a |> Set.add b |> Set.add c

@@ -13,12 +13,16 @@ type BoundMode =
     | Minimum = 1
     | Maximum = 2
 
+type BoundException(message : string) = 
+    inherit Exception(message)
+
 module TypeBounds = 
     let opposite (mode : BoundMode) = 
         match mode with
         | BoundMode.Equal -> BoundMode.Equal
         | BoundMode.Minimum -> BoundMode.Maximum
         | BoundMode.Maximum -> BoundMode.Minimum
+        | mode -> invalidArg "mode" (sprintf "Invalid mode %A" mode)
     
     let rec Value (mode : BoundMode) (a : ValueType) (b : ValueType) : ValueType = 
         let a = a.Root
@@ -28,31 +32,34 @@ module TypeBounds =
             match a, b with
             | Literal lit, Primitive kind | Primitive kind, Literal lit -> 
                 match mode with
-                | BoundMode.Equal -> raise (Exception(sprintf "Cannot equate %A and %A" a b))
+                | BoundMode.Equal -> raise (BoundException(sprintf "Cannot equate %A and %A" a b))
                 | BoundMode.Minimum -> 
                     if TypeComparison.isPrimitiveSubtype lit.Kind kind then Primitive kind
-                    else raise (Exception(sprintf "Cannot assign %A to %A" lit kind))
+                    else SetX.of2 a b |> Union
                 | BoundMode.Maximum -> 
                     if TypeComparison.isPrimitiveSubtype lit.Kind kind then Literal lit
-                    else raise (Exception(sprintf "Cannot assign %A to %A" lit kind))
+                    else raise (BoundException(sprintf "Cannot intersect %A and %A" lit kind))
+                | mode -> invalidArg "mode" (sprintf "Invalid mode %A" mode)
             | Primitive a, Primitive b -> 
                 match mode with
-                | BoundMode.Equal -> raise (Exception(sprintf "Cannot equate %A and %A" a b))
+                | BoundMode.Equal -> raise (BoundException(sprintf "Cannot equate %A and %A" a b))
                 | BoundMode.Minimum -> 
                     if TypeComparison.isPrimitiveSubtype a b then Primitive a
                     elif TypeComparison.isPrimitiveSubtype b a then Primitive b
-                    else raise (Exception(sprintf "Cannot merge %A and %A" a b))
+                    else SetX.of2 (Primitive a) (Primitive b) |> Union
                 | BoundMode.Maximum -> 
                     if TypeComparison.isPrimitiveSubtype a b then Primitive b
                     elif TypeComparison.isPrimitiveSubtype b a then Primitive a
-                    else raise (Exception(sprintf "Cannot merge %A and %A" a b))
+                    else raise (BoundException(sprintf "Cannot intersect %A and %A" a b))
+                | mode -> invalidArg "mode" (sprintf "Invalid mode %A" mode)
             | Reference(IdentRef(Unbound) as tRef), ty | ty, Reference(IdentRef(Unbound) as tRef) -> 
                 match mode with
                 | BoundMode.Equal -> 
                     tRef.Value <- Link ty
                     ty
-                | BoundMode.Minimum -> Set.ofArray [| a; b |] |> Union
-                | BoundMode.Maximum -> Set.ofArray [| a; b |] |> Intersection
+                | BoundMode.Minimum -> SetX.of2 a b |> Union
+                | BoundMode.Maximum -> SetX.of2 a b |> Intersection
+                | mode -> invalidArg "mode" (sprintf "Invalid mode %A" mode)
             | Function(aArgs, aRet), Function(bArgs, bRet) -> 
                 Function(Tuple mode aArgs bArgs, Tuple (opposite mode) aArgs bArgs)
             | Table(aFields, aOps), Table(bFields, bOps) -> 
@@ -61,6 +68,7 @@ module TypeBounds =
                     | BoundMode.Equal -> a || b
                     | BoundMode.Minimum -> a && b
                     | BoundMode.Maximum -> a || b
+                    | mode -> invalidArg "mode" (sprintf "Invalid mode %A" mode)
                 
                 let convertPair a b = 
                     assert (a.Key = b.Key)
@@ -79,14 +87,15 @@ module TypeBounds =
                 let ops = Array.map2 (Value mode) aOps bOps
                 Table(fields, ops)
             | Reference(_), _ | _, Reference(_) -> 
-                raise (Exception(sprintf "Unexpected state intersecting %A and %A" a b))
+                failwith (sprintf "Unexpected state intersecting %A and %A" a b)
             | Dynamic, other | other, Dynamic -> 
                 match mode with
                 | BoundMode.Equal -> 
                     if a = b then a
-                    else raise (Exception(sprintf "Cannot merge %A and %A" a b))
-                | BoundMode.Minimum -> Dynamic
+                    else raise (BoundException(sprintf "Cannot merge %A and %A" a b))
+                | BoundMode.Minimum -> other
                 | BoundMode.Maximum -> other
+                | mode -> invalidArg "mode" (sprintf "Invalid mode %A" mode)
             | Intersection a, Intersection b -> 
                 match mode with
                 | BoundMode.Equal -> Intersection a // TODO: Check that they are the same
@@ -96,20 +105,23 @@ module TypeBounds =
                     Seq.append a b |> Set.ofSeq |> Union
                 | BoundMode.Maximum -> 
                     Seq.append a b |> Set.ofSeq |> Intersection
+                | mode -> invalidArg "mode" (sprintf "Invalid mode %A" mode)
             | Intersection items, ty | ty, Intersection items -> 
                 match mode with
-                | BoundMode.Equal -> raise (Exception(sprintf "Cannot merge %A and %A" a b))
+                | BoundMode.Equal -> raise (BoundException(sprintf "Cannot merge %A and %A" a b))
                 // See above
                 | BoundMode.Minimum -> 
                     Set.add ty items |> Union
                 | BoundMode.Maximum -> 
                     Set.add ty items |> Intersection
+                | mode -> invalidArg "mode" (sprintf "Invalid mode %A" mode)
             | _, _ -> 
                 printfn "TODO: %A of %A and %A" mode a b
                 match mode with
                 | BoundMode.Equal -> a
-                | BoundMode.Minimum -> Set.ofArray [| a; b |] |> Union
-                | BoundMode.Maximum -> Set.ofArray [| a; b |] |> Intersection
+                | BoundMode.Minimum -> SetX.of2 a b |> Union
+                | BoundMode.Maximum -> SetX.of2 a b |> Intersection
+                | mode -> invalidArg "mode" (sprintf "Invalid mode %A" mode)
     
     and Tuple (mode : BoundMode) (a : TupleType) (b : TupleType) = 
         let a = a.Root
@@ -134,12 +146,13 @@ module TypeBounds =
                     | None, None -> None
                     | Some rem, None | None, Some rem -> 
                         match mode with
-                        | BoundMode.Equal -> raise (Exception(sprintf "Cannot intersect %A and %A" a b))
+                        | BoundMode.Equal -> raise (BoundException(sprintf "Cannot intersect %A and %A" a b))
                         | BoundMode.Maximum -> Some rem
                         | BoundMode.Minimum -> None
+                        | mode -> invalidArg "mode" (sprintf "Invalid mode %A" mode)
                 Single(args, rem)
             | TReference(_), _ | _, TReference(_) -> 
-                raise (Exception(sprintf "Unexpected state intersecting %A and %A" a b))
+               failwith (sprintf "Unexpected state intersecting %A and %A" a b)
 
 [<StructuredFormatDisplay("{AsString}")>]
 type TypeConstraint<'t>(ty : 't, bound : BoundMode -> 't -> 't -> 't, merge : 't -> 't -> unit) = 
@@ -234,7 +247,7 @@ and TypeMerger() =
                 | Reference(IdentRef(Unbound) as current), target -> values.[current].AddSubtype target |> ignore
                 | current, Reference(IdentRef(Unbound) as target) -> values.[target].AddSupertype current |> ignore
                 | Reference(_), _ | _, Reference(_) -> 
-                    raise (Exception(sprintf "Unexpected state merging %A :> %A" current target))
+                    failwith (sprintf "Unexpected state merging %A :> %A" current target)
                 | Union current, _ -> Set.iter (fun v -> mergeValues vVisited tVisited v target) current
                 | _, Intersection target -> Set.iter (fun v -> mergeValues vVisited tVisited current v) target
                 | (Nil | Value | Dynamic | Primitive _ | Literal _), (Nil | Value | Dynamic | Primitive _ | Literal _) -> 
@@ -261,7 +274,7 @@ and TypeMerger() =
                 | TReference(IdentRef(Unbound) as current), target -> tuples.[current].AddSubtype target |> ignore
                 | current, TReference(IdentRef(Unbound) as target) -> tuples.[target].AddSupertype current |> ignore
                 | TReference(_), _ | _, TReference(_) -> 
-                    raise (Exception(sprintf "Unexpected state merging %A :> %A" current target))
+                    failwith (sprintf "Unexpected state merging %A :> %A" current target)
                 | Single(current, currentVar), Single(target, targetVar) -> 
                     let extractCurrent (x : Option<ValueType>) = 
                         if x.IsNone then Nil

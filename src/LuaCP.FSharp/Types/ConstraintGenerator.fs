@@ -68,5 +68,7 @@ let InferTypes (scope : TypeScope) (func : Function) =
             match phi.Kind with
             | ValueKind.Value -> scope.EquateValueWith phi (Seq.map scope.Get phi.Source.Values |> Set.ofSeq |> Union)
             | ValueKind.Tuple -> () // TODO: Handle this
+            | ValueKind.Reference -> failwith "Cannot have reference in phi node"
+            | kind -> failwith (sprintf "Unknown mode %A in phi node" kind)
         for item in block do
             InferType scope item
