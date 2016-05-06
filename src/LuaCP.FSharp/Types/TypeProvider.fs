@@ -45,7 +45,7 @@ type TypeProvider() =
     let tupleMap = new Dictionary<TupleType * TupleType, SubtypeResult>()
     let unaryMap = new Dictionary<Operator * ValueType, ValueType>()
     let binaryMap = new Dictionary<Operator * ValueType * ValueType, ValueType>()
-    let valueNil = Set.ofArray [| Value; Nil |] |> Union
+    let valueNil = Set.of2 Value Nil |> Union
     
     let isBaseSubtype (current : LiteralKind) (target : LiteralKind) : bool = 
         match (current, target) with
@@ -151,11 +151,11 @@ type TypeProvider() =
                     | Single(current, currentVar), Single(target, targetVar) -> 
                         let extractCurrent (x : Option<ValueType>) = 
                             if x.IsNone then Nil
-                            else Set.ofArray [| x.Value; Nil |] |> Union
+                            else Set.of2 x.Value Nil |> Union
                         
                         let extractTarget (x : Option<ValueType>) = 
                             if x.IsNone then valueNil
-                            else Set.ofArray [| x.Value; Nil |] |> Union
+                            else Set.of2 x.Value Nil |> Union
                         
                         let rec check current target = 
                             match current, target with
@@ -238,7 +238,7 @@ type TypeProvider() =
     member this.FindBestFunction (func : ValueType) (args : TupleType) : ValueType option * ValueType Set = 
         let rec findBest (best : ValueType Set) (func : ValueType)  = 
             match func with
-            | Intersection funcs -> SeqX.foldAbort findBest best funcs
+            | Intersection funcs -> Seq.foldAbort findBest best funcs
             | Function(fArgs, _) -> 
                 if isTupleSubtype args fArgs <> Failure then 
                     if isTupleSubtype fArgs args <> Failure then Some func, Set.empty

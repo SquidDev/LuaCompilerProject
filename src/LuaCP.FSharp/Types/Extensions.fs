@@ -70,12 +70,12 @@ let rec private nth ty rem n =
     match n with
     | 0 -> 
         match ty, rem with
-        | [], Some x -> Set.ofArray [| x; Nil |] |> Union
+        | [], Some x -> Set.of2 x Nil |> Union
         | [], None -> Nil
         | item :: _, _ -> item
     | n -> 
         match ty, rem with
-        | [], Some x -> Set.ofArray [| x; Nil |] |> Union
+        | [], Some x -> Set.of2 x Nil |> Union
         | [], None -> Nil
         | _ :: rest, _ -> nth rest rem (n - 1)
 

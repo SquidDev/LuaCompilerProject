@@ -1,9 +1,10 @@
 module LuaCP.Types.OperatorHelpers
 
 open System
-open LuaCP.Types
+open LuaCP.Collections
 open LuaCP.IR
 open LuaCP.IR.Instructions
+open LuaCP.Types
 
 let private lastIndex = OperatorExtensions.LastIndex
 let UnOp(x : ValueType) = Function(Single([ x ], None), Single([ x ], None))
@@ -17,7 +18,7 @@ let Singleton (x : ValueType) (op : Operator) =
     ops
 
 let private concat =
-    let union = Set.ofArray [| Primitives.Number; Primitives.String |] |> Union
+    let union = Set.of2 Primitives.Number Primitives.String |> Union
     Function(Single([ union; union ], None), Single([ Primitives.String ], None))
 
 let Number =
@@ -37,7 +38,7 @@ let Integer =
     let un, bin, cmp = UnOp Primitives.Integer, BinOp Primitives.Integer, Compare Primitives.Number
 
     let binJoint =
-        Set.ofArray [| bin; BinOp Primitives.Number |] |> Intersection
+        Set.of2 bin (BinOp Primitives.Number) |> Intersection
 
     let ops : ValueType [] = Array.create lastIndex Nil
     // Add everything

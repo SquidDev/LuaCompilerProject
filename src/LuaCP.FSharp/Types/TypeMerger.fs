@@ -35,7 +35,7 @@ module TypeBounds =
                 | BoundMode.Equal -> raise (BoundException(sprintf "Cannot equate %A and %A" a b))
                 | BoundMode.Minimum -> 
                     if TypeComparison.isPrimitiveSubtype lit.Kind kind then Primitive kind
-                    else SetX.of2 a b |> Union
+                    else Set.of2 a b |> Union
                 | BoundMode.Maximum -> 
                     if TypeComparison.isPrimitiveSubtype lit.Kind kind then Literal lit
                     else raise (BoundException(sprintf "Cannot intersect %A and %A" lit kind))
@@ -46,7 +46,7 @@ module TypeBounds =
                 | BoundMode.Minimum -> 
                     if TypeComparison.isPrimitiveSubtype a b then Primitive a
                     elif TypeComparison.isPrimitiveSubtype b a then Primitive b
-                    else SetX.of2 (Primitive a) (Primitive b) |> Union
+                    else Set.of2 (Primitive a) (Primitive b) |> Union
                 | BoundMode.Maximum -> 
                     if TypeComparison.isPrimitiveSubtype a b then Primitive b
                     elif TypeComparison.isPrimitiveSubtype b a then Primitive a
@@ -57,8 +57,8 @@ module TypeBounds =
                 | BoundMode.Equal -> 
                     tRef.Value <- Link ty
                     ty
-                | BoundMode.Minimum -> SetX.of2 a b |> Union
-                | BoundMode.Maximum -> SetX.of2 a b |> Intersection
+                | BoundMode.Minimum -> Set.of2 a b |> Union
+                | BoundMode.Maximum -> Set.of2 a b |> Intersection
                 | mode -> invalidArg "mode" (sprintf "Invalid mode %A" mode)
             | Function(aArgs, aRet), Function(bArgs, bRet) -> 
                 Function(Tuple mode aArgs bArgs, Tuple (opposite mode) aArgs bArgs)
@@ -119,8 +119,8 @@ module TypeBounds =
                 printfn "TODO: %A of %A and %A" mode a b
                 match mode with
                 | BoundMode.Equal -> a
-                | BoundMode.Minimum -> SetX.of2 a b |> Union
-                | BoundMode.Maximum -> SetX.of2 a b |> Intersection
+                | BoundMode.Minimum -> Set.of2 a b |> Union
+                | BoundMode.Maximum -> Set.of2 a b |> Intersection
                 | mode -> invalidArg "mode" (sprintf "Invalid mode %A" mode)
     
     and Tuple (mode : BoundMode) (a : TupleType) (b : TupleType) = 
@@ -232,7 +232,7 @@ and TypeMerger() =
     let values = new RefLookup<ValueType>()
     let tuples = new RefLookup<TupleType>()
     let provider = new TypeProvider()
-    let valueNil = Set.ofArray [| Value; Nil |] |> Union
+    let valueNil = Set.of2 Value Nil |> Union
     
     let rec mergeValues (vVisited : VisitedList<_>) (tVisited : VisitedList<_>) (current : ValueType) 
             (target : ValueType) = 
@@ -278,11 +278,11 @@ and TypeMerger() =
                 | Single(current, currentVar), Single(target, targetVar) -> 
                     let extractCurrent (x : Option<ValueType>) = 
                         if x.IsNone then Nil
-                        else Set.ofArray [| x.Value; Nil |] |> Union
+                        else Set.of2 x.Value Nil |> Union
                     
                     let extractTarget (x : Option<ValueType>) = 
                         if x.IsNone then valueNil
-                        else Set.ofArray [| x.Value; Nil |] |> Union
+                        else Set.of2 x.Value Nil |> Union
                     
                     let rec check current target = 
                         match current, target with
