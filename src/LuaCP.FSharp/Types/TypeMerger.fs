@@ -76,13 +76,17 @@ module TypeBounds =
                       Value = Value mode a.Value b.Value
                       ReadOnly = flag a.ReadOnly b.ReadOnly }
                 
-                let convert (_, field) = Seq.skip 1 field |> Seq.fold convertPair (Seq.head field)
+                let convert (key, left, right) = 
+                    match left, right with
+                    | EmptySet, EmptySet -> None
+                    | EmptySet, other | other, EmptySet -> 
+                        match mode with
+                        | BoundMode.Equal -> raise (BoundException(sprintf "Unmatched values for key %A in types %A and %A" key a b))
+                        | BoundMode.Minimum -> None
+                        | BoundMode.Maximum -> Seq.foldHead convertPair other |> Some
+                    | left, right -> Seq.append left right |> Seq.foldHead convertPair |> Some
                 
-                let fields = 
-                    Seq.concat [ aFields; bFields ]
-                    |> Seq.groupBy (fun x -> x.Key)
-                    |> Seq.map convert
-                    |> Set.ofSeq
+                let fields = Seq.groupBy2 (fun x -> x.Key) aFields bFields |> Seq.choose convert |> Set.ofSeq
                 
                 let ops = Array.map2 (Value mode) aOps bOps
                 Table(fields, ops)
