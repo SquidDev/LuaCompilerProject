@@ -20,6 +20,9 @@ let ``Simple equate``() =
 let tStr, tNum, tInt, tBoo = Primitives.String, Primitives.Number, Primitives.Integer, Primitives.Boolean
 let lStr x = Literal(Literal.String x)
 let tabl x = Table(Set.ofList x, OperatorHelpers.Empty)
+let func x = Function(Single(x, None), Single([], None))
+let funcB x y = Function(Single(x, None), Single(y, None))
+let funcR x = Function(Single([], None), Single([], None))
 
 let pair k v = 
     { Key = k
@@ -36,8 +39,8 @@ let Intersection x = Set.ofList x |> Intersection
 
 let Bounds = 
     [| // Primitive conversions
-       Data.Named("Primitive", BoundMode.Minimum, tNum, tInt, tInt |> Some)
-       Data.Named("Primitive", BoundMode.Maximum, tNum, tInt, tNum |> Some)
+       Data.Named("Primitive", BoundMode.Minimum, tNum, tInt, tNum |> Some)
+       Data.Named("Primitive", BoundMode.Maximum, tNum, tInt, tInt |> Some)
        Data.Named("Primitive", BoundMode.Minimum, tNum, tStr, Union [ tNum; tStr ] |> Some)
        Data.Named("Primitive", BoundMode.Maximum, tNum, tStr, None)
        // Constants
@@ -60,16 +63,23 @@ let Bounds =
                          pair (lStr "bar") tStr ], 
                   tabl [ pair (lStr "foo") tStr
                          pair (lStr "bar") tStr ]
-                  |> Some) |]
+                  |> Some)
+       // Functions
+       Data.Make(BoundMode.Minimum, func [ tNum ], func [ tInt ], func [ tInt ] |> Some)
+       Data.Make(BoundMode.Maximum, func [ tNum ], func [ tInt ], func [ tNum ] |> Some)
+       Data.Make(BoundMode.Minimum, funcR [ tNum ], funcR [ tInt ], funcR [ tNum ] |> Some)
+       Data.Make(BoundMode.Maximum, funcR [ tNum ], funcR [ tInt ], funcR [ tInt ] |> Some)
+       Data.Make(BoundMode.Minimum, funcR [ tNum ], func [ tNum ], func [ tNum ] |> Some)
+       Data.Make(BoundMode.Maximum, funcR [ tNum ], func [ tNum ], funcR [ tNum ] |> Some) |]
 
 [<Test>]
 [<TestCaseSource("Bounds")>]
 let ``ValueType bounds`` (mode : BoundMode) (a : ValueType) (b : ValueType) (expected : ValueType option) = 
-    let current = 
+    let current, message = 
         try 
-            TypeBounds.Value mode a b |> Some
-        with _ -> None
-    Assert.AreEqual(expected, current, sprintf "%A(%A, %A)" mode a b)
+            TypeBounds.Value mode a b |> Some, "<empty>"
+        with :? BoundException as e -> None, e.Message
+    Assert.AreEqual(expected, current, sprintf "%A(%A, %A) (with error: %A)" mode a b message)
 (* Basic lua test cases
     return (...)=>print(...)
 

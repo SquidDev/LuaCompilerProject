@@ -44,12 +44,12 @@ module TypeBounds =
                 match mode with
                 | BoundMode.Equal -> raise (BoundException(sprintf "Cannot equate %A and %A" a b))
                 | BoundMode.Minimum -> 
-                    if TypeComparison.isPrimitiveSubtype a b then Primitive a
-                    elif TypeComparison.isPrimitiveSubtype b a then Primitive b
-                    else Set.of2 (Primitive a) (Primitive b) |> Union
-                | BoundMode.Maximum -> 
                     if TypeComparison.isPrimitiveSubtype a b then Primitive b
                     elif TypeComparison.isPrimitiveSubtype b a then Primitive a
+                    else Set.of2 (Primitive a) (Primitive b) |> Union
+                | BoundMode.Maximum -> 
+                    if TypeComparison.isPrimitiveSubtype a b then Primitive a
+                    elif TypeComparison.isPrimitiveSubtype b a then Primitive b
                     else raise (BoundException(sprintf "Cannot intersect %A and %A" a b))
                 | mode -> invalidArg "mode" (sprintf "Invalid mode %A" mode)
             | Reference(IdentRef(Unbound) as tRef), ty | ty, Reference(IdentRef(Unbound) as tRef) -> 
@@ -61,7 +61,7 @@ module TypeBounds =
                 | BoundMode.Maximum -> Set.of2 a b |> Intersection
                 | mode -> invalidArg "mode" (sprintf "Invalid mode %A" mode)
             | Function(aArgs, aRet), Function(bArgs, bRet) -> 
-                Function(Tuple mode aArgs bArgs, Tuple (opposite mode) aArgs bArgs)
+                Function(Tuple (opposite mode) aArgs bArgs, Tuple mode aRet bRet)
             | Table(aFields, aOps), Table(bFields, bOps) -> 
                 let flag a b = 
                     match mode with
@@ -85,6 +85,7 @@ module TypeBounds =
                             raise (BoundException(sprintf "Unmatched values for key %A in types %A and %A" key a b))
                         | BoundMode.Minimum -> None
                         | BoundMode.Maximum -> Seq.foldHead convertPair other |> Some
+                        | mode -> invalidArg "mode" (sprintf "Invalid mode %A" mode)
                     | left, right -> 
                         Seq.append left right
                         |> Seq.foldHead convertPair
@@ -150,7 +151,19 @@ module TypeBounds =
                     printfn "TODO: %A of %A and %A" mode a b
                     ty
             | Single(aArgs, aRem), Single(bArgs, bRem) -> 
-                let args = List.map2 (Value mode) aArgs bArgs
+                let rec check (aLi : ValueType list) (bLi : ValueType list) = 
+                    match aLi, bLi with
+                    | [], [] -> []
+                    | aFirst :: aRem, bFirst :: bRem -> 
+                        Value mode aFirst bFirst :: check aRem bRem
+                    | [], other | other, [] -> 
+                        match mode with
+                        | BoundMode.Equal -> raise (BoundException (sprintf "Cannot intersect %A and %A, not the same length" a b))
+                        | BoundMode.Minimum -> []
+                        | BoundMode.Maximum -> other // Make union with nil and oppositeRem?
+                        | mode -> invalidArg "mode" (sprintf "Invalid mode %A" mode)
+
+                let args : ValueType list = check aArgs bArgs
                 
                 let rem = 
                     match aRem, bRem with
