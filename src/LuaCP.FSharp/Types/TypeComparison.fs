@@ -22,9 +22,8 @@ let isBasicSubtype (current : ValueType) (target : ValueType) : bool =
         match current with
         | Nil -> false
         | _ -> true
-    // Primitives
     | Literal a, Literal b -> a = b
     | Literal a, Primitive b -> isPrimitiveSubtype a.Kind b
     | Primitive a, Primitive b -> isPrimitiveSubtype a b
-    | Value, _ -> false
+    | _, Literal _ | Value, _ | _, Nil | Nil, _ -> false
     | _ -> invalidArg "current or target" (sprintf "Is not a primitive (%A or %A)" current target)

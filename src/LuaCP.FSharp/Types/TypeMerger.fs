@@ -30,26 +30,16 @@ module TypeBounds =
         if a = b then a
         else 
             match a, b with
-            | Literal lit, Primitive kind | Primitive kind, Literal lit -> 
+            | (Nil | Value | Primitive _ | Literal _), (Nil | Value | Primitive _ | Literal _) -> 
                 match mode with
                 | BoundMode.Equal -> raise (BoundException(sprintf "Cannot equate %A and %A" a b))
                 | BoundMode.Minimum -> 
-                    if TypeComparison.isPrimitiveSubtype lit.Kind kind then Primitive kind
+                    if TypeComparison.isBasicSubtype a b then b
+                    elif TypeComparison.isBasicSubtype b a then a
                     else Set.of2 a b |> Union
                 | BoundMode.Maximum -> 
-                    if TypeComparison.isPrimitiveSubtype lit.Kind kind then Literal lit
-                    else raise (BoundException(sprintf "Cannot intersect %A and %A" lit kind))
-                | mode -> invalidArg "mode" (sprintf "Invalid mode %A" mode)
-            | Primitive a, Primitive b -> 
-                match mode with
-                | BoundMode.Equal -> raise (BoundException(sprintf "Cannot equate %A and %A" a b))
-                | BoundMode.Minimum -> 
-                    if TypeComparison.isPrimitiveSubtype a b then Primitive b
-                    elif TypeComparison.isPrimitiveSubtype b a then Primitive a
-                    else Set.of2 (Primitive a) (Primitive b) |> Union
-                | BoundMode.Maximum -> 
-                    if TypeComparison.isPrimitiveSubtype a b then Primitive a
-                    elif TypeComparison.isPrimitiveSubtype b a then Primitive b
+                    if TypeComparison.isBasicSubtype a b then a
+                    elif TypeComparison.isBasicSubtype b a then b
                     else raise (BoundException(sprintf "Cannot intersect %A and %A" a b))
                 | mode -> invalidArg "mode" (sprintf "Invalid mode %A" mode)
             | Reference(IdentRef(Unbound) as tRef), ty | ty, Reference(IdentRef(Unbound) as tRef) -> 
@@ -154,15 +144,15 @@ module TypeBounds =
                 let rec check (aLi : ValueType list) (bLi : ValueType list) = 
                     match aLi, bLi with
                     | [], [] -> []
-                    | aFirst :: aRem, bFirst :: bRem -> 
-                        Value mode aFirst bFirst :: check aRem bRem
+                    | aFirst :: aRem, bFirst :: bRem -> Value mode aFirst bFirst :: check aRem bRem
                     | [], other | other, [] -> 
                         match mode with
-                        | BoundMode.Equal -> raise (BoundException (sprintf "Cannot intersect %A and %A, not the same length" a b))
+                        | BoundMode.Equal -> 
+                            raise (BoundException(sprintf "Cannot intersect %A and %A, not the same length" a b))
                         | BoundMode.Minimum -> []
                         | BoundMode.Maximum -> other // Make union with nil and oppositeRem?
                         | mode -> invalidArg "mode" (sprintf "Invalid mode %A" mode)
-
+                
                 let args : ValueType list = check aArgs bArgs
                 
                 let rem = 
