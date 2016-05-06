@@ -37,7 +37,6 @@ let main argv =
         | Some(modu, builder) -> 
             let path = Path.Combine(Path.GetDirectoryName file, Path.GetFileNameWithoutExtension file) + ".out.lua"
             use writer = new IO.StreamWriter(path)
-            
             CLI.Commands.Write modu builder writer
             0
     | [| file; command |] -> 

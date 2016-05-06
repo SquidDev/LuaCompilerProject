@@ -1,4 +1,4 @@
-﻿module LuaCP.Types.TypeComparison
+module LuaCP.Types.TypeComparison
 
 open LuaCP.IR
 

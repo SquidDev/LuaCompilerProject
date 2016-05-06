@@ -81,17 +81,23 @@ module TypeBounds =
                     | EmptySet, EmptySet -> None
                     | EmptySet, other | other, EmptySet -> 
                         match mode with
-                        | BoundMode.Equal -> raise (BoundException(sprintf "Unmatched values for key %A in types %A and %A" key a b))
+                        | BoundMode.Equal -> 
+                            raise (BoundException(sprintf "Unmatched values for key %A in types %A and %A" key a b))
                         | BoundMode.Minimum -> None
                         | BoundMode.Maximum -> Seq.foldHead convertPair other |> Some
-                    | left, right -> Seq.append left right |> Seq.foldHead convertPair |> Some
+                    | left, right -> 
+                        Seq.append left right
+                        |> Seq.foldHead convertPair
+                        |> Some
                 
-                let fields = Seq.groupBy2 (fun x -> x.Key) aFields bFields |> Seq.choose convert |> Set.ofSeq
+                let fields = 
+                    Seq.groupBy2 (fun x -> x.Key) aFields bFields
+                    |> Seq.choose convert
+                    |> Set.ofSeq
                 
                 let ops = Array.map2 (Value mode) aOps bOps
                 Table(fields, ops)
-            | Reference(_), _ | _, Reference(_) -> 
-                failwith (sprintf "Unexpected state intersecting %A and %A" a b)
+            | Reference(_), _ | _, Reference(_) -> failwith (sprintf "Unexpected state intersecting %A and %A" a b)
             | Dynamic, other | other, Dynamic -> 
                 match mode with
                 | BoundMode.Equal -> 
@@ -106,18 +112,20 @@ module TypeBounds =
                 // This is wrong: we should be getting distinct ones and intersecting them.
                 // Minimum of (a & b) and a is a
                 | BoundMode.Minimum -> 
-                    Seq.append a b |> Set.ofSeq |> Union
+                    Seq.append a b
+                    |> Set.ofSeq
+                    |> Union
                 | BoundMode.Maximum -> 
-                    Seq.append a b |> Set.ofSeq |> Intersection
+                    Seq.append a b
+                    |> Set.ofSeq
+                    |> Intersection
                 | mode -> invalidArg "mode" (sprintf "Invalid mode %A" mode)
             | Intersection items, ty | ty, Intersection items -> 
                 match mode with
                 | BoundMode.Equal -> raise (BoundException(sprintf "Cannot merge %A and %A" a b))
                 // See above
-                | BoundMode.Minimum -> 
-                    Set.add ty items |> Union
-                | BoundMode.Maximum -> 
-                    Set.add ty items |> Intersection
+                | BoundMode.Minimum -> Set.add ty items |> Union
+                | BoundMode.Maximum -> Set.add ty items |> Intersection
                 | mode -> invalidArg "mode" (sprintf "Invalid mode %A" mode)
             | _, _ -> 
                 printfn "TODO: %A of %A and %A" mode a b
@@ -155,8 +163,7 @@ module TypeBounds =
                         | BoundMode.Minimum -> None
                         | mode -> invalidArg "mode" (sprintf "Invalid mode %A" mode)
                 Single(args, rem)
-            | TReference(_), _ | _, TReference(_) -> 
-               failwith (sprintf "Unexpected state intersecting %A and %A" a b)
+            | TReference(_), _ | _, TReference(_) -> failwith (sprintf "Unexpected state intersecting %A and %A" a b)
 
 [<StructuredFormatDisplay("{AsString}")>]
 type TypeConstraint<'t>(ty : 't, bound : BoundMode -> 't -> 't -> 't, merge : 't -> 't -> unit) = 

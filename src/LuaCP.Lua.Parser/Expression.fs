@@ -23,16 +23,13 @@ type Expression(lang : Language) =
                          literal.Table
                          literal.Dots
                          funcExpr
-                         
-                         betweenL (Symbol "(") (Symbol ")") lang.Expression 
-                             "parens" |>> Parens
-                         lang.Identifier |>> fun x -> upcast x ] 
-            "primary expression"
+                         betweenL (Symbol "(") (Symbol ")") lang.Expression "parens" |>> Parens
+                         lang.Identifier |>> fun x -> upcast x ] "primary expression"
     
-    let singleton x = [x]
+    let singleton x = [ x ]
+    
     let arguments, argumentsRef = 
-        longestChoiceL [ betweenL (Symbol "(") (Symbol ")") lang.ExprList 
-                             "arguments"
+        longestChoiceL [ betweenL (Symbol "(") (Symbol ")") lang.ExprList "arguments"
                          literal.String |>> singleton
                          literal.Table |>> singleton
                          literal.Boolean |>> singleton ] "arguments"
@@ -40,16 +37,14 @@ type Expression(lang : Language) =
     let suffixes, suffix, suffixRef = 
         let index = 
             (betweenL (Symbol "[") (Symbol "]") lang.Expression "indexer") 
-            <|> (JustSymbol "." >>. IdentifierBase |>> Nodes.String) 
-            <?> "indexer"
+            <|> (JustSymbol "." >>. IdentifierBase |>> Nodes.String) <?> "indexer"
         let invoke = Symbol ":" >>. IdentifierBase .>>. arguments <?> "invoke"
         
         let makeInvoke (x : string * list<IValueNode>) func = 
             let (name, args) = x
             Nodes.Invoke func name args
         
-        let makeIndex indexer expr : IValueNode = 
-            upcast Nodes.Index expr indexer
+        let makeIndex indexer expr : IValueNode = upcast Nodes.Index expr indexer
         let makeCall args expr = Nodes.Call expr args
         
         // We have to use a monad style syntax here otherwise we can't preserve the value
@@ -82,15 +77,12 @@ type Expression(lang : Language) =
                 if right then Associativity.Right
                 else Associativity.Left
             
-            expr.AddOperator
-                (InfixOperator
-                     (symbol, whitespace, precedence, associtivity, builder))
+            expr.AddOperator(InfixOperator(symbol, whitespace, precedence, associtivity, builder))
         for (symbol, builder, precedence) in Operators.Unary do
             let whitespace = 
                 if symbol.Chars 0 |> Char.IsLetter then KWhitespace
                 else Whitespace
-            expr.AddOperator
-                (PrefixOperator(symbol, whitespace, precedence, true, builder))
+            expr.AddOperator(PrefixOperator(symbol, whitespace, precedence, true, builder))
     
     member val Arguments = arguments
     member val ArgumentsRef = argumentsRef

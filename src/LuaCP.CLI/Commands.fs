@@ -32,7 +32,6 @@ let Build(tree : INode) =
 let Write (modu : Module) (builder : FunctionBuilder) stream = 
     let types = builder.EntryPoint.Scopes.Get<TypeScope>()
     types.Bake()
-    
     let decorator (insn : Instruction) = 
         match insn with
         | :? ValueInstruction as value when value.Kind = IR.ValueKind.Tuple -> (types.TupleGet value).Root.ToString()

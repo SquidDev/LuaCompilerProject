@@ -226,7 +226,7 @@ type TypeProvider() =
                     | _ -> raise (ArgumentException(sprintf "Cannot get operator for %A" ty))
             unaryMap.[key] <- res
             res
-
+    
     member this.IsBaseSubtype current target = isBaseSubtype current target
     member this.IsTypeEqual current target = (isBiwaySubtype current target).ToBoolean()
     member this.IsSubtype current target = (isSubtype current target).ToBoolean()
@@ -236,7 +236,7 @@ type TypeProvider() =
     
     /// <summary>Find the best function given a set of arguments</summary>
     member this.FindBestFunction (func : ValueType) (args : TupleType) : ValueType option * ValueType Set = 
-        let rec findBest (best : ValueType Set) (func : ValueType)  = 
+        let rec findBest (best : ValueType Set) (func : ValueType) = 
             match func with
             | Intersection funcs -> Seq.foldAbort findBest best funcs
             | Function(fArgs, _) -> 
@@ -247,7 +247,7 @@ type TypeProvider() =
             | Nil -> None, best
             | _ -> raise (ArgumentException(sprintf "Expected function type, got %A" func, "func"))
         
-        let func, bests = findBest Set.empty func 
+        let func, bests = findBest Set.empty func
         match func, bests with
         | (Some _, _) | (None, EmptySet) -> func, bests
         | (None, SingleSet item) -> Some item, Set.empty

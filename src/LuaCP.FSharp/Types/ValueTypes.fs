@@ -21,7 +21,6 @@ type ValueType =
     static member Format (this : ValueType) (alloc : StringAllocator<int>) (brackets : bool) = 
         let formatB x = ValueType.Format x alloc true
         let format x = ValueType.Format x alloc false
-
         match this with
         | Primitive x -> x.ToString().ToLowerInvariant()
         | Literal x -> x.ToString()

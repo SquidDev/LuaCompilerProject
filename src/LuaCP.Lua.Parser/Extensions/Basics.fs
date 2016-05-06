@@ -50,6 +50,7 @@ type Lambda(lang : Language) =
     member val Lambda = lambda
 
 type OpEquals(lang : Language) = 
+    
     let opAssign (op : IValueNode -> IValueNode -> IValueNode) (left : list<IAssignable>) (right : list<IValueNode>) = 
         // TODO: Replace x.y.z += 1 with tmp = x.y; tmp.z = tmp.z + 1
         if left.Length <> right.Length then raise (ArgumentException("Assymetric operator"))

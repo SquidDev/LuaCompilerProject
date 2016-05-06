@@ -61,8 +61,7 @@ type Statement(lang : Language) =
                                    | Some(x) -> x))
         
         let func = 
-            pipe2 (Keyword "function" >>. lang.Declaration) func.Body 
-                (fun dec body -> Nodes.LocalRec [dec] [body])
+            pipe2 (Keyword "function" >>. lang.Declaration) func.Body (fun dec body -> Nodes.LocalRec [ dec ] [ body ])
         let localChoice, localChoiceRef = longestChoiceL [ func; nameList ] "local statement"
         Keyword "local" >>. localChoice <?> "local statement", localChoiceRef
     
@@ -70,12 +69,12 @@ type Statement(lang : Language) =
         let parser = 
             pipe2 (Keyword "function" >>. func.Name) func.Body (fun name func -> 
                 match name with
-                | (expr, false) -> Nodes.Assign [expr :?> IAssignable] [func]
+                | (expr, false) -> Nodes.Assign [ expr :?> IAssignable ] [ func ]
                 | (expr, true) -> 
                     match func with
                     | :? Lua.Tree.Expression.FunctionNode as func -> 
-                        Nodes.Assign [expr :?> IAssignable]
-                            [Nodes.Function ("self" :: Seq.toList func.Arguments) func.Dots func.Body]
+                        Nodes.Assign [ expr :?> IAssignable ] 
+                            [ Nodes.Function ("self" :: Seq.toList func.Arguments) func.Dots func.Body ]
                     | _ -> raise (ArgumentException "Expected function"))
         refL "function statement" parser
     
@@ -90,7 +89,9 @@ type Statement(lang : Language) =
             match x with
             | :? Lua.Tree.Expression.CallNode as func -> preturn (upcast func)
             | _ -> fail "Expected call statement"
-        lang.Expression >>= validate |> refL "call statement"
+        lang.Expression
+        >>= validate
+        |> refL "call statement"
     
     do 
         let statements = 

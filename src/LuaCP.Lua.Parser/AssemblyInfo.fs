@@ -10,6 +10,5 @@ open System.Runtime.CompilerServices
 [<assembly:AssemblyProduct("LuaCP")>]
 [<assembly:AssemblyCopyright("SquidDev")>]
 [<assembly:AssemblyTrademark("")>]
-
 [<assembly:AssemblyVersion("1.0.*")>]
 ()

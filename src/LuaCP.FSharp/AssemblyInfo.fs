@@ -15,4 +15,3 @@ open System.Runtime.CompilerServices
 // The assembly version has the format {Major}.{Minor}.{Build}.{Revision}
 //[<assembly: AssemblyDelaySign(false)>]
 //[<assembly: AssemblyKeyFile("")>]
-

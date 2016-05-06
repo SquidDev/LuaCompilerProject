@@ -10,9 +10,9 @@ let Keywords =
     [ "true"; "false"; "nil"; "if"; "while"; "for"; "do"; "then"; "elseif"; "else"; "end"; "goto"; "return"; "and"; "or"; 
       "local"; "in"; "not"; "until" ]
 let LongStringStart : Parser<int> = between (pstring "[") (pstring "[") (pstring "=" |> many) |>> fun x -> x.Length
-let LongString = 
-    LongStringStart >>= (fun x -> manyCharsTill anyChar (pstring ("]" + (String.replicate x "=") + "]"))) 
-    <??> "long string"
+let LongString = LongStringStart
+                 >>= (fun x -> manyCharsTill anyChar (pstring ("]" + (String.replicate x "=") + "]")))
+                 <??> "long string"
 let Comment = 
     pstring "--" >>. ((lookAhead LongStringStart >>. LongString) <|> (manyCharsTill anyChar newline)) <??> "comment"
 let Whitespace = skipMany (spaces1 <|> (Comment >>% ())) <?> "whitespace"
