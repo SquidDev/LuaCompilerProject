@@ -72,14 +72,31 @@ let Bounds =
        Data.Make(BoundMode.Minimum, funcR [ tNum ], func [ tNum ], func [ tNum ] |> Some)
        Data.Make(BoundMode.Maximum, funcR [ tNum ], func [ tNum ], funcR [ tNum ] |> Some) |]
 
+let AssertSubtype func current target = 
+    if not (func current target) then Assert.Fail(sprintf "Should be able to convert %A to %A" current target)
+
 [<Test>]
 [<TestCaseSource("Bounds")>]
 let ``ValueType bounds`` (mode : BoundMode) (a : ValueType) (b : ValueType) (expected : ValueType option) = 
-    let current, message = 
+    match expected with
+    | None -> 
         try 
-            TypeBounds.Value mode a b |> Some, "<empty>"
-        with :? BoundException as e -> None, e.Message
-    Assert.AreEqual(expected, current, sprintf "%A(%A, %A) (with error: %A)" mode a b message)
+            let result = TypeBounds.Value mode a b
+            Assert.Fail(sprintf "Expected error, got %A" result)
+        with :? BoundException as e -> ()
+    | Some expected -> 
+        let current = TypeBounds.Value mode a b
+        Assert.AreEqual(expected, current, sprintf "%A(%A, %A)" mode a b)
+        match mode with
+        | BoundMode.Minimum -> 
+            let checker = (new TypeProvider()).IsSubtype
+            AssertSubtype checker a expected
+            AssertSubtype checker b expected
+        | BoundMode.Maximum -> 
+            let checker = (new TypeProvider()).IsSubtype
+            AssertSubtype checker expected a
+            AssertSubtype checker expected b
+        | _ -> ()
 (* Basic lua test cases
     return (...)=>print(...)
 
