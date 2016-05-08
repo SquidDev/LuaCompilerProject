@@ -97,6 +97,24 @@ let ``ValueType bounds`` (mode : BoundMode) (a : ValueType) (b : ValueType) (exp
             AssertSubtype checker expected a
             AssertSubtype checker expected b
         | _ -> ()
+
+[<Test>]
+[<TestCaseSource("Bounds")>]
+let ``ValueType bounds symetrical`` (mode : BoundMode) (a : ValueType) (b : ValueType) (expected : ValueType option) = 
+    match expected with
+    | None -> 
+        try 
+            let result = TypeBounds.Value mode a b
+            Assert.Fail(sprintf "Expected error, got %A" result)
+        with :? BoundException as e -> ()
+        try 
+            let result = TypeBounds.Value mode b a
+            Assert.Fail(sprintf "Expected error, got %A (when flipped)" result)
+        with :? BoundException as e -> ()
+    | Some expected -> 
+        let bound1 = TypeBounds.Value mode a b
+        let bound2 = TypeBounds.Value mode b a
+        Assert.AreEqual(bound1, bound2, sprintf "%A(%A, %A)" mode a b)
 (* Basic lua test cases
     return (...)=>print(...)
 
