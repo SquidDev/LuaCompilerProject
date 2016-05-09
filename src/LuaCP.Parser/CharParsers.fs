@@ -1,4 +1,4 @@
-﻿module LuaCP.Parser.CharParsers
+module LuaCP.Parser.CharParsers
 
 open System
 open LuaCP.Parser

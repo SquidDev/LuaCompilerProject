@@ -1,10 +1,9 @@
-﻿module LuaCP.Parser.Core
+module LuaCP.Parser.Core
 
 open NUnit.Framework
 open LuaCP.Parser
 open LuaCP.Parser.CharParsers
 open LuaCP.Parser.Recogniser
-
 
 let ``Null rules``() = 
     let G = new Grammar<_>()

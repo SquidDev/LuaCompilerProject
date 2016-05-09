@@ -1,4 +1,4 @@
-﻿module LuaCP.Parser.AssemblyInfo
+module LuaCP.Parser.AssemblyInfo
 
 open System.Reflection
 open System.Runtime.CompilerServices
@@ -15,4 +15,3 @@ open System.Runtime.CompilerServices
 // The assembly version has the format {Major}.{Minor}.{Build}.{Revision}
 //[<assembly: AssemblyDelaySign(false)>]
 //[<assembly: AssemblyKeyFile("")>]
-

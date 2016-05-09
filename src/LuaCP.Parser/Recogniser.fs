@@ -1,4 +1,4 @@
-﻿module LuaCP.Parser.Recogniser
+module LuaCP.Parser.Recogniser
 
 open System.Collections.Generic
 

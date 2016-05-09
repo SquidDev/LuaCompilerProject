@@ -24,9 +24,8 @@ and RuleGroup<'t>(name : string) =
     member val internal Patterns = new HashSet<Pattern<'t>>()
     member val internal Nullable = false with get, set
     member this.IsNullable = this.Nullable
-
     override this.ToString() = 
-        sprintf "[Rule %A with %d patterns (nullable: %b)]" name this.Patterns.Count this.Nullable 
+        sprintf "[Rule %A with %d patterns (nullable: %b)]" name this.Patterns.Count this.Nullable
 
 and internal Pattern<'t> = 
     { Contents : Element<'t> []
