@@ -1,4 +1,4 @@
-
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LuaCP.Core", "src\LuaCP.Core\LuaCP.Core.csproj", "{9E0538BF-B68A-463F-8067-4621AEB2363E}"
@@ -19,6 +19,8 @@ Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "LuaCP.Test", "src\LuaCP.Tes
 EndProject
 Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "LuaCP.CLI", "src\LuaCP.CLI\LuaCP.CLI.fsproj", "{821787D2-46C0-49B4-864B-34CC253F4ECE}"
 EndProject
+Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "LuaCP.Parser", "src\LuaCP.Parser\LuaCP.Parser.fsproj", "{4414AA84-0B38-445F-929C-C84BBEF7AEAE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -29,6 +31,10 @@ Global
 		{020F1454-9CE4-4A9A-BCA8-BC3F74307DDD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{020F1454-9CE4-4A9A-BCA8-BC3F74307DDD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{020F1454-9CE4-4A9A-BCA8-BC3F74307DDD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4414AA84-0B38-445F-929C-C84BBEF7AEAE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4414AA84-0B38-445F-929C-C84BBEF7AEAE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4414AA84-0B38-445F-929C-C84BBEF7AEAE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4414AA84-0B38-445F-929C-C84BBEF7AEAE}.Release|Any CPU.Build.0 = Release|Any CPU
 		{4A2E8F61-88B2-4DE5-A4B9-E0B929CEEEFA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{4A2E8F61-88B2-4DE5-A4B9-E0B929CEEEFA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4A2E8F61-88B2-4DE5-A4B9-E0B929CEEEFA}.Release|Any CPU.ActiveCfg = Release|Any CPU

@@ -1,3 +1,5 @@
+module LuaCP.Test.Runner
+
 open NUnitLite
 
 [<EntryPoint>]

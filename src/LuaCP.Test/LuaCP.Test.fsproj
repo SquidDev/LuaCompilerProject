@@ -40,12 +40,14 @@
     <Compile Include="Types\OperatorCheck.fs" />
     <Compile Include="Types\TypeMergerCheck.fs" />
     <Compile Include="Passes\ReferenceToValueTest.fs" />
+    <Compile Include="Parser\Core.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.1\Framework\v4.0\Microsoft.FSharp.Targets" />
   <ItemGroup>
     <Folder Include="Types\" />
     <Folder Include="Passes\" />
+    <Folder Include="Parser\" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\LuaCP.Core\LuaCP.Core.csproj">
@@ -55,6 +57,10 @@
     <ProjectReference Include="..\LuaCP.FSharp\LuaCP.FSharp.fsproj">
       <Project>{020F1454-9CE4-4A9A-BCA8-BC3F74307DDD}</Project>
       <Name>LuaCP.FSharp</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\LuaCP.Parser\LuaCP.Parser.fsproj">
+      <Project>{4414AA84-0B38-445F-929C-C84BBEF7AEAE}</Project>
+      <Name>LuaCP.Parser</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
