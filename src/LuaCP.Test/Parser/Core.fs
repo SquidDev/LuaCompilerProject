@@ -5,6 +5,7 @@ open LuaCP.Parser
 open LuaCP.Parser.CharParsers
 open LuaCP.Parser.Recogniser
 
+[<Test>]
 let ``Null rules``() = 
     let G = new Grammar<_>()
     let A = G.MakeRule "A"
@@ -15,11 +16,9 @@ let ``Null rules``() =
     G.Bake()
     match parse A "" with
     | Failure items -> Assert.Fail(sprintf "Expected success, got %A" items)
-    | Success items -> 
-        CollectionAssert.Contains(items, A)
-        CollectionAssert.Contains(items, B)
-        CollectionAssert.AreEquivalent(items, [ A; B ], "For empty match")
+    | Success items -> CollectionAssert.AreEquivalent(items, [ A; B ], "For empty match")
 
+[<Test>]
 let ``Basic calculator``() = 
     let G = new Grammar<_>()
     let sum = G.MakeRule "Sum"
@@ -44,4 +43,4 @@ let ``Basic calculator``() =
     G.Bake()
     match parse sum "2*3+(4*5)" with
     | Failure items -> Assert.Fail(sprintf "Expected success, got %A" items)
-    | Success items -> printfn "%A" items
+    | Success items -> CollectionAssert.AreEquivalent(items, [ sum ])

@@ -76,7 +76,6 @@ let parse<'t> (rule : RuleGroup<'t>) string =
     let mutable position = 0
     for chr in string do
         let currentState = states.[position]
-        dumpState position currentState
         if currentState.Count > 0 then 
             position <- position + 1
             let nextState = new State<'t>()
@@ -91,9 +90,8 @@ let parse<'t> (rule : RuleGroup<'t>) string =
                     | Rule _ -> ()
     let last = states.[position]
     let items = 
-        Seq.filter 
-            (fun (state : StateCell<'t>) -> 
-            state.Start = 0 && state.Rule.Group = rule && state.Current = state.Rule.Contents.Length) last |> Seq.toList
+        Seq.filter (fun (state : StateCell<'t>) -> state.Start = 0 && state.Current = state.Rule.Contents.Length) last 
+        |> Seq.toList
     if last.Count = 0 || items.IsEmpty then 
         let position = 
             if last.Count = 0 then position - 1
