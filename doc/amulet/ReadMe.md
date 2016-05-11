@@ -277,7 +277,7 @@ Type is used to define types and type extensions. A type can either be of severa
 
 ##### Type extensions
 Amulet does not actually have methods on classes: all method calls are implemented as "extension methods". This allows
-calling a method using `this.MethodName()` or `Module.MethodName this`.
+calling a method using `this.MethodName` or `Module.MethodName this`.
 
 ```ocaml
 type List<'t> with (* Constraints can be used, but not nested types, like normal type declarations *)
@@ -327,8 +327,8 @@ type AgablePerson(name : string, age : int) =
     member Age = age with get, set
 ```
 
-These members can be accessed with `get<Name>` and `set<Name`>. Property syntax is just sugar for functions which accept
-one or two arguments.
+These members can be accessed with `<Name>` and set with `set<Name`>. Property syntax is just sugar for functions which
+accept one or two arguments.
 
 > The above syntax is ambiguous and so should be improved.
 
@@ -343,3 +343,6 @@ impl Hashable for Tree<_> =
 ```
 
 Traits implicitly create a module with all trait methods defined, allowing `Hashable.hash object`.
+
+> If a trait requires a constraint (such as `Comparable` requiring `Equatable`) should the required trait be resolved at
+  use time or definition time?
