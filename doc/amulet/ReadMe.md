@@ -9,12 +9,10 @@ There are a series of "primitive" types. These make up all other types.
  - `Integer`: Represents all integers.
  - `Real`: A floating point number.
  - `Unit`: The empty type.
+ - `Nothing`: This type has no concrete value and so can be used to represent functions that never exit (they loop forever
+   or throw an exception). This is based off Scala's [`Nothing`](http://stackoverflow.com/questions/13539822/whats-the-difference-between-unit-and-nothing) type.
 
-> The type system may also contain a `Never` or `Nothing` type. This type has no concrete value and so can be used to
-  represent functions that never exit (they loop for ever or throw an exception). This is based off Scala's
-  [`Nothing`](http://stackoverflow.com/questions/13539822/whats-the-difference-between-unit-and-nothing) type.
-
-> There should also be a `value` or `obj` type: a base type that everything can be assignable to.
+There is also a `Value` type. This is not a primitive but a base type that everything can be assigned to.
 
 ### Functions
 The type system also contains functions, which map a value from one type to another: `a -> b`. Multiple arguments are
@@ -63,12 +61,13 @@ Each pair is called a "member" and is composed of several elements:
    - `Private` (only this record or associated methods)
    - `Public` (accessible to everone).
 
+Records are not structurally typed: two identical record types are not equatable.
+
+Unions can also contain records types.
+
 ### Traits/Interfaces/Type classes
 These are used to describe a series of operations that can be applied to a type. For instance the `Hashable` trait
 allows getting a hash code of an object:
-
-> The syntax shown here is not final: I'm not 100% sure how best to do this. I like F#'s `<...>` for generics, but most
-  other FP languages don't use them them.
 
 ```ocaml
 trait Hashable of 't =
@@ -209,13 +208,24 @@ let rec doEven x = if x = 0 then 1 else doOdd (x - 1)
 and doOdd = if x = 1 then 0 else doEven (x * 2)
 ```
 
-When occuring in a module of type definition, you can use the `internal` or `private` specifier to give the variable
+When occurring in a module of type definition, you can use the `internal` or `private` specifier to give the variable
 access modifiers:
 ```ocaml
 let private a = "hello"
 let internal add a b = a + b
 ```
 In recursive definitions these modifiers apply to all functions defined.
+
+For operators you can also specify associativity with `infixl` and `infixr`. This defaults to left:
+
+```ocaml
+let (+) a b = add a b (* Left associative *)
+let infixr (+) a b = add a b (* Right associative *)
+```
+
+> There needs to be a way to specify precedence. We could use a syntax similar to Haskell's `infixr precedence`
+  (such as `let infixr 10 (+)`). An alternative would be to use a [katahdin](https://github.com/chrisseaton/katahdin)
+  style `precidence` operator(`precidence (+) = (-)`) to allow sorting operators instead of using explicit integers.
 
 #### `module`
 This can be used to define the module a piece of code lies in. It takes the form `module <name> = `. If it is the first
