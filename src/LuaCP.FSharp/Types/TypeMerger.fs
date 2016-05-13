@@ -111,13 +111,24 @@ module TypeBounds =
                     |> Set.ofSeq
                     |> Intersection
                 | mode -> invalidArg "mode" (sprintf "Invalid mode %A" mode)
-            | Intersection items, ty | ty, Intersection items -> 
-                match mode with
-                | BoundMode.Equal -> raise (BoundException(sprintf "Cannot merge %A and %A" a b))
-                // See above
-                | BoundMode.Minimum -> Set.add ty items |> Union
-                | BoundMode.Maximum -> Set.add ty items |> Intersection
-                | mode -> invalidArg "mode" (sprintf "Invalid mode %A" mode)
+            | Intersection a, b | b, Intersection a when mode = BoundMode.Maximum -> 
+                let b = 
+                    match b with
+                    | Intersection b -> b
+                    | b -> Set.singleton b
+                
+                let result = Set.union a b
+                if result.Count = 1 then result.MinimumElement
+                else Intersection result
+            | Union a, b | b, Union a when mode = BoundMode.Minimum -> 
+                let b = 
+                    match b with
+                    | Union b -> b
+                    | b -> Set.singleton b
+                
+                let result = Set.union a b
+                if result.Count = 1 then result.MinimumElement
+                else Union result
             | _, _ -> 
                 printfn "TODO: %A of %A and %A" mode a b
                 match mode with
