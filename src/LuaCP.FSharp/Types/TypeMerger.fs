@@ -24,6 +24,19 @@ module TypeBounds =
         | BoundMode.Maximum -> BoundMode.Minimum
         | mode -> invalidArg "mode" (sprintf "Invalid mode %A" mode)
     
+    let private canMerge (a : ValueType) (b : ValueType) : bool = 
+        let a = a.Root
+        let b = b.Root
+        if a = b then true
+        else 
+            match a, b with
+            | (Nil | Value | Primitive _ | Literal _), (Nil | Value | Primitive _ | Literal _) -> true
+            | Reference _, _ | _, Reference _ -> false
+            | Function(aArgs, aRet), Function(bArgs, bRet) -> true
+            | Table(aFields, aOps), Table(bFields, bOps) -> true
+            | Dynamic, _ | _, Dynamic -> true
+            | _, _ -> false
+    
     let rec Value (mode : BoundMode) (a : ValueType) (b : ValueType) : ValueType = 
         let a = a.Root
         let b = b.Root
@@ -47,10 +60,17 @@ module TypeBounds =
                 | BoundMode.Equal -> 
                     tRef.Value <- Link ty
                     ty
-                | BoundMode.Minimum -> Set.of2 a b |> Union
-                | BoundMode.Maximum -> Set.of2 a b |> Intersection
+                | BoundMode.Minimum -> 
+                    match ty with
+                    | Union other -> Set.add (Reference tRef) other |> Union
+                    | ty -> Set.of2 (Reference tRef) ty |> Union
+                | BoundMode.Maximum -> 
+                    match ty with
+                    | Intersection other -> Set.add (Reference tRef) other |> Intersection
+                    | ty -> Set.of2 (Reference tRef) ty |> Intersection
                 | mode -> invalidArg "mode" (sprintf "Invalid mode %A" mode)
             | Function(aArgs, aRet), Function(bArgs, bRet) -> 
+                // TODO: Intersect functions instead
                 Function(Tuple (opposite mode) aArgs bArgs, Tuple mode aRet bRet)
             | Table(aFields, aOps), Table(bFields, bOps) -> 
                 let flag a b = 
@@ -117,7 +137,12 @@ module TypeBounds =
                     | Intersection b -> b
                     | b -> Set.singleton b
                 
-                let result = Set.union a b
+                let mutable result = a
+                for ty in b do
+                    if not (Set.contains ty result) then 
+                        match Seq.tryFind (canMerge ty) result with
+                        | Some other -> result <- Set.remove other result |> Set.add (Value mode other ty)
+                        | None _ -> result <- Set.add ty result
                 if result.Count = 1 then result.MinimumElement
                 else Intersection result
             | Union a, b | b, Union a when mode = BoundMode.Minimum -> 
@@ -126,7 +151,12 @@ module TypeBounds =
                     | Union b -> b
                     | b -> Set.singleton b
                 
-                let result = Set.union a b
+                let mutable result = a
+                for ty in b do
+                    if not (Set.contains ty result) then 
+                        match Seq.tryFind (canMerge ty) result with
+                        | Some a -> result <- Set.remove a result |> Set.add (Value mode a ty)
+                        | None _ -> result <- Set.add ty result
                 if result.Count = 1 then result.MinimumElement
                 else Union result
             | _, _ -> 

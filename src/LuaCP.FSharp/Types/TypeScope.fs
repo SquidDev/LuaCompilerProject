@@ -118,9 +118,9 @@ type TypeScope() =
     member this.TupleSupertype (value : TupleType) (target : IValue) = equator.MergeTuples value (this.TupleGet target)
     member this.TupleAssign (current : IValue) (target : IValue) = 
         equator.MergeTuples (this.TupleGet current) (this.TupleGet target)
+    member this.Bake() = equator.Bake()
     
-    member this.Bake() = 
-        equator.Bake()
+    member this.Flatten() = 
         for key in (System.Linq.Enumerable.ToList values.Keys) do
             values.[key] <- values.[key].Flattened
         for key in (System.Linq.Enumerable.ToList tuples.Keys) do

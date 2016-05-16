@@ -48,7 +48,11 @@ let InferType (scope : TypeScope) (insn : Instruction) =
     | TupleNew insn when insn.Values.Count = 0 -> scope.EquateTupleWith insn (scope.TupleGet insn.Remaining)
     | ReferenceGet insn -> scope.EquateValues insn.Reference insn
     | ReferenceSet insn -> scope.ValueAssign insn.Value insn.Reference
-    | ReferenceNew insn -> scope.ValueAssign insn.Value insn
+    | ReferenceNew insn -> 
+        if not (insn.Value.IsNil()) then 
+            // We skip nil values
+            // TODO: Handle this better
+            scope.ValueAssign insn.Value insn
     | ClosureNew insn -> 
         Seq.iteri (fun i (x : IValue) -> scope.EquateValues x (insn.Function.OpenUpvalues.[i])) insn.OpenUpvalues
         Seq.iteri (fun i (x : IValue) -> scope.ValueAssign x insn.Function.ClosedUpvalues.[i]) insn.ClosedUpvalues

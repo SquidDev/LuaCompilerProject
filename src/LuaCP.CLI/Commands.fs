@@ -32,6 +32,7 @@ let Build(tree : INode) =
 let Write (modu : Module) (builder : FunctionBuilder) stream = 
     let types = builder.EntryPoint.Scopes.Get<TypeScope>()
     types.Bake()
+    types.Flatten()
     let decorator (insn : Instruction) = 
         match insn with
         | :? ValueInstruction as value when value.Kind = IR.ValueKind.Tuple -> (types.TupleGet value).Root.ToString()
@@ -80,6 +81,13 @@ let RunCommand (command : string) (modu : Module) (builder : FunctionBuilder) =
     | "bake" -> 
         let scope = builder.EntryPoint.Scopes.Get<TypeScope>()
         scope.Bake()
+        for func in modu.Functions do
+            let numberer = new NodeNumberer(func)
+            scope.DumpFunction numberer
+    | "flatten" -> 
+        let scope = builder.EntryPoint.Scopes.Get<TypeScope>()
+        scope.Bake()
+        scope.Flatten()
         for func in modu.Functions do
             let numberer = new NodeNumberer(func)
             scope.DumpFunction numberer
