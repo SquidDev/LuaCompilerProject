@@ -4,7 +4,7 @@ open System
 open System.Collections.Generic
 
 module Seq = 
-    let foldAbort<'T, 'State, 'Choice> f (x : 'State) (source : seq<'T>) : 'Choice option * 'State = 
+    let foldFind<'T, 'State, 'Choice> f (x : 'State) (source : seq<'T>) : 'Choice option * 'State = 
         use e = source.GetEnumerator()
         let mutable res : 'Choice option = None
         let mutable state = x
@@ -14,6 +14,28 @@ module Seq =
             res <- result
             state <- other
         res, state
+    
+    let foldAbort<'T, 'State> f (x : 'State) (source : seq<'T>) : 'State option = 
+        use e = source.GetEnumerator()
+        let mutable state = Some x
+        let f = OptimizedClosures.FSharpFunc<_, _, _>.Adapt(f)
+        while (Option.isSome state && e.MoveNext()) do
+            state <- f.Invoke(state.Value, e.Current)
+        state
+    
+    let foldOption<'T, 'State> f (x : 'State) (source : seq<'T>) : 'State option = 
+        use e = source.GetEnumerator()
+        let mutable state = x
+        let mutable any = false
+        let f = OptimizedClosures.FSharpFunc<_, _, _>.Adapt(f)
+        while e.MoveNext() do
+            match f.Invoke(state, e.Current) with
+            | Some s -> 
+                state <- s
+                any <- true
+            | None -> ()
+        if any then Some state
+        else None
     
     let groupBy2<'T, 'Key when 'Key : equality> (getKey : 'T -> 'Key) (a : seq<'T>) (b : seq<'T>) : seq<'Key * 'T List * 'T List> = 
         let dict = new Dictionary<_, List<'T> * List<'T>>()

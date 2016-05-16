@@ -283,6 +283,10 @@ and RefLookup<'t> = Dictionary<IdentRef<VariableType<'t>>, TypeConstraint<'t>>
 
 type VisitedList<'t> = HashSet<'t * 't>
 
+type SubtypeMap<'t when 't : comparison> = Set<'t * 't>
+
+type TypeMap = SubtypeMap<ValueType> * SubtypeMap<TupleType>
+
 and TypeMerger() = 
     let values = new RefLookup<ValueType>()
     let tuples = new RefLookup<TupleType>()
@@ -290,44 +294,56 @@ and TypeMerger() =
     let valueNil = Set.of2 Value Nil |> Union
     
     let rec mergeValues (vVisited : VisitedList<_>) (tVisited : VisitedList<_>) (current : ValueType) 
-            (target : ValueType) = 
+            (target : ValueType) (typeMap : TypeMap) : TypeMap option = 
         if vVisited.Add(current, target) then 
             let current = current.Root
             let target = target.Root
             if current <> target then 
                 match current, target with
-                | Reference(IdentRef(Unbound) as currentRef), Reference(IdentRef(Unbound) as targetRef) -> 
-                    values.[currentRef].AddSubtype target |> ignore
-                    values.[targetRef].AddSupertype current |> ignore
-                | Reference(IdentRef(Unbound) as current), target -> values.[current].AddSubtype target |> ignore
-                | current, Reference(IdentRef(Unbound) as target) -> values.[target].AddSupertype current |> ignore
+                | Reference(IdentRef(Unbound)), _ | _, Reference(IdentRef(Unbound)) -> 
+                    let values, tuples = typeMap
+                    Some(Set.add (current, target) values, tuples)
                 | Reference(_), _ | _, Reference(_) -> 
                     failwith (sprintf "Unexpected state merging %A :> %A" current target)
-                | Union current, _ -> Set.iter (fun v -> mergeValues vVisited tVisited v target) current
-                | _, Intersection target -> Set.iter (fun v -> mergeValues vVisited tVisited current v) target
+                | Union current, _ -> 
+                    Seq.foldAbort (fun s v -> mergeValues vVisited tVisited v target s) typeMap current
+                | _, Intersection target -> 
+                    Seq.foldAbort (fun s v -> mergeValues vVisited tVisited current v s) typeMap target
+                | _, Union target -> 
+                    Seq.foldOption (fun s v -> mergeValues vVisited tVisited current v s) typeMap target
+                | Intersection current, _ -> 
+                    Seq.foldOption (fun s v -> mergeValues vVisited tVisited v target s) typeMap current
                 | (Nil | Value | Dynamic | Primitive _ | Literal _), (Nil | Value | Dynamic | Primitive _ | Literal _) -> 
                     if not (TypeComparison.isBasicSubtype current target) then 
                         raise (Exception(sprintf "Cannot cast %A to %A" current target))
+                    else Some typeMap
                 | Table(currentFields, currentOps), Table(targetFields, targetOps) -> 
-                    for targetField in targetFields do
+                    let handle (values, tuples) targetField = 
                         match Seq.tryFind (fun x -> x.Key = targetField.Key) currentFields with
-                        | Some currentField -> mergeValues vVisited tVisited currentField.Value targetField.Value
-                        | None -> printfn "Missing field %A in %A" targetField.Key current
+                        | Some currentField -> 
+                            mergeValues vVisited tVisited currentField.Value targetField.Value (values, tuples)
+                        | None -> 
+                            printfn "Missing field %A in %A" targetField.Key current
+                            Some(values, tuples)
+                    Seq.foldAbort handle typeMap targetFields
                 | Function(currentA, currentR), Function(targetA, targetR) -> 
-                    mergeTuples vVisited tVisited targetA currentA
-                    mergeTuples vVisited tVisited currentR targetR
-                | _, _ -> printfn "TODO: %A :> %A" current target // TODO: Implement other types
-    and mergeTuples (vVisited : VisitedList<_>) (tVisited : VisitedList<_>) (current : TupleType) (target : TupleType) = 
+                    match mergeTuples vVisited tVisited targetA currentA typeMap with
+                    | Some typeMap -> mergeTuples vVisited tVisited currentR targetR typeMap
+                    | None -> None
+                | _, _ -> 
+                    printfn "TODO: %A :> %A" current target // TODO: Implement other types
+                    Some typeMap
+            else Some typeMap
+        else Some typeMap
+    and mergeTuples (vVisited : VisitedList<_>) (tVisited : VisitedList<_>) (current : TupleType) (target : TupleType) 
+        ((values, tuples) : TypeMap) : TypeMap option = 
         if tVisited.Add(current, target) then 
             let current = current.Root
             let target = target.Root
             if current <> target then 
                 match current, target with
-                | TReference(IdentRef(Unbound) as currentRef), TReference(IdentRef(Unbound) as targetRef) -> 
-                    tuples.[currentRef].AddSubtype target |> ignore
-                    tuples.[targetRef].AddSupertype current |> ignore
-                | TReference(IdentRef(Unbound) as current), target -> tuples.[current].AddSubtype target |> ignore
-                | current, TReference(IdentRef(Unbound) as target) -> tuples.[target].AddSupertype current |> ignore
+                | TReference(IdentRef(Unbound)), _ | _, TReference(IdentRef(Unbound)) -> 
+                    Some(values, Set.add (current, target) tuples)
                 | TReference(_), _ | _, TReference(_) -> 
                     failwith (sprintf "Unexpected state merging %A :> %A" current target)
                 | Single(current, currentVar), Single(target, targetVar) -> 
@@ -339,25 +355,56 @@ and TypeMerger() =
                         if x.IsNone then valueNil
                         else Set.of2 x.Value Nil |> Union
                     
-                    let rec check current target = 
+                    let rec check current target (typeMap : TypeMap) : TypeMap option = 
                         match current, target with
-                        | [], [] -> ()
+                        | [], [] -> Some typeMap
                         | cFirst :: cRem, tFirst :: tRem -> 
-                            mergeValues vVisited tVisited cFirst tFirst
-                            check cRem tRem
+                            match mergeValues vVisited tVisited cFirst tFirst typeMap with
+                            | Some typeMap -> check cRem tRem typeMap
+                            | None -> None
                         | [], tRem -> 
                             let c = extractCurrent currentVar
-                            List.iter (mergeValues vVisited tVisited c) tRem
-                            mergeValues vVisited tVisited c (extractTarget targetVar)
+                            match Seq.foldAbort (fun s x -> mergeValues vVisited tVisited c x s) typeMap tRem with
+                            | Some typeMap -> mergeValues vVisited tVisited c (extractTarget targetVar) typeMap
+                            | None -> None
                         | cRem, [] -> 
                             let t = extractTarget targetVar
-                            List.iter (fun x -> mergeValues vVisited tVisited x t) cRem
-                            mergeValues vVisited tVisited (extractCurrent currentVar) t
+                            match Seq.foldAbort (fun s x -> mergeValues vVisited tVisited x t s) typeMap cRem with
+                            | Some typeMap -> mergeValues vVisited tVisited (extractCurrent currentVar) t typeMap
+                            | None -> None
                     
-                    check current target
+                    check current target (values, tuples)
+            else Some(values, tuples)
+        else Some(values, tuples)
     
-    let mergeValuesImpl current target = mergeValues (new VisitedList<_>()) (new VisitedList<_>()) current target
-    let mergeTuplesImpl current target = mergeTuples (new VisitedList<_>()) (new VisitedList<_>()) current target
+    let applyMappings (valueMapped, tupleMapped) = 
+        for current, target in valueMapped do
+            match current, target with
+            | Reference(IdentRef(Unbound) as currentRef), Reference(IdentRef(Unbound) as targetRef) -> 
+                values.[currentRef].AddSubtype target |> ignore
+                values.[targetRef].AddSubtype current |> ignore
+            | Reference(IdentRef(Unbound) as current), target -> values.[current].AddSubtype target |> ignore
+            | current, Reference(IdentRef(Unbound) as target) -> values.[target].AddSupertype current |> ignore
+            | _, _ -> failwith (sprintf "Unexpected state merging %A :> %A" current target)
+        for current, target in tupleMapped do
+            match current, target with
+            | TReference(IdentRef(Unbound) as currentRef), TReference(IdentRef(Unbound) as targetRef) -> 
+                tuples.[currentRef].AddSubtype target |> ignore
+                tuples.[targetRef].AddSubtype current |> ignore
+            | TReference(IdentRef(Unbound) as current), target -> tuples.[current].AddSubtype target |> ignore
+            | current, TReference(IdentRef(Unbound) as target) -> tuples.[target].AddSupertype current |> ignore
+            | _, _ -> failwith (sprintf "Unexpected state merging %A :> %A" current target)
+    
+    let mergeValuesImpl current target = 
+        match mergeValues (new VisitedList<_>()) (new VisitedList<_>()) current target (Set.empty, Set.empty) with
+        | None -> raise (Exception(sprintf "Cannot merge %A :> %A" current target))
+        | Some typeMap -> applyMappings typeMap
+    
+    let mergeTuplesImpl current target = 
+        match mergeTuples (new VisitedList<_>()) (new VisitedList<_>()) current target (Set.empty, Set.empty) with
+        | None -> raise (Exception(sprintf "Cannot merge %A :> %A" current target))
+        | Some typeMap -> applyMappings typeMap
+    
     member this.ValueGet ref = values.[ref]
     member this.TupleGet ref = tuples.[ref]
     

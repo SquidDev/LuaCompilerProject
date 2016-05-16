@@ -238,7 +238,7 @@ type TypeProvider() =
     member this.FindBestFunction (func : ValueType) (args : TupleType) : ValueType option * ValueType Set = 
         let rec findBest (best : ValueType Set) (func : ValueType) = 
             match func with
-            | Intersection funcs -> Seq.foldAbort findBest best funcs
+            | Intersection funcs -> Seq.foldFind findBest best funcs
             | Function(fArgs, _) -> 
                 if isTupleSubtype args fArgs <> Failure then 
                     if isTupleSubtype fArgs args <> Failure then Some func, Set.empty
