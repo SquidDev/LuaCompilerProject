@@ -6,6 +6,11 @@ namespace LuaCP.Collections
 {
 	public static class CollectionExtensions
 	{
+		public static IEnumerable<T> Singleton<T>(T item)
+		{
+			return new SingletonEnumerable<T>(item);
+		}
+
 		public static bool IsEmpty<T>(this IEnumerable<T> t)
 		{
 			return !t.GetEnumerator().MoveNext();

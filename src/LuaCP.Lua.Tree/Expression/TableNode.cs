@@ -43,7 +43,7 @@ namespace LuaCP.Lua.Tree.Expression
 				if (item.Key == null)
 				{
 					IValue value;
-					builder = item.Value.BuildAsValue(builder, out value);   
+					builder = item.Value.BuildAsTuple(builder, out value);   
 
 					array.Add(value);
 				}
@@ -59,8 +59,9 @@ namespace LuaCP.Lua.Tree.Expression
 
 			using (BlockWriter writer = new BlockWriter(builder, this))
 			{
-				result = writer.Add(new TableNew(array, hash));
+				result = writer.Add(new TableNew(array.GetAsTuple(builder), hash));
 			}
+
 			return builder;
 		}
 	}

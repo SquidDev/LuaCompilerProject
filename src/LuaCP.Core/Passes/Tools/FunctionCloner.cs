@@ -86,9 +86,7 @@ namespace LuaCP.Passes.Tools
 						{
 							TableNew creator = (TableNew)insn;
 							TableNew newCreator = new TableNew(
-								                      creator.AdditionalArray,
-								                      creator.AdditionalHash,
-								                      creator.ArrayPart.Select(GetValue),
+								                      creator.ArrayPart,
 								                      creator.HashPart.ToDictionary(x => GetValue(x.Key), x => GetValue(x.Key))
 							                      );
 

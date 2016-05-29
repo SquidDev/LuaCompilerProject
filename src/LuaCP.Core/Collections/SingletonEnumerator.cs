@@ -4,7 +4,27 @@ using System.Collections;
 
 namespace LuaCP.Collections
 {
-	public class SingletonEnumerator<T>: IEnumerator<T>
+	public class SingletonEnumerable<T> : IEnumerable<T>
+	{
+		private readonly T value;
+
+		public SingletonEnumerable(T value)
+		{
+			this.value = value;
+		}
+
+		public IEnumerator<T> GetEnumerator()
+		{
+			return new SingletonEnumerator<T>(value);
+		}
+
+		IEnumerator IEnumerable.GetEnumerator()
+		{
+			return new SingletonEnumerator<T>(value);
+		}
+	}
+
+	public class SingletonEnumerator<T> : IEnumerator<T>
 	{
 		private readonly T value;
 		private int index;

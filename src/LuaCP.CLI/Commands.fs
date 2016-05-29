@@ -19,28 +19,14 @@ let Build(tree : INode) =
     let modu = new Module()
     let builder = new FunctionBuilder(modu)
     builder.Accept(tree) |> ignore
-    let types = builder.EntryPoint.Scopes.Get<TypeScope>()
-    let variables = builder.EntryPoint.Scopes.Get<IVariableScope>()
-    types.EquateValueWith variables.Globals StandardLibraries.Base
-    for func in modu.Functions do
-        ConstraintGenerator.InferTypes types func
-    // try
-    // PassManager.Run(modu, PassExtensions.Default, true)
-    // with :? VerificationException as e -> printfn "Cannot verify: %A" e
+    try 
+        PassManager.Run(modu, PassExtensions.Default, true)
+    with :? VerificationException as e -> printfn "Cannot verify: %A" e
     modu, builder
 
 let Write (modu : Module) (builder : FunctionBuilder) stream = 
-    let types = builder.EntryPoint.Scopes.Get<TypeScope>()
-    types.Bake()
-    types.Flatten()
-    let decorator (insn : Instruction) = 
-        match insn with
-        | :? ValueInstruction as value when value.Kind = IR.ValueKind.Tuple -> (types.TupleGet value).Root.ToString()
-        | :? ValueInstruction as value -> (types.Get value).Root.ToString()
-        | _ -> null
-    
     let writer = new IndentedTextWriter(stream)
-    let gen = new Lua.FunctionCodeGen(modu.EntryPoint, writer, new Func<_, _>(decorator))
+    let gen = new Lua.FunctionCodeGen(modu.EntryPoint, writer)
     gen.Write()
 
 let RunCommand (command : string) (modu : Module) (builder : FunctionBuilder) = 

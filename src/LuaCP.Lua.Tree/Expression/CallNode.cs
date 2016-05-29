@@ -22,39 +22,12 @@ namespace LuaCP.Lua.Tree.Expression
 			IValue function;
 			builder = Function.BuildAsValue(builder, out function);
 
-			List<IValue> args = new List<IValue>();
-			IValue remainder = builder.Constants.Nil;
-
-			int index = 0, length = Arguments.Count - 1;
-			foreach (IValueNode node in Arguments)
-			{
-				if (index < length)
-				{
-					IValue arg;
-					builder = node.BuildAsValue(builder, out arg);
-					args.Add(arg);
-				}
-				else
-				{
-					IValue arg;
-					builder = node.BuildAsTuple(builder, out arg);
-					if (arg.Kind == ValueKind.Tuple)
-					{
-						remainder = arg;
-					}
-					else
-					{
-						args.Add(arg);
-					}
-				}
-
-				index++;
-			}
+			IValue args;
+			builder = Arguments.BuildAsTuple(builder, out args);
 
 			using (BlockWriter writer = new BlockWriter(builder, this))
 			{    
-				TupleNew tuple = writer.Add(new TupleNew(args, remainder));
-				result = writer.Add(new Call(function, tuple));
+				result = writer.Add(new Call(function, args));
 			}
 
 			return builder;

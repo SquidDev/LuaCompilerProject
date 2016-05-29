@@ -49,6 +49,21 @@ namespace LuaCP.Tree
 			return builder;
 		}
 
+		public static IValue GetAsValue(this IValue value, BlockBuilder builder)
+		{
+			switch (value.Kind)
+			{
+				case ValueKind.Value:
+					return value;
+				case ValueKind.Tuple:
+					return builder.Block.AddLast(new TupleGet(value, 0));
+				case ValueKind.Reference:
+					return builder.Block.AddLast(new ReferenceGet(value));
+				default:
+					throw new ArgumentException("Unknown type " + value.Kind);
+			}
+		}
+
 		public static BlockBuilder BuildAsTuple(this IValueNode node, BlockBuilder builder, out IValue result)
 		{
 			IValue value;
@@ -66,6 +81,20 @@ namespace LuaCP.Tree
 					throw new ArgumentException("Unknown type " + value.Kind);
 			}
 			return builder;
+		}
+
+		public static IValue GetAsTuple(this IValue value, BlockBuilder builder)
+		{
+			switch (value.Kind)
+			{
+				case ValueKind.Value:
+				case ValueKind.Tuple:
+					return value;
+				case ValueKind.Reference:
+					return builder.Block.AddLast(new ReferenceGet(value));
+				default:
+					throw new ArgumentException("Unknown type " + value.Kind);
+			}
 		}
 
 		public static BlockBuilder BuildAsTuple(this IReadOnlyList<IValueNode> nodes, BlockBuilder builder, out IValue result)
@@ -97,6 +126,34 @@ namespace LuaCP.Tree
 				
 			result = builder.Block.AddLast(new TupleNew(values, remainder));
 			return builder;
+		}
+
+		public static IValue GetAsTuple(this IReadOnlyList<IValue> values, BlockBuilder builder)
+		{
+			var items = new List<IValue>(values.Count);
+			IValue remainder = builder.Constants.Nil;
+
+			int index = 0, length = values.Count - 1;
+			foreach (IValue value in values)
+			{
+				if (index < length)
+				{
+					items.Add(value.GetAsValue(builder));
+				}
+				else
+				{
+					remainder = value.GetAsTuple(builder);
+					if (remainder.Kind != ValueKind.Tuple)
+					{
+						items.Add(remainder);
+						remainder = builder.Constants.Nil;
+					}
+				}
+
+				index++;
+			}
+
+			return builder.Block.AddLast(new TupleNew(items, remainder));
 		}
 	}
 }

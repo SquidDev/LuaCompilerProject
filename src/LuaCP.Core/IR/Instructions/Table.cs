@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 using LuaCP.IR.User;
+using LuaCP.Collections;
 
 namespace LuaCP.IR.Instructions
 {
@@ -11,7 +12,7 @@ namespace LuaCP.IR.Instructions
 
 		public IValue Table
 		{
-			get { return table; } 
+			get { return table; }
 			set { table = UserExtensions.Replace(this, table, value); }
 		}
 
@@ -19,7 +20,7 @@ namespace LuaCP.IR.Instructions
 
 		public IValue Key
 		{
-			get { return key; } 
+			get { return key; }
 			set { key = UserExtensions.Replace(this, key, value); }
 		}
 
@@ -59,19 +60,19 @@ namespace LuaCP.IR.Instructions
 
 		public IValue Table
 		{
-			get { return table; } 
+			get { return table; }
 			set { table = UserExtensions.Replace(this, table, value); }
 		}
 
 		public IValue Key
 		{
-			get { return key; } 
+			get { return key; }
 			set { key = UserExtensions.Replace(this, key, value); }
 		}
 
 		public IValue Value
 		{
-			get { return val; } 
+			get { return val; }
 			set { val = UserExtensions.Replace(this, val, value); }
 		}
 
@@ -110,45 +111,40 @@ namespace LuaCP.IR.Instructions
 
 	public sealed class TableNew : ValueInstruction, IUser<IValue>
 	{
-		public readonly int AdditionalArray;
-		public readonly int AdditionalHash;
-		
-		private readonly UsingList<IValue> arrayPart;
+		private IValue arrayPart;
 		private readonly UsingDictionary<IValue, IValue, TableNew> hashPart;
 
-		public IList<IValue> ArrayPart { get { return arrayPart; } }
+		public IValue ArrayPart
+		{ 
+			get { return arrayPart; }
+			set { arrayPart = UserExtensions.Replace(this, arrayPart, value); }
+		}
 
 		public IDictionary<IValue, IValue> HashPart { get { return hashPart; } }
 
-		public TableNew(int arraySize, int hashSize, IEnumerable<IValue> array, IDictionary<IValue, IValue> hash)
+		public TableNew(IValue array, IDictionary<IValue, IValue> hash)
 			: base(Opcode.TableNew, ValueKind.Value)
 		{
-			AdditionalArray = arraySize;
-			AdditionalHash = hashSize;
-			arrayPart = new UsingList<IValue>(this, array);
+			ArrayPart = array;
 			hashPart = new UsingDictionary<IValue, IValue, TableNew>(this, hash);
-		}
-
-		public TableNew(IEnumerable<IValue> array, IDictionary<IValue, IValue> hash)
-			: this(0, 0, array, hash)
-		{
 		}
 
 		public IEnumerable<IValue> GetUses()
 		{
-			return arrayPart.Concat(hashPart.Keys).Concat(hashPart.Values).Distinct();
+			return CollectionExtensions.Singleton(arrayPart).Concat(hashPart.Keys).Concat(hashPart.Values).Distinct();
 		}
 
 		public void Replace(IValue original, IValue replace)
 		{
-			arrayPart.Replace(original, replace);
+			if (original == arrayPart) ArrayPart = replace;
 			hashPart.ReplaceKey(original, replace);
 			hashPart.ReplaceValue(original, replace);
 		}
 
 		public override void ForceDestroy()
 		{
-			arrayPart.Clear();
+			arrayPart.Users.Decrement(this);
+			arrayPart = null;
 			hashPart.Clear();
 		}
 	}

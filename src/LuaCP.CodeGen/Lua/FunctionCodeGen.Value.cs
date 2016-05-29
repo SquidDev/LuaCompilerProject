@@ -75,11 +75,6 @@ namespace LuaCP.CodeGen.Lua
 							StringBuilder builder = new StringBuilder();
 							writer.Write("{0} =", GetName(insn));
 							writer.Write("{");
-							foreach (IValue value in tblNew.ArrayPart)
-							{
-								writer.Write(Format(value));
-								writer.Write(", ");
-							}
 
 							foreach (KeyValuePair<IValue, IValue> pair in tblNew.HashPart)
 							{
@@ -88,6 +83,8 @@ namespace LuaCP.CodeGen.Lua
 								writer.Write(Format(pair.Value));
 								writer.Write(", ");
 							}
+
+							writer.Write(Format(tblNew.ArrayPart));
 
 							writer.WriteLine("}");
 							return builder.ToString();

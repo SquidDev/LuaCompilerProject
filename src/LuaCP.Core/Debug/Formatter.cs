@@ -195,17 +195,7 @@ namespace LuaCP.Debug
 					case Opcode.TableNew:
 						{
 							TableNew tNew = (TableNew)insn;
-							writer.Write("{[");
-							writer.Write(tNew.AdditionalArray);
-							writer.Write(", ");
-							writer.Write(tNew.AdditionalHash);
-							writer.Write("] ");
-
-							foreach (IValue value in tNew.ArrayPart)
-							{
-								Value(value, writer, numberer);
-								writer.Write(" ");
-							}
+							writer.Write("{");
 
 							foreach (KeyValuePair<IValue, IValue> item in tNew.HashPart)
 							{
@@ -214,6 +204,8 @@ namespace LuaCP.Debug
 								Value(item.Value, writer, numberer);
 								writer.Write(" ");
 							}
+
+							Value(tNew.ArrayPart, writer, numberer);
 
 							writer.Write("}");
 							break;
