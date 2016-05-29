@@ -183,7 +183,7 @@ namespace LuaCP.Passes.Optimisation
 							case LiteralKind.Number:
 								return (double)left < (double)right ? Literal.True : Literal.False;
 							case LiteralKind.String:
-								return String.Compare(((string)left), (string)right, StringComparison.InvariantCulture) < 0 ? Literal.True : Literal.False;
+								return String.Compare(((string)left), (string)right, StringComparison.Ordinal) < 0 ? Literal.True : Literal.False;
 							case LiteralKind.Boolean:
 								throw new InvalidOperationException("Cannot compare boolean values");
 							case LiteralKind.Nil:
@@ -206,7 +206,7 @@ namespace LuaCP.Passes.Optimisation
 							case LiteralKind.Number:
 								return (double)left <= (double)right ? Literal.True : Literal.False;
 							case LiteralKind.String:
-								return String.Compare(((string)left), (string)right, StringComparison.InvariantCulture) <= 0 ? Literal.True : Literal.False;
+								return String.Compare(((string)left), (string)right, StringComparison.Ordinal) <= 0 ? Literal.True : Literal.False;
 							case LiteralKind.Boolean:
 								throw new InvalidOperationException("Cannot compare boolean values");
 							case LiteralKind.Nil:
@@ -260,4 +260,3 @@ namespace LuaCP.Passes.Optimisation
 		}
 	}
 }
-
