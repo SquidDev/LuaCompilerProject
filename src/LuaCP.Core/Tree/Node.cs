@@ -123,8 +123,20 @@ namespace LuaCP.Tree
 
 				index++;
 			}
-				
-			result = builder.Block.AddLast(new TupleNew(values, remainder));
+
+			if (values.Count == 0)
+			{
+				result = remainder;
+			}
+			else if (remainder.IsNil() && values.Count == 1)
+			{
+				result = values[0];
+			}
+			else
+			{
+				result =  builder.Block.AddLast(new TupleNew(values, remainder));
+			}
+
 			return builder;
 		}
 
@@ -153,7 +165,18 @@ namespace LuaCP.Tree
 				index++;
 			}
 
-			return builder.Block.AddLast(new TupleNew(items, remainder));
+			if (items.Count == 0)
+			{
+				return remainder;
+			}
+			else if (remainder.IsNil() && items.Count == 1)
+			{
+				return items[0];
+			}
+			else
+			{
+				return  builder.Block.AddLast(new TupleNew(items, remainder));
+			}
 		}
 	}
 }

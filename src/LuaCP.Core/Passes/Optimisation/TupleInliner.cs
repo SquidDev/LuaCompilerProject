@@ -65,6 +65,11 @@ namespace LuaCP.Passes.Optimisation
 							tuple.ReplaceWithAndRemove(tuple.Remaining);
 							return true;
 						}
+						else if (tuple.Remaining.IsNil() && tuple.Values.Count == 1)
+						{
+							tuple.ReplaceWithAndRemove(tuple.Values[0]);
+							return true;
+						}
 						else if (tuple.Remaining is TupleNew)
 						{
 							TupleNew remainder = (TupleNew)tuple.Remaining;
