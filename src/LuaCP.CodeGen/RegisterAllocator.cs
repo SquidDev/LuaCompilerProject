@@ -67,7 +67,7 @@ namespace LuaCP.CodeGen
 			foreach (Block block in function.Blocks)
 			{
 				var currentlyLive = new HashSet<IValue>();
-				var boundaries = new Multimap<IUser<IValue>, IValue>();
+				var boundaries = new MultiMap<IUser<IValue>, IValue>();
 				foreach (var value in live)
 				{
 					if (value.Value.Contains(block))

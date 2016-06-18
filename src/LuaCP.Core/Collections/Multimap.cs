@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace LuaCP.Collections
 {
-	public class Multimap<TKey, TValue> : IDictionary<TKey, ISet<TValue>>
+	public class MultiMap<TKey, TValue> : IDictionary<TKey, ISet<TValue>>
 	{
 		private readonly IDictionary<TKey, ISet<TValue>> items = new Dictionary<TKey, ISet<TValue>>();
 

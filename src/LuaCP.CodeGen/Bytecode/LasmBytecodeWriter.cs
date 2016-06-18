@@ -9,7 +9,7 @@ namespace LuaCP.CodeGen.Bytecode
 	public class LasmBytecodeWriter : IBytecodeWriter
 	{
 		private readonly Dictionary<Label, int> labels = new Dictionary<Label, int>();
-		private readonly Multimap<Label, Tuple<string, int>> labelLookup = new Multimap<Label, Tuple<string, int>>();
+		private readonly MultiMap<Label, Tuple<string, int>> labelLookup = new MultiMap<Label, Tuple<string, int>>();
 
 		private readonly Allocator<IBytecodeWriter> funcAllocator;
 		private readonly StringBuilder builder;
