@@ -5,6 +5,7 @@ using LuaCP.IR.User;
 using LuaCP.IR;
 using LuaCP.IR.Instructions;
 using System.Linq;
+using LuaCP.Collections;
 
 namespace LuaCP.Passes.Analysis
 {
@@ -12,6 +13,7 @@ namespace LuaCP.Passes.Analysis
 	{
 		private readonly Dictionary<Upvalue, bool> writtenClosure = new Dictionary<Upvalue, bool>();
 		private readonly Dictionary<Upvalue, bool> writtenParent = new Dictionary<Upvalue, bool>();
+		private readonly MultiMap<Upvalue, IValue> sources = new MultiMap<Upvalue, IValue>();
 
 		public UpvalueAnalysis(Module module)
 		{
@@ -23,6 +25,7 @@ namespace LuaCP.Passes.Analysis
 				{
 					EverWrittenParent(upvalue);
 					EverWritenClosure(upvalue);
+					GatherSources(upvalue);
 				}
 			}
 		}
@@ -46,7 +49,7 @@ namespace LuaCP.Passes.Analysis
 		}
 
 		/// <summary>
-		/// Checks if an upvalue is ever written a closure
+		/// Checks if an upvalue is ever written in a child method.
 		/// </summary>
 		/// <returns>If an upvalue is written</returns>
 		/// <param name="upvalue">The upvalue to check</param>
@@ -63,12 +66,7 @@ namespace LuaCP.Passes.Analysis
 			return status;
 		}
 
-		/// <summary>
-		/// If a upvalue is written after creation in a creator's method
-		/// </summary>
-		/// <param name="upvalue">Upvalue.</param>
-		/// <returns>If the upvalue is written</returns>
-		public bool WrittenParent(Upvalue upvalue)
+		private bool WrittenParent(Upvalue upvalue)
 		{
 			foreach (KeyValuePair<IValue, ClosureNew> value in upvalue.KnownValues.ToList())
 			{
@@ -103,6 +101,11 @@ namespace LuaCP.Passes.Analysis
 			return false;
 		}
 
+		/// <summary>
+		/// If an upvalue is written in a parent method.
+		/// </summary>
+		/// <param name="upvalue">Upvalue.</param>
+		/// <returns>If the upvalue is written</returns>
 		public bool EverWrittenParent(Upvalue upvalue)
 		{
 			if (upvalue.Closed) throw new ArgumentException("Expected open upvalue");
@@ -119,6 +122,28 @@ namespace LuaCP.Passes.Analysis
 		public bool NeverWritten(Upvalue upvalue)
 		{
 			return !EverWritenClosure(upvalue) && !EverWrittenParent(upvalue);
+		}
+
+		public ISet<IValue> GatherSources(Upvalue upvalue)
+		{
+			ISet<IValue> vSource;
+			if (sources.TryGetValue(upvalue, out vSource)) return vSource;
+
+			vSource = sources[upvalue];
+			foreach (IValue source in upvalue.KnownValues.Select(x => x.Key))
+			{
+				var sourceUp = source as Upvalue;
+				if (sourceUp != null)
+				{
+					vSource.UnionWith(GatherSources(sourceUp));
+				}
+				else
+				{
+					vSource.Add(source);
+				}
+			}
+
+			return vSource;
 		}
 	}
 }

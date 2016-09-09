@@ -1,4 +1,5 @@
 local Scope = require "tacky.analysis.scope"
+local Node = require "tacky.analysis.node"
 
 local declaredSymbols = {
 	"nil", "true", "false",
@@ -14,13 +15,14 @@ end
 
 local resolveNode, resolveScope
 function resolveNode(node, scope)
-	node.pending = nil
+	local node = Node(node, parent, scope)
+	node.visited = false
 
 	local kind = node.tag
 	if kind == "number" or kind == "boolean" then
 		return
 	elseif kind == "symbol" then
-		scope:requireVar(node.contents)
+		scope:require(node.contents)
 	elseif kind == "list" then
 		local first = node[1]
 		if first and first.tag == "symbol" then
@@ -33,29 +35,40 @@ function resolveNode(node, scope)
 					childScope:add(args[i].contents, "arg", args[i])
 				end
 
-				resolveScope(node, 3, childScope)
+				local success = resolveScope(node, 3, childScope)
+				childScope:pushParent()
 
-				childScope:pop()
+				if not success then return false end
 			elseif contents == "cond" then
+				local success = true
 				for i = 2, #node do
 					local case = node[i]
 					resolveNode(case[1], scope)
 
 					local childScope = scope:child()
-					resolveScope(case, 2, childScope)
-					childScope:pop()
+					if not resolveScope(case, 2, childScope) then
+						success = false
+					end
+
+					childScope:pushParent()
 				end
+
+				if not success then return false end
 			elseif contents == "set!" then
 				local var = scope:requireVar(node[2].contents)
 				if var.const then
 					error("Cannot rebind constant " .. var.name)
 				end
 
-				resolveNode(node[3], scope)
+				if not resolveNode(node[3], scope) then
+					return false
+				end
 			elseif contents == "quote" or contents == "unquote" or contents == "quasiquote" then -- TODO: quasiquote
 				-- Do nothing as we're quoting
 			elseif contents == "define" or contents == "define-macro" then
-				resolveNode(node[3], scope)
+				if not resolveNode(node[3], scope) then
+					return false
+				end
 			else
 				local var = scope:requireCalled(first.contents)
 				if var.macros then
@@ -90,33 +103,12 @@ function resolveScope(list, start, scope)
 	end
 
 	-- Resolve all variables
+	local out = {}
 	for i = start, #list do
-		resolveNode(list[i], scope)
-	end
-end
-
-local function resolveRoot(list, scope)
-	-- Predeclare all variables
-	for i = 1, #list do
-		local node = list[i]
-		-- require "tacky.pprint".print(i, node)
-		-- print(node.kind, node.contents)
-		if node.tag == "list" then
-			local first = node[1]
-			-- print(first.tag, first.contents)
-			if first and first.tag == "symbol" and (first.contents == "define" or first.contents == "define-macro") then
-				scope:add(node[2].contents, first.contents, node)
-			end
-		end
+		out[i - start + 1] = resolveNode(list[i], scope)
 	end
 
-	-- Resolve all variables
-	for i = 1, #list do
-		local childScope = scope:child()
-		resolveNode(list[i], childScope)
-		childScope:pop()
-		list[i].scope = childScope
-	end
+	return out
 end
 
 return function(node)
