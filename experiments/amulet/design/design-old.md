@@ -9,10 +9,13 @@ There are a series of "primitive" types. These make up all other types.
  - `Integer`: Represents all integers.
  - `Real`: A floating point number.
  - `Unit`: The empty type.
- - `Nothing`: This type has no concrete value and so can be used to represent functions that never exit (they loop forever
-   or throw an exception). This is based off Scala's [`Nothing`](http://stackoverflow.com/questions/13539822/whats-the-difference-between-unit-and-nothing) type.
+ - `Nothing`: This type has no concrete value and so can be used to represent functions that never exit (they loop
+   forever). This is based off Scala's [`Nothing`](http://stackoverflow.com/questions/13539822/whats-the-difference-between-unit-and-nothing) type.
 
 There is also a `Value` type. This is not a primitive but a base type that everything can be assigned to.
+
+> For interop with other languages it may be worth considering a `Dynamic` type. However this can probably be handled as
+  a `Value` with a cast instead: ensuring type safty is not lost.
 
 ### Functions
 The type system also contains functions, which map a value from one type to another: `a -> b`. Multiple arguments are
@@ -22,9 +25,6 @@ handled by returning another function (partial application): `a -> b -> c`. Func
    each time it is called. A pure function can be called without side effects and will yield the same values each time
    as long as there is no mutation between each call.
  - `Mutates`: Mutates arguments or upvalues. This implies `Impure` (all `Mutates` functions are also `Impure`).
- - `Errors`: This function may produce an error.
- - `Async`: This represents a function that runs asynchronously. Any `Async` function must return a `Task<'t>` object
-   (though functions which return `Task<'t>` do not have to be `Async`.
 
 Properties propagate through code: any method that consumes a `Impure` function is also `Impure` itself. Properties can
 be used as generic parameters, though they are inferred automatically.
@@ -44,6 +44,13 @@ is associated with a name or string key.
 type Tree<'t> =
  | Leaf of 't
  | Branch of 't * Tree<'t> * Tree<'t>
+```
+
+Creating a union also creates type aliases in a sub module:
+```ocaml
+module Tree =
+  type Leaf<'t> = 't
+  type Branch<'t> = 't * Tree<'t> * Tree<'t>
 ```
 
 Record types are an mapping of string keys to values.
@@ -98,6 +105,8 @@ printfn "%A" (a or calculate a)
 (* Evaluates to *)
 printfn "%A" (a or (fun () -> calculate a))
 ```
+
+An alternative solution to this would be to allow macros.
 
 #### `Task<'t>`
 This represents a computation that requires waiting for external input (such as IO). If a function awaits on a
@@ -174,6 +183,11 @@ let _ : int * int * int = 1, 2, 3
 let _ : int * (int * int ) = 1, (2, 3)
 ```
 
+#### Handling errors
+There are two possible ways to deal with this:
+ - `try` expression: of the form `try <body> catch <handler`
+ - `try` function: a function that takes a lambda and returns a union of `Success of 't | Failure of Exception`
+
 ### Statements
 #### `let`
 Let is used to define and declare a variable. There are two forms of the let statement:
@@ -225,7 +239,16 @@ let infixr (+) a b = add a b (* Right associative *)
 
 > There needs to be a way to specify precedence. We could use a syntax similar to Haskell's `infixr precedence`
   (such as `let infixr 10 (+)`). An alternative would be to use a [katahdin](https://github.com/chrisseaton/katahdin)
-  style `precidence` operator(`precidence (+) = (-)`) to allow sorting operators instead of using explicit integers.
+  style `precedence` operator(`precedence (+) = (-)`) to allow sorting operators instead of using explicit integers.
+
+#### `use`
+This defines a variable which will be disposed of when the scope is exited.
+
+```ocaml
+use foo = File.open "something.txt"
+printfn "%s" foo.readAll()
+(* Foo closed here *)
+```
 
 #### `module`
 This can be used to define the module a piece of code lies in. It takes the form `module <name> = `. If it is the first
