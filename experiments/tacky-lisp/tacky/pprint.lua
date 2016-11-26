@@ -142,13 +142,13 @@ end
 function M.print(...)
 	local args = {...}
 	for i = 1, select('#', ...) do args[i] = M.tostring(args[i]) end
-	return print(unpack(args))
+	return print(table.unpack(args))
 end
 
 function M.sprintf(fmt, ...)
 	local args = {...}
 	for i = 1, select('#', ...) do args[i] = M.tostring(args[i]) end
-	return string.format(fmt, unpack(args))
+	return string.format(fmt, table.unpack(args))
 end
 
 function M.printf(...) print(M.sprintf(...)) end

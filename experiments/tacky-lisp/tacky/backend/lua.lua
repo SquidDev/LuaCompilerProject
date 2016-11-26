@@ -6,8 +6,12 @@ end
 
 local kwrds = createLookup { "and", "break", "do", "else", "elseif", "end", "for", "function", "if", "in", "local", "not", "or", "repeat", "return", "then", "until", "while" }
 local function escape(name, args)
-	if name == "..." and not args then
-		return "_args"
+	if name == "..." then
+		if args then
+			return "..."
+		else
+			return "_args"
+		end
 	elseif kwrds[name] then
 		return "_e" .. name
 	elseif name:match("^%w[_%w%d]*$") then
@@ -40,12 +44,67 @@ function compileQuote(node, builder, level)
 			end
 		end
 
-		append('{tag = "list"') -- , n = ' .. #node
+		local containsUnsplice = false
 		for i = 1, #node do
-			append(", ")
-			compileQuote(node[i], builder, level)
+			local sub = node[i]
+			if sub.tag == "list" and sub[1] and sub[1].contents == "unquote-splice" then
+				containsUnsplice = true
+				break
+			end
 		end
-		append('}')
+
+		if containsUnsplice then
+			append('(function()')
+			builder.line()
+			builder.indent()
+
+			append('local _offset = 0')
+			builder.line()
+
+			append('local _result = {tag = "list"}')
+			builder.line()
+
+			append('local _temp')
+			builder.line()
+
+			local offset = 0
+			for i = 1, #node do
+				local sub = node[i]
+				if sub.tag == "list" and sub[1] and sub[1].contents == "unquote-splice" then
+					-- Every unquote-splice subtracts one from the offset position
+					offset = offset + 1
+
+					append("_temp = ")
+					compileQuote(sub[2], builder, level - 1)
+					builder.line()
+
+					append('for _c = 1, _temp.n do _result[' .. (i - offset) .. ' + _c + _offset] = _temp[_c] end')
+					builder.line()
+					append('_offset = _offset + _temp.n')
+					builder.line()
+				else
+					append("_result[" .. (i - offset)  .. " + _offset] = ")
+					compileQuote(sub, builder, level)
+					builder.line()
+				end
+			end
+
+			append('_result.n = _offset + ' .. (#node - offset))
+			builder.line()
+
+			append('return _result')
+			builder.line()
+
+			builder.unindent()
+			append("end)()")
+		else
+			append('{tag = "list", n = ' .. #node)
+			for i = 1, #node do
+				append(", ")
+				compileQuote(node[i], builder, level)
+			end
+			append('}')
+		end
 	else
 		error("Unknown tag " .. expr.tag)
 	end
@@ -142,7 +201,9 @@ function compileExpression(expr, builder, retStmt)
 					compileQuote(expr[2], builder, 1)
 				end
 			elseif name == "unquote" then
-				error("Unquote outside of quasiquote")
+				error("unquote outside of quasiquote")
+			elseif name == "unquote-splice" then
+				error("unquote-splice outside of quasiquote")
 			else
 				if retStmt then append(retStmt) end
 				compileExpression(expr[1], builder)
@@ -172,14 +233,24 @@ function compileExpression(expr, builder, retStmt)
 
 			append(" = ")
 
-			-- TODO: Varargs
-			if #expr > 1 then
-				for i = 2, #expr do
-					if i > 2 then append(", ") end
+			local varargs = #args > 0 and args[#args].contents == "..."
+			for i = 2, varargs and #args or #expr do
+				if i > 2 then append(", ") end
+				if expr[i] then
+					compileExpression(expr[i], builder)
+				else
+					append("nil")
+				end
+			end
+
+			if varargs then
+				if #args > 1 then append(", ") end
+				append("{ tag = 'list', n = " .. (#expr - #args + 1))
+				for i = #args + 1, #expr do
+					append(", ")
 					compileExpression(expr[i], builder)
 				end
-			else
-				append("nil")
+				append(" }")
 			end
 
 			builder.line()

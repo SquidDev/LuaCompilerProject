@@ -38,7 +38,7 @@ function State:require(var)
 
 	if var.scope == self.scope then
 		self.required[var] = true
-		return assert(self.variables[var], "Variable's State is nil: it probably hasn't finished parsing")
+		return assert(self.variables[var], "Variable's State is nil: it probably hasn't finished parsing: " .. var.name)
 	end
 end
 

@@ -69,6 +69,11 @@ local function lex(str)
 			end
 
 			append({ tag = "string" }, start)
+		elseif char == ";" then
+			consume()
+			while offset <= length and str:sub(offset, offset) ~= "\n" do
+				consume()
+			end
 		else
 			local start = position()
 			while true do
@@ -118,16 +123,15 @@ local function parse(toks)
 		end
 	end
 
-	local head = { tag = "list" }
+	local head = { tag = "list", n = 0 }
 	local stack = {}
 
 	local function push()
-		local next = { tag = "list" }
+		local next = { tag = "list", n = 0 }
 		-- Push old head to the stack
 		stack[#stack + 1] = head
 		-- Push new head to old head
 		head[#head + 1] = next
-		-- next.parent = head
 
 		head = next
 	end
@@ -139,7 +143,7 @@ local function parse(toks)
 
 	local function append(item)
 		head[#head + 1] = item
-		-- item.parent = head
+		head.n = head.n + 1
 	end
 
 	while true do
@@ -154,7 +158,7 @@ local function parse(toks)
 			push()
 		elseif tag == "close" then
 			pop()
-		elseif tag == "quote" or tag == "unquote" or tag == "quasiquote" then
+		elseif tag == "quote" or tag == "unquote" or tag == "quasiquote" or tag == "unquote-splice" then
 			push()
 			append({
 				tag = "symbol",
