@@ -31,7 +31,7 @@ function compileQuote(node, builder, level)
 
 	local append = builder.add
 	if node.tag == "string" or node.tag == "number" then
-		append('{tag = "' .. node.tag .. '", ' .. node.contents .. '}')
+		append('{tag = "' .. node.tag .. '", contents = ' .. node.contents .. '}')
 	elseif node.tag == "symbol" then
 		append('{tag = "symbol", contents = ' .. ("%q"):format(node.contents):gsub("\n", "\\n") .. '}')
 	elseif node.tag == "list" then
@@ -118,7 +118,7 @@ function compileExpression(expr, builder, retStmt)
 		if retStmt then append(retStmt) end
 		local contents = expr.contents
 		if expr.tag == "symbol" then contents = escape(contents) end
-		append(contents)
+		append(tostring(contents))
 	elseif expr.tag == "list" then
 		local head = expr[1]
 		if head and head.tag == "symbol" then
@@ -136,8 +136,8 @@ function compileExpression(expr, builder, retStmt)
 
 				builder.indent() builder.line()
 
-				if args[#args].contents == "..." then
-					append("local _args = table.pack(...)")
+				if #args > 0 and args[#args].contents == "..." then
+					append('local _args = table.pack(...) _args.tag = "list"')
 					builder.line()
 				end
 
@@ -155,27 +155,61 @@ function compileExpression(expr, builder, retStmt)
 					builder.line()
 				end
 
+				local hadFinal = false
+				local ends = 1
 				for i = 2, #expr do
 					local item = expr[i]
-					append("if ")
-					compileExpression(item[1], builder)
-					append(" then")
+					local cond = item[1]
+
+					local isFinal = cond.tag == "symbol" and cond.contents == "true"
+
+					if not isFinal then
+						if cond.tag == "list" and cond[1].contents == "cond" then
+							if i > 2 then builder.indent() builder.line() end
+							append("local _temp")
+							builder.line()
+
+							compileExpression(item[1], builder, "_temp = ")
+							builder.line()
+
+							append("if _temp then")
+
+							if i > 2 then ends = ends + 1 end
+						else
+							append("if ")
+
+							compileExpression(item[1], builder)
+							append(" then")
+						end
+					elseif i == 2 then
+						append("do")
+					end
 
 					builder.indent() builder.line()
 					compileBlock(item, builder, 2, retStmt)
 					builder.unindent()
 
-					append("else")
+					if isFinal then
+						hadFinal = true
+						break
+					else
+						append("else")
+					end
 				end
 
-				builder.indent() builder.line()
-				append("error('unmatched item')")
-				builder.unindent() builder.line()
-				append("end")
-				builder.line()
+				if not hadFinal then
+					builder.indent() builder.line()
+					append("error('unmatched item')")
+					builder.unindent() builder.line()
+				end
+
+				for i = 1, ends do
+					append("end")
+					if i < ends then builder.unindent() builder.line() end
+				end
 
 				if forceClosure then
-					builder.unindent()
+					builder.unindent() builder.line()
 					append("end)()")
 				end
 			elseif name == "set!" then
@@ -186,20 +220,25 @@ function compileExpression(expr, builder, retStmt)
 					append("nil")
 				end
 			elseif name == "define" or name == "define-macro" then
-				compileExpression(expr[3], builder, "local " .. escape(expr[2].contents) .. " = ")
+				if expr[3].tag == "number" or expr[3].tag == "string" or (expr[3].tag == "symbol" and expr[2].contents ~= expr[3].contents) then
+					compileExpression(expr[3], builder, "local " .. escape(expr[2].contents) .. " = ")
+				else
+					append("local " .. escape(expr[2].contents))
+					builder.line()
+					compileExpression(expr[3], builder, escape(expr[2].contents) .. " = ")
+				end
 			elseif name == "define-native" then
 				append(("local %s = _ENV[%q]"):format(escape(expr[2].contents), expr[2].contents))
-				builder.line()
 			elseif name == "quote" then
-				if retStmt then
-					append(retStmt)
-					compileQuote(expr[2], builder, 1)
-				end
+				if retStmt == "" then retStmt = "local _ = " end
+				if retStmt then append(retStmt) end
+
+				compileQuote(expr[2], builder, 1)
 			elseif name == "quasiquote" then
-				if retStmt then
-					append(retStmt)
-					compileQuote(expr[2], builder, 1)
-				end
+				if retStmt == "" then retStmt = "local _ = " end
+				if retStmt then append(retStmt) end
+
+				compileQuote(expr[2], builder, 1)
 			elseif name == "unquote" then
 				error("unquote outside of quasiquote")
 			elseif name == "unquote-splice" then
@@ -219,41 +258,43 @@ function compileExpression(expr, builder, retStmt)
 			append("do")
 			builder.indent() builder.line()
 
-			append("local ")
-
 			local args = head[2]
-			if #args > 0 then
-				for i = 1, #args do
-					if i > 1 then append(", ") end
-					append(escape(args[i].contents))
-				end
-			else
-				append("_")
-			end
+			if #args > 0 and #expr > 1 then
+				append("local ")
 
-			append(" = ")
-
-			local varargs = #args > 0 and args[#args].contents == "..."
-			for i = 2, varargs and #args or #expr do
-				if i > 2 then append(", ") end
-				if expr[i] then
-					compileExpression(expr[i], builder)
+				if #args > 0 then
+					for i = 1, #args do
+						if i > 1 then append(", ") end
+						append(escape(args[i].contents))
+					end
 				else
-					append("nil")
+					append("_")
 				end
-			end
 
-			if varargs then
-				if #args > 1 then append(", ") end
-				append("{ tag = 'list', n = " .. (#expr - #args + 1))
-				for i = #args + 1, #expr do
-					append(", ")
-					compileExpression(expr[i], builder)
+				append(" = ")
+
+				local varargs = #args > 0 and args[#args].contents == "..."
+				for i = 2, varargs and #args or #expr do
+					if i > 2 then append(", ") end
+					if expr[i] then
+						compileExpression(expr[i], builder)
+					else
+						append("nil")
+					end
 				end
-				append(" }")
-			end
 
-			builder.line()
+				if varargs then
+					if #args > 1 then append(", ") end
+					append("{ tag = 'list', n = " .. (#expr - #args + 1))
+					for i = #args + 1, #expr do
+						append(", ")
+						compileExpression(expr[i], builder)
+					end
+					append(" }")
+				end
+
+				builder.line()
+			end
 
 			compileBlock(head, builder, 3, retStmt)
 

@@ -1,7 +1,9 @@
-local function lex(str)
+local function lex(str, name)
 	local line, column = 1, 1
 	local offset, length = 1, #str
 	local out, n = {}, 0
+
+	name = name or "<in>"
 
 	local function consume()
 		if str:sub(offset, offset) == "\n" then
@@ -14,7 +16,7 @@ local function lex(str)
 	end
 
 	local function position()
-		return { line = line, column = column, offset = offset }
+		return { line = line, column = column, offset = offset, name = name }
 	end
 
 	local function append(tok, start, finish)
@@ -23,6 +25,7 @@ local function lex(str)
 		tok.start, tok.finish = start, finish
 
 		tok.contents = str:sub(start.offset, finish.offset)
+		if tok.tag == "number" then print(tok.contents) end
 
 		n = n + 1
 		out[n] = tok
@@ -47,13 +50,13 @@ local function lex(str)
 			else
 				append { tag = "unquote" }
 			end
-		elseif char >= "0" and char <= "9" then
+		elseif (char >= "0" and char <= "9") or (char == "-" and str:sub(offset + 1, offset + 1):find("%d")) then
 			local start = position()
 			while str:sub(offset + 1, offset + 1):find("[0-9.e+-]") do
 				consume()
 			end
 
-			append({ tag= "number" }, start)
+			append({ tag = "number" }, start)
 		elseif char == "\"" then
 			local start = position()
 			consume()
@@ -70,8 +73,7 @@ local function lex(str)
 
 			append({ tag = "string" }, start)
 		elseif char == ";" then
-			consume()
-			while offset <= length and str:sub(offset, offset) ~= "\n" do
+			while offset <= length and str:sub(offset + 1, offset + 1) ~= "\n" do
 				consume()
 			end
 		else
@@ -96,7 +98,7 @@ end
 
 local function formatPosition(pos) return pos.line .. ":" .. pos.column end
 local function errorPositions(item, msg)
-	error(msg .. " at " .. formatPosition(item.start) .. "-" .. formatPosition(item.finish) .. ": " .. item.contents)
+	error(msg .. " at " .. item.start.name .. ":" .. formatPosition(item.start) .. "-" .. formatPosition(item.finish) .. ": " .. item.contents)
 end
 
 local function parse(toks)

@@ -3,7 +3,7 @@ local writer = require "tacky.backend.writer"
 local function expression(node, writer)
 	local tag = node.tag
 	if tag == "string" or tag == "number" or tag == "symbol" then
-		writer.add(node.contents)
+		writer.add(tostring(node.contents))
 	elseif tag == "list" then
 		writer.add("(")
 

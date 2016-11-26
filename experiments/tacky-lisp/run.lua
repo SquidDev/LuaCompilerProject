@@ -1,121 +1,106 @@
-local parser = require "tacky.parser"
-local resolve = require "tacky.analysis.resolve"
-local State = require "tacky.analysis.state"
 local backend = require "tacky.backend.init"
-local writer = require "tacky.backend.writer"
-
+local compile = require "tacky.compile"
+local parser = require "tacky.parser"
 local pprint = require "tacky.pprint"
+local resolve = require "tacky.analysis.resolve"
 
-local default = { blacklist = { parent = true, start = true, finish = true, var = true }, dups = false }
+local default = { blacklist = { parent = true, scope = true, node = true, start = true, finish = true }, dups = false }
 local function dump(item, cfg)
 	print(pprint.tostring(item, cfg or default))
 end
 
-local lexed = parser.lex [[
-(define-native dump)
-(define-native print)
-(define tagged-print (lambda (name obj)
-	(print "[" name "]" (dump obj))))
+local inputs, output = {}, "out"
 
-(define-macro if (lambda (c t b) `(cond (,c ,t) (true ,b))))
-(define-macro let (lambda (var expr body)
-  (tagged-print "Let" var)
-  `((lambda (,var) ,body) ,expr)))
-
-(let x (if "cond" "truthy" "falsy") (x "foo"))
-]]
-
-local parsed = parser.parse(lexed)
-local scope = resolve.createScope()
-
-local env = {}
-local global = setmetatable({ dump = function(x) return pprint.tostring(x, default) end }, {__index = _ENV})
-local queue = {}
-local out = {}
-
-for i = 1, #parsed do
-	queue[i] = {
-		tag  = "init",
-		node =  parsed[i],
-
-		-- Global state for every action
-		_idx   = i,
-		_co    = coroutine.create(resolve.resolveNode),
-		_state = State.create(env, scope),
-	}
-end
-
-local function resume(action, ...)
-	local status, result = coroutine.resume(action._co, ...)
-
-	if not status then
-		error(result .. "\n" .. debug.traceback(action._co))
-	elseif coroutine.status(action._co) == "dead" then
-		print("  Finished: " .. #queue .. " remaining")
-		-- We have successfully built the node.
-		action._state:built(result)
-		out[action._idx] = result
+local args = table.pack(...)
+local i = 1
+while i <= args.n do
+	local arg = args[i]
+	if arg == "--output" or arg == "-o" then
+		i = i + 1
+		output = args[i] or error("Expected output after " .. arg, 0)
 	else
-		-- Store the state and coroutine data and requeue for later
-		result._idx   = action._idx
-		result._co    = action._co
-		result._state = action._state
-
-		-- And requeue node
-		queue[#queue + 1] = result
+		inputs[#inputs + 1] = arg
 	end
+
+	i = i + 1
 end
 
-while #queue > 0 do
-	local head = table.remove(queue, 1)
+if #inputs == 0 then error("No inputs specified", 0) end
 
-	print(head.tag .. " for " .. head._state.stage)
+local libs = {}
+local function loadFile(name)
+	local lib = { name = name }
 
-	if head.tag == "init" then
-		-- Start the parser with the initial data
-		resume(head, head.node, scope, head._state)
-	elseif head.tag == "define" then
-		-- We're waiting for a variable to be defined.
-		-- If it exists then resume, otherwise requeue.
+	local handle = assert(io.open(name .. ".cl", "r"))
+	lib.lisp = handle:read("*a")
+	handle:close()
 
-		if scope.variables[head.name] then
-			resume(head, scope.variables[head.name])
-		else
-			print("  Awaiting definition of " .. head.name)
-			queue[#queue + 1] = head
+	local handle = io.open(name .. ".lua", "r")
+	if handle then
+		lib.native = handle:read("*a")
+		handle:close()
+	end
 
-			io.read("*l")
-		end
-	elseif head.tag == "build" then
-		if head.state.stage ~= "parsed" then
-			resume(head)
-		else
-			print("  Awaiting building of node")
-			queue[#queue + 1] = head
+	libs[#libs + 1] = lib
+end
 
-			io.read("*l")
-		end
-	elseif head.tag == "execute" then
-		local state = head.state
-		local node = assert(state.node, "State is in " .. state.stage .. " instead")
-		local var = assert(node.var, "State has no variable")
+loadFile("tacky/lib/prelude")
 
-		local builder = writer()
-		backend.lua.backend.expression(node, builder, "")
-		builder.add("return " .. backend.lua.backend.escape(var.name))
+for i = 1, #inputs do loadFile(inputs[i]) end
 
-		local str = builder.toString()
-		local fun, msg = load(str, "=compile{" .. var.name .. "}", "t", global)
+local global = setmetatable({ }, {__index = _ENV})
+for i = 1, #libs do
+	local lib = libs[i]
+	if lib.native then
+		local fun, msg = load(lib.native, "@" .. lib.name, "t", _ENV)
 		if not fun then error(msg, 0) end
 
-		local result = fun()
-		state:executed(result)
-		global[backend.lua.backend.escape(var.name)] = result
-
-		resume(head)
-	else
-		error("Unknown tag " .. head.tag)
+		for k, v in pairs(fun()) do
+			global[k] = v
+		end
 	end
 end
 
-print(backend.lua.block(out, 1))
+local scope = resolve.createScope()
+local env = {}
+
+local out = {}
+
+for i = 1, #libs do
+	local lib = libs[i]
+
+	local lexed = parser.lex(lib.lisp, lib.name)
+	local parsed = parser.parse(lexed)
+
+	local compiled = compile(parsed, global, env, scope)
+
+	for i = 1, #compiled do
+		out[#out + 1] = compiled[i]
+	end
+
+	for k, v in pairs(env) do
+		print(("%20s => %s"):format(k.name, v.stage))
+	end
+end
+
+local result = backend.lua.block(out, 1)
+local handle = io.open(output .. ".lua", "w")
+
+for i = 1, #libs do
+	local native = libs[i].native
+	if native then
+		handle:write("local _temp = (function()")
+		handle:write(native)
+		handle:write("end)() \nfor k, v in pairs(_temp) do _ENV[k] = v end\n")
+	end
+end
+
+handle:write(result)
+handle:close()
+
+
+local result = backend.lisp.block(out, 1)
+local handle = io.open(output .. ".cl", "w")
+
+handle:write(result)
+handle:close()
