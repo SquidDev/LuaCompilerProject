@@ -16,13 +16,21 @@ A hacked together Lisp varient which compiles to Lua.
    - Make parser much more stable and general error reporting
      - Include macro in error location (if relevant)
    - Begin work on standard library
-   - All symbols are statically bound
+   - Statically bind symbols: hygenic macros
+   - Optimisations
+     - Strip unused symbols
 
  - Medium term:
    - Pattern maching
-   - Port compiler to tacky-Lisp
+   - Port compiler to tacky-lisp
    - Documentation generation
+   - Optimisations
+     - Constant propagation
+     - Function inlining
+     - Inline Lua operators
 
  - Long term:
    - `unquote` in top level to "escape" compiler?
    - Typing
+   - Optimisations
+     - Convert tail recursive functions to loops
