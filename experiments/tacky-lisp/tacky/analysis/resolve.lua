@@ -1,118 +1,128 @@
 local Scope = require "tacky.analysis.scope"
-local Node = require "tacky.analysis.node"
 
 local declaredSymbols = {
-	"nil", "true", "false",
 	-- Built in
-	"lambda", "define", "define-macro", "set!", "cond",
+	"lambda", "define", "define-macro", "define-native",
+	"set!", "cond",
 	"quote", "quasiquote", "unquote", "unquote-spicing",
 }
 
 local rootScope = Scope.child()
+local builtins = {}
 for i = 1, #declaredSymbols do
-	rootScope:add(declaredSymbols[i], "define", nil)
+	local symbol = declaredSymbols[i]
+	builtins[symbol] = rootScope:add(symbol, "builtin", nil)
 end
 
-local resolveNode, resolveScope
-function resolveNode(node, scope)
-	local node = Node(node, parent, scope)
-	node.visited = false
+local declaredVariables = { "nil", "true", "false" }
+for i = 1, #declaredVariables do
+	local defined = declaredVariables[i]
+	rootScope:add(defined, "defined", nil)
+end
 
+local resolveNode, resolveBlock
+function resolveNode(node, scope, state)
 	local kind = node.tag
-	if kind == "number" or kind == "boolean" then
-		return
+	if kind == "number" or kind == "boolean" or kind == "string" then
+		-- Do nothing: this is a constant term after all
+		return node
 	elseif kind == "symbol" then
-		scope:require(node.contents)
+		state:require(scope:get(node.contents))
+		return node
 	elseif kind == "list" then
 		local first = node[1]
 		if first and first.tag == "symbol" then
-			local contents = first.contents
-			if contents == "lambda" then
+			local func = scope:get(first.contents)
+			local funcState = state:require(func)
+
+			if func == builtins["lambda"] then
 				local childScope = scope:child()
 
 				local args = node[2]
 				for i = 1, #args do
-					childScope:add(args[i].contents, "arg", args[i])
+					args[i].var = childScope:add(args[i].contents, "arg", args[i])
 				end
 
-				local success = resolveScope(node, 3, childScope)
-				childScope:pushParent()
-
-				if not success then return false end
-			elseif contents == "cond" then
-				local success = true
+				resolveBlock(node, 3, childScope, state)
+				return node
+			elseif func == builtins["cond"] then
 				for i = 2, #node do
 					local case = node[i]
-					resolveNode(case[1], scope)
+					case[1] = resolveNode(case[1], scope, state)
 
 					local childScope = scope:child()
-					if not resolveScope(case, 2, childScope) then
-						success = false
-					end
-
-					childScope:pushParent()
+					resolveBlock(case, 2, childScope, state)
 				end
 
-				if not success then return false end
-			elseif contents == "set!" then
-				local var = scope:requireVar(node[2].contents)
+				return node
+			elseif func == builtins["set!"] then
+				local var = scope:get(node[2].contents)
+				state:require(var)
 				if var.const then
 					error("Cannot rebind constant " .. var.name)
 				end
 
-				if not resolveNode(node[3], scope) then
-					return false
-				end
-			elseif contents == "quote" or contents == "unquote" or contents == "quasiquote" then -- TODO: quasiquote
+				node[3] = resolveNode(node[3], scope, state)
+				return node
+			elseif func == builtins["quote"] or func == builtins["unquote"] or func == builtins["quasiquote"] then
 				-- Do nothing as we're quoting
-			elseif contents == "define" or contents == "define-macro" then
-				if not resolveNode(node[3], scope) then
-					return false
-				end
-			else
-				local var = scope:requireCalled(first.contents)
-				if var.macros then
-					node.pending = true
-					node.scope = scope
-					return
+				-- TODO: quasiquote
+				return node
+			elseif func == builtins["define"] then
+				if node[2] == nil or node[2].tag ~= "symbol" then
+					error("Expected symbol, got " .. (node[2] and node[2].tag or "nothing"), 2)
 				end
 
-				for i = 1, #node do resolveNode(node[i], scope) end
+				node.var = scope:add(node[2].contents, "defined", node)
+				node[3] = resolveNode(node[3], scope, state)
+				return node
+			elseif func == builtins["define-macro"] then
+				if node[2] == nil or node[2].tag ~= "symbol" then
+					error("Expected symbol, got " .. (node[2] and node[2].tag or "nothing"), 2)
+				end
+
+				node.var = scope:add(node[2].contents, "macro", node)
+				node[3] = resolveNode(node[3], scope, state)
+				return node
+			elseif func == builtins["define-native"] then
+				node.var = scope:add(node[2].contents, "defined", node)
+				return node
+			elseif func.tag == "macro" then
+				if not funcState then error("Macro is not defined correctly") end
+				local replacement = funcState:get()(table.unpack(node, 2, #node))
+
+				return resolveNode(replacement, scope, state)
+			elseif func.tag == "defined" or func.tag == "arg" then
+				return resolveList(node, 1, scope, state)
+			else
+				error("Unknown kind " .. tostring(func.tag) .. " for variable " .. func.name)
 			end
 		else
-			for i = 1, #node do resolveNode(node[i], scope) end
+			return resolveList(node, 1, scope, state)
 		end
 	else
 		error("Unknown type " .. tostring(kind))
 	end
 end
 
-function resolveScope(list, start, scope)
-	-- Predeclare all variables
+function resolveList(list, start, scope, state)
 	for i = start, #list do
-		local node = list[i]
-		-- require "tacky.pprint".print(i, node)
-		-- print(node.kind, node.contents)
-		if node.tag == "list" then
-			local first = node[1]
-			-- print(first.tag, first.contents)
-			if first and first.tag == "symbol" and (first.contents == "define" or first.contents == "define-macro") then
-				scope:add(node[2].contents, first.contents, node[3])
-			end
-		end
+		list[i] = resolveNode(list[i], scope, state)
 	end
 
-	-- Resolve all variables
-	local out = {}
+	return list
+end
+
+function resolveBlock(list, start, scope, state)
 	for i = start, #list do
-		out[i - start + 1] = resolveNode(list[i], scope)
+		list[i] = resolveNode(list[i], scope, state)
 	end
 
-	return out
+	return list
 end
 
-return function(node)
-	local scope = rootScope:child()
-	resolveRoot(node, scope)
-	return scope
-end
+return {
+	createScope = function() return rootScope:child() end,
+	resolveNode = resolveNode,
+	resolveBlock = resolveBlock,
+}

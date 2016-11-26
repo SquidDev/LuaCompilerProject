@@ -6,16 +6,9 @@ function Scope.child(parent)
 		--- The parent scope.
 		parent = parent,
 
-		--- List of all child scopes
-		children = {},
-
 		--- Lookup of named variables.
 		variables = {},
 	}, Scope)
-
-	if parent then
-		parent.children[#parent.children + 1] = child
-	end
 
 	return child
 end
@@ -32,24 +25,35 @@ function Scope:get(name)
 		element = element.parent
 	end
 
-	return nil
+	-- We don't have a variable. This means we've got a function which hasn't
+	-- been defined yet or doesn't exist.
+	-- Halt this execution and wait til it is parsed.
+	return coroutine.yield({
+		tag = "define",
+		name = name,
+	})
 end
+
+local kinds = { defined = true, macro = true, arg = true, builtin = true }
 
 function Scope:add(name, kind, node)
 	if name == nil then error("name is nil", 2) end
+	if not kinds[kind] then error("unknown kind " .. tostring(kind), 2) end
 
 	local previous = self.variables[name]
 	if previous then
 		error("Previous declaration of " .. name)
 	end
 
-	self.variables[name] = {
+	local var = {
 		tag = kind,
 		name = name,
-		start = self.start, finish = self.finish,
-		const = kind == "define" or kind == "define-macro",
+		scope = self,
+		const = kind ~= "arg",
 		node = node,
 	}
+	self.variables[name] = var
+	return var
 end
 
 return Scope

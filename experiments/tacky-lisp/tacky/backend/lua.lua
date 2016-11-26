@@ -10,7 +10,8 @@ local function escape(name, args)
 		return "_args"
 	elseif kwrds[name] then
 		return "_e" .. name
-	elseif name:match("^[_%w][_%w%d]*$") then
+	elseif name:match("^%w[_%w%d]*$") then
+		-- We explicitly forbid leading _ as that is used for compiler internals
 		return name
 	else
 		return "_e" .. name:gsub("([^_%w%d])", function(x) return "_" .. x:byte() .. "_" end)
@@ -28,7 +29,7 @@ function compileQuote(node, builder, level)
 	if node.tag == "string" or node.tag == "number" then
 		append('{tag = "' .. node.tag .. '", ' .. node.contents .. '}')
 	elseif node.tag == "symbol" then
-		append('{tag = "symbol", ' .. ("%q"):format(node.contents):gsub("\n", "\\n") .. '}')
+		append('{tag = "symbol", contents = ' .. ("%q"):format(node.contents):gsub("\n", "\\n") .. '}')
 	elseif node.tag == "list" then
 		local first = node[1]
 		if first and first.tag == "symbol" then
@@ -127,6 +128,9 @@ function compileExpression(expr, builder, retStmt)
 				end
 			elseif name == "define" or name == "define-macro" then
 				compileExpression(expr[3], builder, "local " .. escape(expr[2].contents) .. " = ")
+			elseif name == "define-native" then
+				append(("local %s = _ENV[%q]"):format(escape(expr[2].contents), expr[2].contents))
+				builder.line()
 			elseif name == "quote" then
 				if retStmt then
 					append(retStmt)

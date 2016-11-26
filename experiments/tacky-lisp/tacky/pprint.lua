@@ -5,10 +5,10 @@ M.DEFAULT_CFG = {
 	hide_hash   = false; -- Print the non-array part of tables?
 	metalua_tag = true;  -- Use Metalua's backtick syntax sugar?
 	keywords    = { };   -- Set of keywords which must not use Lua's field shortcuts {["foo"]=...} -> {foo=...}
-	blacklist = { };     -- Set of fields to not display
-	max_depth = -1;      -- Max depth to traverse
-	with_name = false;   -- If the field 'name' exists, print that instead.
-	dups      = true;    -- Print any duplicates in different structures
+	blacklist   = { };     -- Set of fields to not display
+	max_depth   = -1;      -- Max depth to traverse
+	with_name   = false;   -- If the field 'name' exists, print that instead.
+	dups        = true;    -- Print any duplicates in different structures
 }
 
 local function validId(x, cfg)
