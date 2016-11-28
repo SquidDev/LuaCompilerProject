@@ -24,7 +24,8 @@ return {
 	['gensym'] = function()
 		return { tag = "symbol", contents = ("r_%08x"):format(math.random(0, 16^8)) }
 	end,
+
 	['cdr'] = function(xs)
-		return {unpack(xs, 2)}
-	end
+		return { tag = "list", n = xs.n - 1, table.unpack(xs, 2) }
+	end,
 }

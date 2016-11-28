@@ -112,13 +112,13 @@
 (defun cars (xs)
   (define out '())
   (for i 1 (# xs) 1
-    (push-cdr! xs (car (get-idx xs i))))
+    (push-cdr! out (car (get-idx xs i))))
   out)
 
 (defun cdrs (xs)
   (define out '())
   (for i 1 (# xs) 1
-    (push-cdr! xs (cdr (get-idx xs i))))
+    (push-cdr! out (cdr (get-idx xs i))))
   out)
 
 ;; Binds a variable to an expression
@@ -130,7 +130,7 @@
 ;; Return a new list where only the predicate matches
 (defun filter (fn li)
   (define out '())
-  (for i 1 (# li 1) 1 (let '(item (get-idx li i))
+  (for i 1 (# li 1) 1 (let ((item (get-idx li i)))
     (if (fn item) (push-cdr! out item))))
   out)
 
