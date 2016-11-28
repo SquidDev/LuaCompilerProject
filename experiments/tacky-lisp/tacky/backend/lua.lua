@@ -1,8 +1,9 @@
+local errorPositions = require "tacky.parser".errorPositions
+
 local function createLookup(t)
 	for i = 1, #t do t[t[i]] = true end
 	return t
 end
-
 
 local kwrds = createLookup { "and", "break", "do", "else", "elseif", "end", "for", "function", "if", "in", "local", "not", "or", "repeat", "return", "then", "until", "while" }
 local function escape(name, args)
@@ -38,9 +39,9 @@ function compileQuote(node, builder, level)
 		local first = node[1]
 		if first and first.tag == "symbol" then
 			if first.contents == "unquote" then
-				return compileQuote(node[2], builder, level - 1)
+				return compileQuote(node[2], builder, level and level - 1)
 			elseif first.contents == "quasiquote" then
-				return compileQuote(node[2], builder, level + 1)
+				return compileQuote(node[2], builder, level and level + 1)
 			end
 		end
 
@@ -233,16 +234,16 @@ function compileExpression(expr, builder, retStmt)
 				if retStmt == "" then retStmt = "local _ = " end
 				if retStmt then append(retStmt) end
 
-				compileQuote(expr[2], builder, 1)
+				compileQuote(expr[2], builder, nil)
 			elseif name == "quasiquote" then
 				if retStmt == "" then retStmt = "local _ = " end
 				if retStmt then append(retStmt) end
 
 				compileQuote(expr[2], builder, 1)
 			elseif name == "unquote" then
-				error("unquote outside of quasiquote")
+				errorPositions(expr[1] or expr, "unquote outside of quasiquote")
 			elseif name == "unquote-splice" then
-				error("unquote-splice outside of quasiquote")
+				errorPositions(expr[1] or expr, "unquote-splice outside of quasiquote")
 			else
 				if retStmt then append(retStmt) end
 				compileExpression(expr[1], builder)
@@ -253,7 +254,7 @@ function compileExpression(expr, builder, retStmt)
 				end
 				append(")")
 			end
-		elseif head and head.tag == "list" and head[1].tag == "symbol" and head[1].contents == "lambda" then
+		elseif head and head.tag == "list" and head[1].tag == "symbol" and head[1].contents == "lambda" and retStmt then
 			-- ((lambda (args) body) values)
 			append("do")
 			builder.indent() builder.line()

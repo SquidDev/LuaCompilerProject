@@ -7,8 +7,6 @@ A hacked together Lisp varient which compiles to Lua.
 ## Roadmap
 
  - Immediate:
-   - Support for `quasi-quote`/`unquote` in resolver
-   - Don't break on recursive definitions
    - Don't break on unbound variables
 
  - Short term:

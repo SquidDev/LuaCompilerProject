@@ -1,6 +1,12 @@
 local Scope = require "tacky.analysis.scope"
 local errorPositions = require "tacky.parser".errorPositions
 
+local pprint = require "tacky.pprint"
+local default = { blacklist = { parent = true, scope = true, node = true, start = true, finish = true }, dups = false }
+local function dump(item, cfg)
+	print(pprint.tostring(item, cfg or default))
+end
+
 local declaredSymbols = {
 	-- Built in
 	"lambda", "define", "define-macro", "define-native",
@@ -21,7 +27,37 @@ for i = 1, #declaredVariables do
 	rootScope:add(defined, "defined", nil)
 end
 
-local resolveNode, resolveBlock
+local resolveNode, resolveBlock, resolveQuote
+
+function resolveQuote(node, scope, state, level)
+	if level == 0 then
+		return resolveNode(node, scope, state)
+	end
+
+	if node.tag == "string" or node.tag == "number" or node.tag == "symbol" then
+		return node
+	elseif node.tag == "list" then
+		local first = node[1]
+		if first and first.tag == "symbol" then
+			if first.contents == "unquote" then
+				node[2] = resolveQuote(node[2], scope, state, level and level - 1)
+				return node
+			elseif first.contents == "quasiquote" then
+				node[2] = resolveQuote(node[2], scope, state, level and level + 1)
+				return node
+			end
+		end
+
+		for i = 1, #node do
+			node[i] = resolveQuote(node[i], scope, state, level)
+		end
+
+		return node
+	else
+		error("Unknown tag " .. expr.tag)
+	end
+end
+
 function resolveNode(node, scope, state)
 	local kind = node.tag
 	if kind == "number" or kind == "boolean" or kind == "string" then
@@ -68,13 +104,16 @@ function resolveNode(node, scope, state)
 
 				node[3] = resolveNode(node[3], scope, state)
 				return node
-			elseif func == builtins["quote"] or func == builtins["unquote"] or func == builtins["quasiquote"] then
-				-- Do nothing as we're quoting
-				-- TODO: quasiquote
+			elseif func == builtins["quote"] then
 				return node
+			elseif func == builtins["quasiquote"] then
+				node[2] = resolveQuote(node[2], scope, state, 1)
+				return node
+			elseif func == builtins["unquote"] or func == builtins["unquote-splice"] then
+				errorPositions(node[1] or node, "Unquote outside of quasiquote")
 			elseif func == builtins["define"] then
 				if node[2] == nil or node[2].tag ~= "symbol" then
-					errorPositions(node[2] or node, "Expected symbol, got " .. (node[2] and node[2].tag or "nothing"), 2)
+					errorPositions(node[2] or node, "Expected symbol, got " .. (node[2] and node[2].tag or "nothing"))
 				end
 
 				node.var = scope:add(node[2].contents, "defined", node)
@@ -87,6 +126,9 @@ function resolveNode(node, scope, state)
 					errorPositions(node[2] or node, "Expected symbol, got " .. (node[2] and node[2].tag or "nothing"))
 				end
 
+				if node[2].contents == "name" then
+					dump(node)
+				end
 				node.var = scope:add(node[2].contents, "macro", node)
 				state:define(node.var)
 

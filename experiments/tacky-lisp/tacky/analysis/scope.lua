@@ -1,3 +1,5 @@
+local errorPositions = require "tacky.parser".errorPositions
+
 local Scope = {}
 Scope.__index = Scope
 
@@ -42,7 +44,7 @@ function Scope:add(name, kind, node)
 
 	local previous = self.variables[name]
 	if previous then
-		error("Previous declaration of " .. name)
+		errorPositions(node, "Previous declaration of " .. name)
 	end
 
 	local var = {

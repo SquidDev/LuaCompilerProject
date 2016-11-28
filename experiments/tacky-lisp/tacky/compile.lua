@@ -91,6 +91,11 @@ return function(parsed, global, env, scope)
 				local fun, msg = load(str, "=compile{" .. var.name .. "}", "t", global)
 				if not fun then error(msg .. ":" .. str, 0) end
 
+				if var.name == "defmacro" then
+					dump(node)
+					print(str)
+				end
+
 				local result = fun()
 				state:executed(result)
 				global[backend.lua.backend.escape(var.name)] = result
