@@ -73,6 +73,3 @@
     ("foo" 0)
     ("bar" 10)) 2)
   ("hello" 1)))
-
-(define /= ~=)
-(define = ==)

@@ -84,11 +84,12 @@ return function(parsed, global, env, scope)
 
 				local builder = writer()
 				backend.lua.backend.expression(node, builder, "")
+				builder.line()
 				builder.add("return " .. backend.lua.backend.escape(var.name))
 
 				local str = builder.toString()
 				local fun, msg = load(str, "=compile{" .. var.name .. "}", "t", global)
-				if not fun then error(msg, 0) end
+				if not fun then error(msg .. ":" .. str, 0) end
 
 				local result = fun()
 				state:executed(result)
