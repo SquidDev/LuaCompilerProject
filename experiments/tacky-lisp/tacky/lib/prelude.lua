@@ -28,4 +28,11 @@ return {
 	['cdr'] = function(xs)
 		return { tag = "list", n = xs.n - 1, table.unpack(xs, 2) }
 	end,
+	['invoke-dynamic'] = function(f, ...)
+		local name = _ENV
+		for x in f:gmatch('[^.]+') do
+			name = name[x]
+		end
+		return name(...)
+	end
 }

@@ -6,7 +6,6 @@
 (define-macro defmacro (lambda (name args ...)
   `(define-macro ,name (lambda ,args ,@...))))
 
-
 ;; Creates a code block, for use where an expression would normally be required.
 (defmacro progn (...)
   `((lambda () ,@...)))
@@ -22,9 +21,10 @@
 (defmacro while (check ...)
   (define impl (gensym))
   `(progn
-    (defun ,impl () (cond
-      (,check ,@... (,impl))
-      (true)))
+    (defun ,impl ()
+      (cond
+        (,check ,@... (,impl))
+        (true)))
     (,impl)))
 
 (defmacro for (ctr start end step ...)
@@ -71,6 +71,8 @@
 (define-native /)
 (define-native %)
 (define-native ^)
+
+(define-native invoke-dynamic)
 
 (define /= ~=)
 (define = ==)
@@ -161,13 +163,14 @@
     (set! accum (func (get-idx li i) accum)))
   accum)
 
-(defmacro -> (x forms)
-  (if (/= (# forms) 0)
-    `(let ((form (car forms))
-          (threaded `(,(car form) ,x ,@(cdr form))))
-      (-> threaded (cdr forms)))
-    `x))
+(defmacro case (x ...)
+  (define cases ...)
+  (defun transform-case (case)
+    (if (listp case)
+      `((,@(car case) ,x) ,@(cdr case))
+      `(true case)))
+  `(cond ,@(map transform-case cases)))
 
-(defun inc (x) (+ 1 x))
+(defun succ (x) (+ 1 x))
+(defun pred (x) (- x 1))
 
-; vim: ft=lisp et ts=2
