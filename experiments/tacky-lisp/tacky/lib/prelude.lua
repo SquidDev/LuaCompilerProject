@@ -21,7 +21,10 @@ return {
 	['%'] = function(x, y) return x % y end,
 	['^'] = function(x, y) return x ^ y end,
 
-	['gen-sym'] = function()
+	['gensym'] = function()
 		return { tag = "symbol", contents = ("r_%08x"):format(math.random(0, 16^8)) }
 	end,
+	['cdr'] = function(xs)
+		return {unpack(xs, 2)}
+	end
 }
