@@ -31,7 +31,7 @@ local libs = {}
 local function loadFile(name)
 	local lib = { name = name }
 
-	local handle = assert(io.open(name .. ".cl", "r"))
+	local handle = assert(io.open(name .. ".lisp", "r"))
 	lib.lisp = handle:read("*a")
 	handle:close()
 
@@ -100,7 +100,7 @@ handle:close()
 
 
 local result = backend.lisp.block(out, 1)
-local handle = io.open(output .. ".cl", "w")
+local handle = io.open(output .. ".lisp", "w")
 
 handle:write(result)
 handle:close()

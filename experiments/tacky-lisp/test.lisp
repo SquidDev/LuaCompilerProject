@@ -1,9 +1,9 @@
-(let x (if "cond" 5 10)
-	(pretty-print! x)
+(let ((x (if "cond" 5 10)))
+  (pretty-print! x)
 
-	(while (> x 0)
-		(set! x (- x 1))
-		(print! x)))
+  (while (> x 0)
+    (set! x (- x 1))
+    (print! x)))
 
 (for x 1 5 1 (print! x))
 
@@ -29,45 +29,45 @@
 
 (print! "Cond compilation")
 (defun No-change () (cond
-	("hello" 0)
-	("world" 1)))
+  ("hello" 0)
+  ("world" 1)))
 
 (defun Trailing-true () (cond
-	("hello" 0)
-	("world" 1)
-	(true true)))
+  ("hello" 0)
+  ("world" 1)
+  (true true)))
 
 (defun Mid-way-true () (cond
-	("hello" 0)
-	(true true)
-	("world" 1)))
+  ("hello" 0)
+  (true true)
+  ("world" 1)))
 
 (defun First-true () (cond
-	(true true)
-	("hello" 0)
-	("world" 1)))
+  (true true)
+  ("hello" 0)
+  ("world" 1)))
 
 (defun Nested-conds-second () (cond
-	("hello" 0)
-	((cond
-		("foo" 0)
-		("bar" 10)) 1)
-	("world" 2)))
+  ("hello" 0)
+  ((cond
+    ("foo" 0)
+    ("bar" 10)) 1)
+  ("world" 2)))
 
 (defun Nested-conds-first () (cond
-	((cond
-		("foo" 0)
-		("bar" 10)) 0)
-	("hello" 1)))
+  ((cond
+    ("foo" 0)
+    ("bar" 10)) 0)
+  ("hello" 1)))
 
 (defun Nested-conds-many () (cond
-	((cond
-		("foo" 0)
-		("bar" 10)) 0)
-	((cond
-		("foo" 0)
-		("bar" 10)) 1)
-	((cond
-		("foo" 0)
-		("bar" 10)) 2)
-	("hello" 1)))
+  ((cond
+    ("foo" 0)
+    ("bar" 10)) 0)
+  ((cond
+    ("foo" 0)
+    ("bar" 10)) 1)
+  ((cond
+    ("foo" 0)
+    ("bar" 10)) 2)
+  ("hello" 1)))
