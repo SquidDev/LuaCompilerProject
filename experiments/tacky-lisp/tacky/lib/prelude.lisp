@@ -72,7 +72,8 @@
 (define-native %)
 (define-native ^)
 
-(define != ~=)
+(define /= ~=)
+(define = ==)
 
 ;; Get the length of a list
 (defun # (li) (get-idx li "n"))
@@ -109,22 +110,15 @@
 (defun cadr (xs) (car (cdr xs)))
 (defun cddr (xs) (cdr (cdr xs)))
 
-(defun cars (xs)
-  (define out '())
-  (for i 1 (# xs) 1
-    (push-cdr! out (car (get-idx xs i))))
-  out)
-
-(defun cdrs (xs)
-  (define out '())
-  (for i 1 (# xs) 1
-    (push-cdr! out (cdr (get-idx xs i))))
-  out)
+(defun cars (xs) (map car xs))
+(defun cdrs (xs) (map cdr xs))
+(defun cddrs (xs) (map cddr xs))
+(defun cadrs (xs) (map cadr xs))
 
 ;; Binds a variable to an expression
 (defmacro let (vars ...)
   (define vas (cars vars))
-  (define vds (cdrs vars))
+  (define vds (cadrs vars))
   `((lambda ,vas ,@...) ,@vds))
 
 ;; Return a new list where only the predicate matches
@@ -164,6 +158,15 @@
     (set! accum (func (get-idx li i) accum)))
   accum)
 
+(defmacro -> (x forms)
+  (defun expand (x forms len)
+    (if (/= len 0)
+      (let ((form (car forms))
+            (threaded `(,(car form) ,x ,@(cdr form))))
+          (expand threaded forms (- len 1)))
+      x))
+  (expand x forms (# forms)))
 
+(defun inc (x) (+ 1 x))
 
 ; vim: ft=lisp et ts=2

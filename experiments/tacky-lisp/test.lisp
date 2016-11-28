@@ -27,6 +27,9 @@
 (print! "Foldr")
 (pretty-print! (foldr (lambda (x y) (list x y)) 0 (list 1 2 3 4)))
 
+(print! "->")
+(pretty-print! (-> 1 inc inc))
+
 (print! "Cond compilation")
 (defun No-change () (cond
   ("hello" 0)
