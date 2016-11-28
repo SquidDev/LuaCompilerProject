@@ -75,9 +75,16 @@
     ("bar" 10)) 2)
   ("hello" 1)))
 
-;(print!
-;  (case 1
-;    ((>= 1) "derp")
-;    ((= 1) "herp")))
+(print!
+  (case 1
+    ((>= 1) "derp")
+    ((= 1) "herp")))
 
 (print! (-> 1 succ succ succ))
+
+(print!
+  (letrec
+    (
+      (even? (lambda (x) (if (== x 0) true (odd? (- x 1)))))
+      (odd? (lambda (x) (if (== x 0) false (even? (- x 1))))))
+    (even? 10)))

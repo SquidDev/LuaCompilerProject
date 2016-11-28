@@ -138,6 +138,11 @@
       `((lambda (,(car var)) ,@(let* next ...)) ,(cadr var)))
     `((lambda () ,@...))))
 
+(defmacro letrec (vars ...)
+  `((lambda ,(cars vars)
+    ,@(map (lambda (var) `(set! ,(car var) ,(cadr var))) vars)
+    ,@...)))
+
 ;; Binds a single variable
 (defmacro with (var ...) `(let (,var) ,@...))
 

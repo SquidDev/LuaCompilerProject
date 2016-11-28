@@ -10,7 +10,7 @@ local function dump(item, cfg)
 end
 
 return function(parsed, global, env, scope, debugEnabled)
-	local function debug(...)
+	local function debugPrint(...)
 		if debugEnabled then print(...) end
 	end
 
@@ -35,7 +35,7 @@ return function(parsed, global, env, scope, debugEnabled)
 		if not status then
 			error(result .. "\n" .. debug.traceback(action._co))
 		elseif coroutine.status(action._co) == "dead" then
-			debug("  Finished: " .. #queue .. " remaining")
+			debugPrint("  Finished: " .. #queue .. " remaining")
 			-- We have successfully built the node.
 			action._state:built(result)
 			out[action._idx] = result
@@ -53,7 +53,7 @@ return function(parsed, global, env, scope, debugEnabled)
 	while #queue > 0 do
 		local head = table.remove(queue, 1)
 
-		debug(head.tag .. " for " .. head._state.stage)
+		debugPrint(head.tag .. " for " .. head._state.stage)
 
 		if head.tag == "init" then
 			-- Start the parser with the initial data
@@ -65,7 +65,7 @@ return function(parsed, global, env, scope, debugEnabled)
 			if scope.variables[head.name] then
 				resume(head, scope.variables[head.name])
 			else
-				debug("  Awaiting definition of " .. head.name)
+				debugPrint("  Awaiting definition of " .. head.name)
 				queue[#queue + 1] = head
 
 				io.read("*l")
@@ -74,7 +74,7 @@ return function(parsed, global, env, scope, debugEnabled)
 			if head.state.stage ~= "parsed" then
 				resume(head)
 			else
-				debug("  Awaiting building of node")
+				debugPrint("  Awaiting building of node")
 				dump(head)
 				queue[#queue + 1] = head
 
