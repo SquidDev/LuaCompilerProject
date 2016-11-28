@@ -175,6 +175,27 @@
       `(true)))
   `((lambda (,name) (cond ,@(map transform-case cases))) ,x))
 
+(defmacro -> (x ...)
+  (if (/= (# ...) 0)
+    (progn
+      (define form (car ...))
+      (define threaded
+        (cond
+          ((list? form) `(,(car form) ,x ,@(cdr form)))
+          (true `(,form ,x))))
+      `(-> ,threaded ,@(cdr ...)))
+    x))
+
+(defmacro ->> (x ...)
+  (if (/= (# ...) 0)
+    (progn
+      (define form (car ...))
+      (define threaded
+        (cond
+          ((list? form) `(,@form ,x))
+          (true `(,form ,x))))
+      `(-> ,threaded ,@(cdr ...)))
+    x))
 (defun succ (x) (+ 1 x))
 (defun pred (x) (- x 1))
 
