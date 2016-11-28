@@ -75,7 +75,9 @@
     ("bar" 10)) 2)
   ("hello" 1)))
 
-(print!
-  (case 1
-    ((>= 1) "derp")
-    ((= 1) "herp")))
+;(print!
+;  (case 1
+;    ((>= 1) "derp")
+;    ((= 1) "herp")))
+
+(print! (-> 1 succ succ succ))
