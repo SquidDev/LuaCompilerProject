@@ -1,5 +1,7 @@
 local pprint = require "tacky.pprint"
 
+local nativeType = type
+
 return {
 	['print!'] = print,
 	['pretty-print!'] = pprint.print,
@@ -34,5 +36,13 @@ return {
 			name = name[x]
 		end
 		return name(...)
-	end
+	end,
+	['type'] = function(x)
+		local ty = nativeType(x)
+		if ty == "table" then
+			return x.tag or "table"
+		else
+			return ty
+		end
+	end,
 }

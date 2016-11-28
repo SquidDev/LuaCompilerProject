@@ -73,6 +73,9 @@
 (define-native ^)
 
 (define-native invoke-dynamic)
+(define-native type)
+
+(defun list? (x) (== (type x) "list"))
 
 (define /= ~=)
 (define = ==)
@@ -165,11 +168,12 @@
 
 (defmacro case (x ...)
   (define cases ...)
+  (define name (gensym))
   (defun transform-case (case)
-    (if (listp case)
-      `((,@(car case) ,x) ,@(cdr case))
-      `(true case)))
-  `(cond ,@(map transform-case cases)))
+    (if (list? case)
+      `((,@(car case) ,name) ,@(cdr case))
+      `(true)))
+  `((lambda (,name) (cond ,@(map transform-case cases))) ,x))
 
 (defun succ (x) (+ 1 x))
 (defun pred (x) (- x 1))
