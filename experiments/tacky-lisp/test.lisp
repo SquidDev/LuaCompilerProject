@@ -5,6 +5,8 @@
     (set! x (- x 1))
     (print! x)))
 
+(with (x 1) (pretty-print! x))
+
 (for x 1 5 1 (print! x))
 
 (print! "Map")

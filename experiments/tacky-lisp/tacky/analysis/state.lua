@@ -40,8 +40,9 @@ function State:require(var)
 	end
 
 	if var.scope == self.scope then
-		self.required[var] = true
-		return assert(self.variables[var], "Variable's State is nil: it probably hasn't finished parsing: " .. var.name)
+		local state = assert(self.variables[var], "Variable's State is nil: it probably hasn't finished parsing: " .. var.name)
+		self.required[state] = true
+		return state
 	end
 end
 
@@ -96,19 +97,42 @@ function State:get()
 		})
 	end
 
-	-- Note: this could still stack-overflow.
+	local required = {}
+	local requiredQueue = {}
+	local queue = { self }
+
+	while #queue > 0 do
+		local state = table.remove(queue, 1)
+		if not required[state] then
+			print("    Require " .. state.var.name .. " for " .. self.var.name)
+			required[state] = true
+			requiredQueue[#requiredQueue + 1] = state
+
+			for inner, _ in pairs(state.required) do
+				queue[#queue + 1] = inner
+			end
+		end
+	end
+
 	-- Instead we should scan for all nodes which haven't been built
 	-- and request that they are finished.
 	-- And then we execute all non-executed nodes.
-	for var, _ in pairs(self.required) do
-		self.variables[var]:get()
-	end
+	for i = #requiredQueue, 1, -1 do
+		local state = requiredQueue[i]
+		if state.stage ~= "executed" then
+			if state.stage ~= "built" then
+				coroutine.yield({
+					tag = "build",
+					state = state,
+				})
+			end
 
-	-- We haven't built this yet so wait til it has been compiled
-	coroutine.yield({
-		tag = "execute",
-		state = self,
-	})
+			coroutine.yield({
+				tag = "execute",
+				state = state,
+			})
+		end
+	end
 
 	return self.value
 end

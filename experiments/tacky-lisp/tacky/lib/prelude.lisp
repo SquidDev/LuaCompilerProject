@@ -118,8 +118,11 @@
 ;; Binds a variable to an expression
 (defmacro let (vars ...)
   (define vas (cars vars))
-  (define vds (cadrs vars))
+  (define vds (map cadr vars))
   `((lambda ,vas ,@...) ,@vds))
+
+;; Binds a single variable
+(defmacro with (var ...) `(let (,var) ,@...))
 
 ;; Return a new list where only the predicate matches
 (defun filter (fn li)
@@ -159,13 +162,11 @@
   accum)
 
 (defmacro -> (x forms)
-  (defun expand (x forms len)
-    (if (/= len 0)
-      (let ((form (car forms))
-            (threaded `(,(car form) ,x ,@(cdr form))))
-          (expand threaded forms (- len 1)))
-      x))
-  (expand x forms (# forms)))
+  (if (/= (# forms) 0)
+    `(let ((form (car forms))
+          (threaded `(,(car form) ,x ,@(cdr form))))
+      (-> threaded (cdr forms)))
+    `x))
 
 (defun inc (x) (+ 1 x))
 
