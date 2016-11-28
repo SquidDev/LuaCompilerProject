@@ -125,6 +125,7 @@ function compileExpression(expr, builder, retStmt)
 		if head and head.tag == "symbol" then
 			local name = head.contents
 			if name == "lambda" then
+				if retStmt == "" then retStmt = "local _ = " end
 				if retStmt then append(retStmt) end
 
 				append("(function(")

@@ -79,6 +79,8 @@
 (define-native type)
 
 (defun list? (x) (== (type x) "list"))
+
+;; Check if this is a list and it is empty
 (defun nil? (x) (and (list? x) (== (# x) 0)))
 
 (define /= ~=)
@@ -86,9 +88,6 @@
 
 ;; Get the length of a list
 (defun # (li) (get-idx li "n"))
-
-;; Check if the list is empty
-(defun empty? (li) (== (# li) 0))
 
 ;; Push an entry on to the end of this list
 (defun push-cdr! (li val)
@@ -209,6 +208,6 @@
           (true `(,form ,x))))
       `(-> ,threaded ,@(cdr ...)))
     x))
+
 (defun succ (x) (+ 1 x))
 (defun pred (x) (- x 1))
-

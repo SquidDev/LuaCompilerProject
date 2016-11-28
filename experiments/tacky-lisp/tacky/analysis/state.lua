@@ -104,14 +104,15 @@ function State:get()
 	while #queue > 0 do
 		local state = table.remove(queue, 1)
 		if not required[state] then
-			print("    Require " .. state.var.name .. " for " .. self.var.name)
 			required[state] = true
-			requiredQueue[#requiredQueue + 1] = state
 
 			for inner, _ in pairs(state.required) do
 				queue[#queue + 1] = inner
 			end
 		end
+
+		-- Sure, it'll be on the queue a lot but it isn't too bad.
+		requiredQueue[#requiredQueue + 1] = state
 	end
 
 	-- Instead we should scan for all nodes which haven't been built
@@ -119,14 +120,14 @@ function State:get()
 	-- And then we execute all non-executed nodes.
 	for i = #requiredQueue, 1, -1 do
 		local state = requiredQueue[i]
-		if state.stage ~= "executed" then
-			if state.stage ~= "built" then
-				coroutine.yield({
-					tag = "build",
-					state = state,
-				})
-			end
+		if state.stage ~= "built" then
+			coroutine.yield({
+				tag = "build",
+				state = state,
+			})
+		end
 
+		if state.stage ~= "executed" then
 			coroutine.yield({
 				tag = "execute",
 				state = state,

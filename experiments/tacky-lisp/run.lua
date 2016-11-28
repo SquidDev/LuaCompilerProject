@@ -9,7 +9,7 @@ local function dump(item, cfg)
 	print(pprint.tostring(item, cfg or default))
 end
 
-local inputs, output = {}, "out"
+local inputs, output, debug = {}, "out", false
 
 local args = table.pack(...)
 local i = 1
@@ -18,6 +18,8 @@ while i <= args.n do
 	if arg == "--output" or arg == "-o" then
 		i = i + 1
 		output = args[i] or error("Expected output after " .. arg, 0)
+	elseif arg == "--debug" or arg == "-d" then
+		debug = true
 	else
 		inputs[#inputs + 1] = arg
 	end
@@ -72,14 +74,16 @@ for i = 1, #libs do
 	local lexed = parser.lex(lib.lisp, lib.name)
 	local parsed = parser.parse(lexed)
 
-	local compiled = compile(parsed, global, env, scope)
+	local compiled = compile(parsed, global, env, scope, debug)
 
 	for i = 1, #compiled do
 		out[#out + 1] = compiled[i]
 	end
 
-	for k, v in pairs(env) do
-		print(("%20s => %s"):format(k.name, v.stage))
+	if debug then
+		for k, v in pairs(env) do
+			print(("%20s => %s"):format(k.name, v.stage))
+		end
 	end
 end
 
