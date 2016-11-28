@@ -72,10 +72,14 @@
 (define-native %)
 (define-native ^)
 
+(define-native and)
+(define-native or)
+
 (define-native invoke-dynamic)
 (define-native type)
 
 (defun list? (x) (== (type x) "list"))
+(defun nil? (x) (and (list? x) (== (# x) 0)))
 
 (define /= ~=)
 (define = ==)
@@ -125,6 +129,15 @@
   (define vas (cars vars))
   (define vds (map cadr vars))
   `((lambda ,vas ,@...) ,@vds))
+
+(defmacro let* (vars ...)
+  (if (! (nil? vars))
+    (progn
+      (define var (car vars))
+      (define next (cdr vars))
+
+      `((lambda (,(car var)) ,@(let* next ...)) ,(cadr var)))
+    `((lambda () ,@...))))
 
 ;; Binds a single variable
 (defmacro with (var ...) `(let (,var) ,@...))

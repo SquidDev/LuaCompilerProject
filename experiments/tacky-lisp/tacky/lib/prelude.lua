@@ -23,6 +23,9 @@ return {
 	['%'] = function(x, y) return x % y end,
 	['^'] = function(x, y) return x ^ y end,
 
+	["and"] = function(x, y) return x and y end,
+	["or"] = function(x, y) return x or y end,
+
 	['gensym'] = function()
 		return { tag = "symbol", contents = ("r_%08x"):format(math.random(0, 16^8)) }
 	end,
