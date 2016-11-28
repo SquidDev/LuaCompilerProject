@@ -25,7 +25,6 @@ local function lex(str, name)
 		tok.start, tok.finish = start, finish
 
 		tok.contents = str:sub(start.offset, finish.offset)
-		if tok.tag == "number" then print(tok.contents) end
 
 		n = n + 1
 		out[n] = tok
@@ -163,6 +162,9 @@ local function parse(toks)
 		elseif tag == "open" then
 			push()
 		elseif tag == "close" then
+			if #stack == 0 then
+				errorPositions(item, "')' without matching '('")
+			end
 			pop()
 		elseif tag == "quote" or tag == "unquote" or tag == "quasiquote" or tag == "unquote-splice" then
 			push()
@@ -177,7 +179,6 @@ local function parse(toks)
 			head.autoClose = true
 		elseif tag == "eof" then
 			if #stack ~= 0 then
-				pprint.print(stack)
 				errorPositions(item, "Expected ')', got eof")
 			else
 				break
@@ -187,6 +188,9 @@ local function parse(toks)
 		end
 
 		if not autoClose and head.autoClose then
+			if #stack == 0 then
+				errorPositions(item, "')' without matching '('")
+			end
 			head.autoClose = nil
 			pop()
 		end
