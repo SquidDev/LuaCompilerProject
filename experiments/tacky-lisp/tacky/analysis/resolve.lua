@@ -1,4 +1,5 @@
 local Scope = require "tacky.analysis.scope"
+local errorPositions = require "tacky.parser".errorPositions
 
 local declaredSymbols = {
 	-- Built in
@@ -40,6 +41,9 @@ function resolveNode(node, scope, state)
 
 				local args = node[2]
 				for i = 1, #args do
+					if args[i].tag ~= "symbol" then
+						errorPositions(args[i], "Expected symbol, got something " .. args[i].tag)
+					end
 					args[i].var = childScope:add(args[i].contents, "arg", args[i])
 				end
 
@@ -70,26 +74,35 @@ function resolveNode(node, scope, state)
 				return node
 			elseif func == builtins["define"] then
 				if node[2] == nil or node[2].tag ~= "symbol" then
-					error("Expected symbol, got " .. (node[2] and node[2].tag or "nothing"), 2)
+					errorPositions(node[2] or node, "Expected symbol, got " .. (node[2] and node[2].tag or "nothing"), 2)
 				end
 
 				node.var = scope:add(node[2].contents, "defined", node)
+				state:define(node.var)
+
 				node[3] = resolveNode(node[3], scope, state)
 				return node
 			elseif func == builtins["define-macro"] then
 				if node[2] == nil or node[2].tag ~= "symbol" then
-					error("Expected symbol, got " .. (node[2] and node[2].tag or "nothing"), 2)
+					errorPositions(node[2] or node, "Expected symbol, got " .. (node[2] and node[2].tag or "nothing"))
 				end
 
 				node.var = scope:add(node[2].contents, "macro", node)
+				state:define(node.var)
+
 				node[3] = resolveNode(node[3], scope, state)
 				return node
 			elseif func == builtins["define-native"] then
 				node.var = scope:add(node[2].contents, "defined", node)
+				state:define(node.var)
 				return node
 			elseif func.tag == "macro" then
 				if not funcState then error("Macro is not defined correctly") end
 				local replacement = funcState:get()(table.unpack(node, 2, #node))
+
+				if replacement == nil then
+					error("Macro " .. func.name .. " returned empty node")
+				end
 
 				return resolveNode(replacement, scope, state)
 			elseif func.tag == "defined" or func.tag == "arg" then

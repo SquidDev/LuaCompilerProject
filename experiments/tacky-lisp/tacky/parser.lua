@@ -98,7 +98,11 @@ end
 
 local function formatPosition(pos) return pos.line .. ":" .. pos.column end
 local function errorPositions(item, msg)
-	error(msg .. " at " .. item.start.name .. ":" .. formatPosition(item.start) .. "-" .. formatPosition(item.finish) .. ": " .. item.contents)
+	if item.start then
+		error(msg .. " at " .. item.start.name .. ":" .. formatPosition(item.start) .. "-" .. formatPosition(item.finish) .. ": " .. item.contents)
+	else
+		error(msg .. " at ?")
+	end
 end
 
 local function parse(toks)
@@ -128,12 +132,17 @@ local function parse(toks)
 	local head = { tag = "list", n = 0 }
 	local stack = {}
 
+	local function append(item)
+		head[#head + 1] = item
+		head.n = head.n + 1
+	end
+
 	local function push()
 		local next = { tag = "list", n = 0 }
 		-- Push old head to the stack
 		stack[#stack + 1] = head
 		-- Push new head to old head
-		head[#head + 1] = next
+		append(next)
 
 		head = next
 	end
@@ -141,11 +150,6 @@ local function parse(toks)
 	local function pop()
 		head = stack[#stack]
 		stack[#stack] = nil
-	end
-
-	local function append(item)
-		head[#head + 1] = item
-		head.n = head.n + 1
 	end
 
 	while true do

@@ -19,6 +19,9 @@ function State.create(variables, scope)
 		-- Transitions from parsed -> built -> executed
 		stage = "parsed",
 
+		--- The variable this node is defined as
+		var = nil,
+
 		--- The final node for this entry. This is set when building
 		-- has finished.
 		node = nil,
@@ -42,6 +45,21 @@ function State:require(var)
 	end
 end
 
+function State:define(var)
+	if self.stage ~= "parsed" then
+		error("Cannot add definition when in stage " .. self.stage, 2)
+	end
+
+	if var.scope ~= self.scope then return end
+
+	if self.var then
+		error("Cannot redeclare variable, already have: " .. self.var.name, 2)
+	end
+
+	self.var = var
+	self.variables[var] = self
+end
+
 function State:built(node)
 	if not node then error("node cannot be nil", 2) end
 
@@ -52,8 +70,8 @@ function State:built(node)
 	self.stage = "built"
 	self.node = node
 
-	if node.var then
-		self.variables[node.var] = self
+	if node.var ~= self.var then
+		error("Variables are different", 2)
 	end
 end
 
