@@ -15,3 +15,7 @@ indent_style = space
 [{*.fs, *.fsx}]
 indent_style = space
 indent_size = 4
+
+[{*.lisp}]
+indent_style = space
+indent_size = 2

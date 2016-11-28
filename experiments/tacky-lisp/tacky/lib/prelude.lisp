@@ -124,8 +124,11 @@
 ;; Binds a variable to an expression
 (defmacro let (vars ...)
   (define vas (cars vars))
-  (define vds (cdrs vars))
+  (define vds (map cadr vars))
   `((lambda ,vas ,@...) ,@vds))
+
+;; Binds a single variable
+(defmacro with (var ...) `(let (,var) ,@...))
 
 ;; Return a new list where only the predicate matches
 (defun filter (fn li)
@@ -164,6 +167,11 @@
     (set! accum (func (get-idx li i) accum)))
   accum)
 
-
+(defmacro -> (x forms)
+  (if (!= (# forms) 0)
+    `(let ((form (car forms))
+          (threaded `(,(car form) ,x ,@(cdr form))))
+      (-> threaded (cdr forms)))
+    `x))
 
 ; vim: ft=lisp et ts=2

@@ -3,6 +3,12 @@ local resolve = require "tacky.analysis.resolve"
 local State = require "tacky.analysis.state"
 local writer = require "tacky.backend.writer"
 
+local pprint = require "tacky.pprint"
+local default = { blacklist = { var = true, variables = true, scope = true, node = true, start = true, finish = true }, dups = false }
+local function dump(item, cfg)
+	print(pprint.tostring(item, cfg or default))
+end
+
 return function(parsed, global, env, scope)
 	local queue = {}
 	local out = {}
@@ -65,6 +71,7 @@ return function(parsed, global, env, scope)
 				resume(head)
 			else
 				print("  Awaiting building of node")
+				dump(head)
 				queue[#queue + 1] = head
 
 				io.read("*l")
