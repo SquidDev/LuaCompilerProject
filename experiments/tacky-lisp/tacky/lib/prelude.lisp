@@ -72,6 +72,10 @@
 (define-native %)
 (define-native ^)
 
+(define-native type)
+
+(defun list? (x) (== (type x) "list"))
+
 (define /= ~=)
 (define = ==)
 
