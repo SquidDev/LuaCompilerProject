@@ -96,3 +96,6 @@
     (print! a)
     (print! b)
     c))
+
+(import test-import)
+(test-import/foobar)

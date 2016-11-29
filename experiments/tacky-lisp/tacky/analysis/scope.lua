@@ -58,4 +58,16 @@ function Scope:add(name, kind, node)
 	return var
 end
 
+function Scope:import(prefix, var)
+	if var == nil then error("var is nil", 2) end
+
+	local name = prefix and (prefix .. '/' .. var.name) or var.name
+	if self.variables[name] then
+		error("Previous declaration of " .. name)
+	end
+
+	self.variables[name] = var
+	return var
+end
+
 return Scope

@@ -3,15 +3,18 @@ local resolve = require "tacky.analysis.resolve"
 local State = require "tacky.analysis.state"
 local writer = require "tacky.backend.writer"
 
-return function(parsed, global, env, scope, debugEnabled)
+return function(parsed, global, env, scope, loader, debugEnabled)
 	local function debugPrint(...)
 		if debugEnabled then print(...) end
 	end
 
 	local queue = {}
 	local out = {}
+	local states = {}
 
 	for i = 1, #parsed do
+		local state = State.create(env, scope)
+		states[i] = state
 		queue[i] = {
 			tag  = "init",
 			node =  parsed[i],
@@ -19,7 +22,7 @@ return function(parsed, global, env, scope, debugEnabled)
 			-- Global state for every action
 			_idx   = i,
 			_co    = coroutine.create(resolve.resolveNode),
-			_state = State.create(env, scope),
+			_state = state,
 		}
 	end
 
@@ -95,10 +98,19 @@ return function(parsed, global, env, scope, debugEnabled)
 			end
 
 			resume(head)
+		elseif head.tag == "import" then
+			local module = loader(head.module)
+
+			for _, state in pairs(module) do
+				if state.var then
+					scope:import(head.module, state.var)
+				end
+			end
+			resume(head)
 		else
 			error("Unknown tag " .. head.tag)
 		end
 	end
 
-	return out
+	return out, states
 end

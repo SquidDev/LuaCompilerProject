@@ -18,6 +18,7 @@ local declaredSymbols = {
 	"lambda", "define", "define-macro", "define-native",
 	"set!", "cond",
 	"quote", "quasiquote", "unquote", "unquote-splice",
+	"import",
 }
 
 local rootScope = Scope.child()
@@ -174,6 +175,14 @@ function resolveNode(node, scope, state)
 
 				node.defVar = scope:add(node[2].contents, "defined", node)
 				state:define(node.defVar)
+				return node
+			elseif func == builtins["import"] then
+				expectType(node[2], node, "symbol", "module name")
+
+				coroutine.yield({
+					tag = "import",
+					module = node[2].contents,
+				})
 				return node
 			elseif func.tag == "macro" then
 				if not funcState then errorPositions(node, "Macro is not defined correctly") end

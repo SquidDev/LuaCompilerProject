@@ -24,55 +24,69 @@ end
 
 if #inputs == 0 then error("No inputs specified", 0) end
 
+local libEnv = {}
 local libs = {}
-local function loadFile(name)
-	local lib = { name = name, path = name .. ".lisp" }
+local libCache = {}
+local global = setmetatable({ _libs = libEnv }, {__index = _ENV})
 
-	local handle = assert(io.open(name .. ".lisp", "r"))
-	lib.lisp = handle:read("*a")
-	handle:close()
+local scope = resolve.createScope()
+local env = {}
+local out = {}
 
-	local handle = io.open(name .. ".lua", "r")
+local paths = { "?", "tacky/lib/?" }
+
+local function libLoader(name)
+	local current = libCache[name]
+	if current == true then
+		error("Loop: already loading " .. name, 2)
+	elseif current ~= nil then
+		return current
+	end
+
+	if debug then
+		print("Loading " .. name)
+	end
+
+	libCache[name] = true
+
+	local lib = { name = name }
+
+	local path
+	for i = 1, #paths do
+		path = paths[i]:gsub("%?", name)
+
+		local handle = io.open(path .. ".lisp", "r")
+		if handle then
+			lib.lisp = handle:read("*a")
+			lib.path = path
+			handle:close()
+			break
+		end
+	end
+
+	if not path then error("Cannot find " .. name) end
+
+	local handle = io.open(path .. ".lua", "r")
 	if handle then
 		lib.native = handle:read("*a")
 		handle:close()
-	end
 
-	libs[#libs + 1] = lib
-end
-
-loadFile("tacky/lib/prelude")
-
-for i = 1, #inputs do loadFile(inputs[i]) end
-
-local libEnv = {}
-local global = setmetatable({ _libs = libEnv }, {__index = _ENV})
-
-for i = 1, #libs do
-	local lib = libs[i]
-	if lib.native then
 		local fun, msg = load(lib.native, "@" .. lib.name, "t", _ENV)
 		if not fun then error(msg, 0) end
 
 		for k, v in pairs(fun()) do
+			-- TODO: Make name specific for each library
 			libEnv[k] = v
 		end
 	end
-end
-
-local scope = resolve.createScope()
-local env = {}
-
-local out = {}
-
-for i = 1, #libs do
-	local lib = libs[i]
 
 	local lexed = parser.lex(lib.lisp, lib.path)
 	local parsed = parser.parse(lexed, lib.lisp)
 
-	local compiled = compile(parsed, global, env, scope, debug)
+	local compiled, state = compile(parsed, global, env, scope, libLoader, debug)
 
+	libs[#libs + 1] = lib
+	libCache[name] = state
 	for i = 1, #compiled do
 		out[#out + 1] = compiled[i]
 	end
@@ -82,6 +96,18 @@ for i = 1, #libs do
 			print(("%20s => %s"):format(k.name, v.stage))
 		end
 	end
+
+	if debug then
+		print("Loaded " .. name)
+	end
+
+	return state
+end
+
+libLoader("tacky/lib/prelude")
+
+for i = 1, #inputs do
+	libLoader(inputs[i])
 end
 
 local result = backend.lua.block(out, 1)

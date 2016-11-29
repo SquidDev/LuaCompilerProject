@@ -275,6 +275,13 @@ function compileExpression(expr, builder, retStmt)
 				errorPositions(expr[1] or expr, "unquote outside of quasiquote")
 			elseif name == "unquote-splice" then
 				errorPositions(expr[1] or expr, "unquote-splice outside of quasiquote")
+			elseif name == "import" then
+				if not retStmt then
+					append("nil")
+				elseif retStmt ~= "" then
+					append(retStmt)
+					append("nil")
+				end
 			else
 				if retStmt then append(retStmt) end
 				compileExpression(expr[1], builder)
