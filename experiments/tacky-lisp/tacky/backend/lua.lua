@@ -294,9 +294,6 @@ function compileExpression(expr, builder, retStmt)
 			end
 		elseif head and head.tag == "list" and head[1].tag == "symbol" and head[1].contents == "lambda" and retStmt then
 			-- ((lambda (args) body) values)
-			append("do")
-			builder.indent() builder.line()
-
 			local args = head[2]
 			if #args > 0 and #expr > 1 then
 				append("local ")
@@ -336,9 +333,6 @@ function compileExpression(expr, builder, retStmt)
 			end
 
 			compileBlock(head, builder, 3, retStmt)
-
-			builder.unindent()
-			append("end")
 		else
 			if retStmt then append(retStmt) end
 			compileExpression(expr[1], builder)

@@ -4,6 +4,9 @@ return function()
 	local indent, tabsPending = 0, false
 
 	function out.line(txt)
+		-- Don't write empty lines
+		if tabsPending then return end
+
 		tabsPending = true
 		n = n + 1
 		out[n] = "\n"

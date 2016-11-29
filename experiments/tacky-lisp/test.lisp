@@ -89,6 +89,7 @@
       (odd? (lambda (x) (if (== x 0) false (even? (- x 1))))))
     (even? 10)))
 
+;; Basic let*
 (print!
   (let* ((a 1)
          (b 2)
@@ -96,6 +97,12 @@
     (print! a)
     (print! b)
     c))
+
+(print! "Expecting 3"
+  (let* ((a 1)
+         (a 2)
+         (a 3))
+    a))
 
 ;; Check simple importing
 (import test-import)
