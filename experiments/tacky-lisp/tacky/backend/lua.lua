@@ -230,7 +230,7 @@ function compileExpression(expr, builder, retStmt)
 					compileExpression(expr[3], builder, escape(expr[2].contents) .. " = ")
 				end
 			elseif name == "define-native" then
-				append(("local %s = _ENV[%q]"):format(escape(expr[2].contents), expr[2].contents))
+				append(("local %s = _libs[%q]"):format(escape(expr[2].contents), expr[2].contents))
 			elseif name == "quote" then
 				if retStmt == "" then retStmt = "local _ = " end
 				if retStmt then append(retStmt) end

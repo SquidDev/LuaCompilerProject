@@ -45,7 +45,9 @@ loadFile("tacky/lib/prelude")
 
 for i = 1, #inputs do loadFile(inputs[i]) end
 
-local global = setmetatable({ }, {__index = _ENV})
+local libEnv = {}
+local global = setmetatable({ _libs = libEnv }, {__index = _ENV})
+
 for i = 1, #libs do
 	local lib = libs[i]
 	if lib.native then
@@ -53,7 +55,7 @@ for i = 1, #libs do
 		if not fun then error(msg, 0) end
 
 		for k, v in pairs(fun()) do
-			global[k] = v
+			libEnv[k] = v
 		end
 	end
 end
@@ -85,12 +87,13 @@ end
 local result = backend.lua.block(out, 1)
 local handle = io.open(output .. ".lua", "w")
 
+handle:write("local _libs = {}\n")
 for i = 1, #libs do
 	local native = libs[i].native
 	if native then
-		handle:write("local _temp = (function()")
+		handle:write("local _temp = (function()\n")
 		handle:write(native)
-		handle:write("end)() \nfor k, v in pairs(_temp) do _ENV[k] = v end\n")
+		handle:write("end)() \nfor k, v in pairs(_temp) do _libs[k] = v end\n")
 	end
 end
 
