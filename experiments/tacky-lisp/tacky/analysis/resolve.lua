@@ -17,7 +17,7 @@ local declaredSymbols = {
 	-- Built in
 	"lambda", "define", "define-macro", "define-native",
 	"set!", "cond",
-	"quote", "quasiquote", "unquote", "unquote-spicing",
+	"quote", "quasiquote", "unquote", "unquote-splice",
 }
 
 local rootScope = Scope.child()
@@ -64,7 +64,7 @@ function resolveQuote(node, scope, state, level)
 	elseif node.tag == "list" then
 		local first = node[1]
 		if first and first.tag == "symbol" then
-			if first.contents == "unquote" then
+			if first.contents == "unquote" or first.contents == "unquote-splice" then
 				node[2] = resolveQuote(node[2], scope, state, level - 1)
 				return node
 			elseif first.contents == "quasiquote" then

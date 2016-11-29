@@ -38,7 +38,7 @@ function compileQuote(node, builder, level)
 	elseif node.tag == "list" then
 		local first = node[1]
 		if first and first.tag == "symbol" then
-			if first.contents == "unquote" then
+			if first.contents == "unquote" or first.contents == "unquote-splice" then
 				return compileQuote(node[2], builder, level and level - 1)
 			elseif first.contents == "quasiquote" then
 				return compileQuote(node[2], builder, level and level + 1)
