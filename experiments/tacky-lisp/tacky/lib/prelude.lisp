@@ -116,7 +116,7 @@
 (define-native cdr)
 
 (defun cars (xs) (map car xs))
-(defun cdrs (xs) (map cdr xs)
+(defun cdrs (xs) (map cdr xs))
 
 (defun caar (x) (car (car x)))
 (defun cadr (x) (car (cdr x)))
