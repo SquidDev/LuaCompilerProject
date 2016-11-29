@@ -13,7 +13,6 @@ A hacked together Lisp varient which compiles to Lua.
    - Allow defining variables after their usage on the top level.
    - Begin work on standard library
    - Statically bind symbols: hygenic macros
-   - Namespaces
    - Optimisations
      - Strip unused symbols
 

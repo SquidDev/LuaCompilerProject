@@ -66,6 +66,20 @@ local function libLoader(name)
 
 	if not path then error("Cannot find " .. name) end
 
+	if not current then
+		for i = 1, #libs do
+			local tempLib = libs[i]
+			if tempLib.path == path then
+				if debug then
+					print("Reusing " .. tempLib.name .. " for " .. name)
+				end
+				local current = libCache[tempLib.name]
+				libCache[name] = current
+				return current
+			end
+		end
+	end
+
 	local handle = io.open(path .. ".lua", "r")
 	if handle then
 		lib.native = handle:read("*a")

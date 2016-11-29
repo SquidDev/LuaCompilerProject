@@ -97,5 +97,12 @@
     (print! b)
     c))
 
+;; Check simple importing
 (import test-import)
 (test-import/foobar)
+
+;; Double check that all of these are the same
+(import prelude)
+(import tacky/lib/prelude)
+
+(print! map prelude/map tacky/lib/prelude/map)
