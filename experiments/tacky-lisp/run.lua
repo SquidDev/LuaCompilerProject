@@ -4,11 +4,6 @@ local parser = require "tacky.parser"
 local pprint = require "tacky.pprint"
 local resolve = require "tacky.analysis.resolve"
 
-local default = { blacklist = { parent = true, scope = true, node = true, start = true, finish = true }, dups = false }
-local function dump(item, cfg)
-	print(pprint.tostring(item, cfg or default))
-end
-
 local inputs, output, debug = {}, "out", false
 
 local args = table.pack(...)
@@ -31,7 +26,7 @@ if #inputs == 0 then error("No inputs specified", 0) end
 
 local libs = {}
 local function loadFile(name)
-	local lib = { name = name }
+	local lib = { name = name, path = name .. ".lisp" }
 
 	local handle = assert(io.open(name .. ".lisp", "r"))
 	lib.lisp = handle:read("*a")
@@ -71,8 +66,8 @@ local out = {}
 for i = 1, #libs do
 	local lib = libs[i]
 
-	local lexed = parser.lex(lib.lisp, lib.name)
-	local parsed = parser.parse(lexed)
+	local lexed = parser.lex(lib.lisp, lib.path)
+	local parsed = parser.parse(lexed, lib.lisp)
 
 	local compiled = compile(parsed, global, env, scope, debug)
 

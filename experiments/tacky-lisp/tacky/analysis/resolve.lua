@@ -1,10 +1,16 @@
 local Scope = require "tacky.analysis.scope"
 local errorPositions = require "tacky.parser".errorPositions
 
-local pprint = require "tacky.pprint"
-local default = { blacklist = { parent = true, scope = true, node = true, start = true, finish = true }, dups = false }
-local function dump(item, cfg)
-	print(pprint.tostring(item, cfg or default))
+local function expectType(node, parent, type, name)
+	if not node or node.tag ~= type then
+		errorPositions(node or parent, "Expected " .. (name or type) .. ", got " .. (node and node.tag or "nothing"))
+	end
+end
+
+local function expect(node, parent, name)
+	if not node then
+		errorPositions(parent, "Expected " .. name .. ", got nothing")
+	end
 end
 
 local declaredSymbols = {
@@ -27,6 +33,25 @@ for i = 1, #declaredVariables do
 	rootScope:add(defined, "defined", nil)
 end
 
+local function tagMacro(macro, node, parent)
+	if not node then
+		return
+	end
+
+	node.parent = parent
+
+	-- We've already tagged this so continue
+	if not node.start and not node.macro then
+		node.macro = macro
+	end
+
+	if node.tag == "list" then
+		for i = 1, node.n do
+			tagMacro(macro, node[i], node)
+		end
+	end
+end
+
 local resolveNode, resolveBlock, resolveQuote
 
 function resolveQuote(node, scope, state, level)
@@ -40,10 +65,10 @@ function resolveQuote(node, scope, state, level)
 		local first = node[1]
 		if first and first.tag == "symbol" then
 			if first.contents == "unquote" then
-				node[2] = resolveQuote(node[2], scope, state, level and level - 1)
+				node[2] = resolveQuote(node[2], scope, state, level - 1)
 				return node
 			elseif first.contents == "quasiquote" then
-				node[2] = resolveQuote(node[2], scope, state, level and level + 1)
+				node[2] = resolveQuote(node[2], scope, state, level + 1)
 				return node
 			end
 		end
@@ -73,13 +98,14 @@ function resolveNode(node, scope, state)
 			local funcState = state:require(func)
 
 			if func == builtins["lambda"] then
+				expectType(node[2], node, "list", "argument list")
+
 				local childScope = scope:child()
 
 				local args = node[2]
+
 				for i = 1, #args do
-					if args[i].tag ~= "symbol" then
-						errorPositions(args[i], "Expected symbol, got something " .. args[i].tag)
-					end
+					expectType(args[i], args, "symbol", "argument")
 					args[i].var = childScope:add(args[i].contents, "arg", args[i])
 				end
 
@@ -88,6 +114,9 @@ function resolveNode(node, scope, state)
 			elseif func == builtins["cond"] then
 				for i = 2, #node do
 					local case = node[i]
+					expectType(case, node, "list", "case expression")
+					expect(case[1], case, "condition")
+
 					case[1] = resolveNode(case[1], scope, state)
 
 					local childScope = scope:child()
@@ -96,6 +125,9 @@ function resolveNode(node, scope, state)
 
 				return node
 			elseif func == builtins["set!"] then
+				expectType(node[2], node, "symbol")
+				expect(node[3], node, "value")
+
 				local var = scope:get(node[2].contents)
 				state:require(var)
 				if var.const then
@@ -105,16 +137,18 @@ function resolveNode(node, scope, state)
 				node[3] = resolveNode(node[3], scope, state)
 				return node
 			elseif func == builtins["quote"] then
+				expect(node[2], node, "value")
 				return node
 			elseif func == builtins["quasiquote"] then
+				expect(node[2], node, "value")
+
 				node[2] = resolveQuote(node[2], scope, state, 1)
 				return node
 			elseif func == builtins["unquote"] or func == builtins["unquote-splice"] then
 				errorPositions(node[1] or node, "Unquote outside of quasiquote")
 			elseif func == builtins["define"] then
-				if node[2] == nil or node[2].tag ~= "symbol" then
-					errorPositions(node[2] or node, "Expected symbol, got " .. (node[2] and node[2].tag or "nothing"))
-				end
+				expectType(node[2], node, "symbol", "name")
+				expect(node[3], node, "value")
 
 				node.var = scope:add(node[2].contents, "defined", node)
 				state:define(node.var)
@@ -122,19 +156,17 @@ function resolveNode(node, scope, state)
 				node[3] = resolveNode(node[3], scope, state)
 				return node
 			elseif func == builtins["define-macro"] then
-				if node[2] == nil or node[2].tag ~= "symbol" then
-					errorPositions(node[2] or node, "Expected symbol, got " .. (node[2] and node[2].tag or "nothing"))
-				end
+				expectType(node[2], node, "symbol", "name")
+				expect(node[3], node, "value")
 
-				if node[2].contents == "name" then
-					dump(node)
-				end
 				node.var = scope:add(node[2].contents, "macro", node)
 				state:define(node.var)
 
 				node[3] = resolveNode(node[3], scope, state)
 				return node
 			elseif func == builtins["define-native"] then
+				expectType(node[2], node, "symbol", "name")
+
 				node.var = scope:add(node[2].contents, "defined", node)
 				state:define(node.var)
 				return node
@@ -146,6 +178,7 @@ function resolveNode(node, scope, state)
 					error("Macro " .. func.name .. " returned empty node")
 				end
 
+				tagMacro(funcState, replacement, node)
 				return resolveNode(replacement, scope, state)
 			elseif func.tag == "defined" or func.tag == "arg" then
 				return resolveList(node, 1, scope, state)

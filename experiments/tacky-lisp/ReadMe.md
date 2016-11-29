@@ -11,8 +11,6 @@ A hacked together Lisp varient which compiles to Lua.
 
  - Short term:
    - Allow defining variables after their usage on the top level.
-   - Make parser much more stable and general error reporting
-     - Include macro in error location (if relevant)
    - Begin work on standard library
    - Statically bind symbols: hygenic macros
    - Optimisations

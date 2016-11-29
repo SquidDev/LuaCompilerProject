@@ -96,16 +96,63 @@ local function lex(str, name)
 end
 
 local function formatPosition(pos) return pos.line .. ":" .. pos.column end
-local function errorPositions(item, msg)
-	if item.start then
-		error(msg .. " at " .. item.start.name .. ":" .. formatPosition(item.start) .. "-" .. formatPosition(item.finish) .. ": " .. item.contents)
+local function formatPositions(item)
+	if item.start and item.contents then
+		return ("%s %s-%s (%q)"):format(item.start.name, formatPosition(item.start), formatPosition(item.finish), item.contents)
+	elseif item.start then
+		return ("%s %s-%s"):format(item.start.name, formatPosition(item.start), formatPosition(item.finish))
+	elseif item.macro then
+		local macVar = item.macro.var
+		return ("macro expansion of %s (%s)"):format(macVar.name, formatPositions(item.macro.node))
 	else
-		error(msg .. " at ?")
+		return "?"
 	end
 end
 
-local function parse(toks)
+local function getSource(item)
+	repeat
+		if item.lines and item.start then
+			return item
+		end
+		item = item.parent
+	until not item
+end
+local function errorPositions(item, msg)
+	local out = { msg }
+
+	local source = getSource(item)
+	if source then
+		out[#out + 1] = source.lines[source.start.line]
+
+		if source.start.line == source.finish.line then
+			out[#out + 1] = (" "):rep(source.start.column - 1) .. ("^"):rep(source.finish.column - source.start.column + 1)
+		else
+			out[#out + 1] = (" "):rep(source.start.column - 1) .. "^..."
+		end
+	end
+
+	local previous = nil
+	repeat
+		local formatted = formatPositions(item)
+		if formatted ~= previous then
+			out[#out + 1] = "  in " .. formatted
+			previous = formatted
+		end
+		item = item.parent
+	until not item
+
+	error(table.concat(out, "\n"), 0)
+end
+
+local function parse(toks, src)
 	local n = 1
+	local lines = nil
+	if src then
+		lines = {}
+		for line in src:gmatch("[^\n]*") do
+			lines[#lines + 1] = line
+		end
+	end
 
 	local function peek() return toks[n] end
 	local function consume(tag)
@@ -134,6 +181,9 @@ local function parse(toks)
 	local function append(item)
 		head[#head + 1] = item
 		head.n = head.n + 1
+
+		item.parent = head
+		item.lines = lines
 	end
 
 	local function push()
@@ -161,13 +211,18 @@ local function parse(toks)
 			append(item)
 		elseif tag == "open" then
 			push()
+			head.start = item.start
 		elseif tag == "close" then
 			if #stack == 0 then
 				errorPositions(item, "')' without matching '('")
 			end
+
+			head.finish = item.finish
 			pop()
 		elseif tag == "quote" or tag == "unquote" or tag == "quasiquote" or tag == "unquote-splice" then
 			push()
+			head.start = item.start
+
 			append({
 				tag = "symbol",
 				contents = tag,
@@ -192,6 +247,7 @@ local function parse(toks)
 				errorPositions(item, "')' without matching '('")
 			end
 			head.autoClose = nil
+			head.finish = item.finish
 			pop()
 		end
 	end

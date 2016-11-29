@@ -11,6 +11,15 @@ M.DEFAULT_CFG = {
 	dups        = true;    -- Print any duplicates in different structures
 }
 
+M.nodeConfig = {
+	blacklist = {
+		parent = true, var = true, lines = true,
+		macro = true, start = true, finish = true,
+		variables = true, scope = true, required = true,
+	},
+	dups = false
+}
+
 local function validId(x, cfg)
 	if type(x) ~= "string" then return false end
 	if not x:match "^[a-zA-Z_][a-zA-Z0-9_]*$" then return false end

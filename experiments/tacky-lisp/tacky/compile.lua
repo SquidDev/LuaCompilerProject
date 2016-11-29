@@ -3,12 +3,6 @@ local resolve = require "tacky.analysis.resolve"
 local State = require "tacky.analysis.state"
 local writer = require "tacky.backend.writer"
 
-local pprint = require "tacky.pprint"
-local default = { blacklist = { var = true, variables = true, scope = true, node = true, start = true, finish = true }, dups = false }
-local function dump(item, cfg)
-	print(pprint.tostring(item, cfg or default))
-end
-
 return function(parsed, global, env, scope, debugEnabled)
 	local function debugPrint(...)
 		if debugEnabled then print(...) end
@@ -33,7 +27,7 @@ return function(parsed, global, env, scope, debugEnabled)
 		local status, result = coroutine.resume(action._co, ...)
 
 		if not status then
-			error(result .. "\n" .. debug.traceback(action._co))
+			error(result .. "\n" .. debug.traceback(action._co), 0)
 		elseif coroutine.status(action._co) == "dead" then
 			debugPrint("  Finished: " .. #queue .. " remaining")
 			-- We have successfully built the node.
@@ -75,7 +69,7 @@ return function(parsed, global, env, scope, debugEnabled)
 				resume(head)
 			else
 				debugPrint("  Awaiting building of node")
-				dump(head)
+				M.print(head, M.nodeConfig)
 				queue[#queue + 1] = head
 
 				io.read("*l")
