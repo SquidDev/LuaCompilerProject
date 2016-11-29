@@ -183,9 +183,7 @@
 
 ;; Binds a variable to an expression
 (defmacro let (vars ...)
-  (define vas (cars vars))
-  (define vds (map cadr vars))
-  `((lambda ,vas ,@...) ,@vds))
+  `((lambda ,(cars vars) ,@...) ,@(cadrs vars)))
 
 (defmacro let* (vars ...)
   (if (! (nil? vars))
