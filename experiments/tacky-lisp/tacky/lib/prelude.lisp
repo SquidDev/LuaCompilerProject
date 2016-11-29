@@ -53,6 +53,9 @@
 (define-native pretty-print!)
 
 (define-native dump-node!)
+(defun debug! (x)
+  (dump-node! x)
+  x)
 
 ;; Get a table key
 (define-native get-idx)
@@ -187,9 +190,7 @@
 (defmacro let* (vars ...)
   (if (! (nil? vars))
     (progn
-      (define var (car vars))
-      (define next (cdr vars))
-      `((lambda (,(car var)) (let* ,next ,@...)) ,(cadr var)))
+      `((lambda (,(caar vars)) (let* ,(cdr vars) ,@...)) ,(cadar vars)))
     `((lambda () ,@...))))
 
 (defmacro letrec (vars ...)
