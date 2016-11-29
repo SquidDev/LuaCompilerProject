@@ -92,7 +92,17 @@ for i = 1, #libs do
 	local native = libs[i].native
 	if native then
 		handle:write("local _temp = (function()\n")
-		handle:write(native)
+
+		-- Indent the libraries to make them look prettier
+		for line in native:gmatch("[^\n]*") do
+			if line == "" then
+				handle:write("\n")
+			else
+				handle:write("\t")
+				handle:write(line)
+				handle:write("\n")
+			end
+		end
 		handle:write("end)() \nfor k, v in pairs(_temp) do _libs[k] = v end\n")
 	end
 end

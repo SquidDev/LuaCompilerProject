@@ -71,7 +71,7 @@ function State:built(node)
 	self.stage = "built"
 	self.node = node
 
-	if node.var ~= self.var then
+	if node.defVar ~= self.var then
 		error("Variables are different", 2)
 	end
 end

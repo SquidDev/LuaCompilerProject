@@ -117,6 +117,7 @@ local function getSource(item)
 		item = item.parent
 	until not item
 end
+
 local function errorPositions(item, msg)
 	local out = { msg }
 
@@ -259,5 +260,6 @@ return {
 	lex = lex,
 	parse = parse,
 	formatPosition = formatPosition,
+	formatPositions = formatPositions,
 	errorPositions = errorPositions,
 }

@@ -78,12 +78,12 @@ return function(parsed, global, env, scope, debugEnabled)
 			if head.state.stage ~= "executed" then
 				local state = head.state
 				local node = assert(state.node, "State is in " .. state.stage .. " instead")
-				local var = assert(node.var, "State has no variable")
+				local var = assert(state.var, "State has no variable")
 
 				local builder = writer()
 				backend.lua.backend.expression(node, builder, "")
 				builder.line()
-				builder.add("return " .. backend.lua.backend.escape(var.name))
+				builder.add("return " .. backend.lua.backend.escapeVar(var))
 
 				local str = builder.toString()
 				local fun, msg = load(str, "=compile{" .. var.name .. "}", "t", global)
@@ -91,7 +91,7 @@ return function(parsed, global, env, scope, debugEnabled)
 
 				local result = fun()
 				state:executed(result)
-				global[backend.lua.backend.escape(var.name)] = result
+				global[backend.lua.backend.escapeVar(var)] = result
 			end
 
 			resume(head)

@@ -27,10 +27,11 @@ for i = 1, #declaredSymbols do
 	builtins[symbol] = rootScope:add(symbol, "builtin", nil)
 end
 
+local declaredVars = {}
 local declaredVariables = { "nil", "true", "false" }
 for i = 1, #declaredVariables do
 	local defined = declaredVariables[i]
-	rootScope:add(defined, "defined", nil)
+	declaredVars[rootScope:add(defined, "defined", nil)] = true
 end
 
 local function tagMacro(macro, node, parent)
@@ -89,12 +90,15 @@ function resolveNode(node, scope, state)
 		-- Do nothing: this is a constant term after all
 		return node
 	elseif kind == "symbol" then
-		state:require(scope:get(node.contents))
+		node.var = scope:get(node.contents)
+		state:require(node.var)
 		return node
 	elseif kind == "list" then
 		local first = node[1]
 		if first and first.tag == "symbol" then
 			local func = scope:get(first.contents)
+			first.var = func
+
 			local funcState = state:require(func)
 
 			if func == builtins["lambda"] then
@@ -130,8 +134,9 @@ function resolveNode(node, scope, state)
 
 				local var = scope:get(node[2].contents)
 				state:require(var)
+				node[2].var = var
 				if var.const then
-					error("Cannot rebind constant " .. var.name)
+					errorPositions(node, "Cannot rebind constant " .. var.name)
 				end
 
 				node[3] = resolveNode(node[3], scope, state)
@@ -150,8 +155,8 @@ function resolveNode(node, scope, state)
 				expectType(node[2], node, "symbol", "name")
 				expect(node[3], node, "value")
 
-				node.var = scope:add(node[2].contents, "defined", node)
-				state:define(node.var)
+				node.defVar = scope:add(node[2].contents, "defined", node)
+				state:define(node.defVar)
 
 				node[3] = resolveNode(node[3], scope, state)
 				return node
@@ -159,23 +164,23 @@ function resolveNode(node, scope, state)
 				expectType(node[2], node, "symbol", "name")
 				expect(node[3], node, "value")
 
-				node.var = scope:add(node[2].contents, "macro", node)
-				state:define(node.var)
+				node.defVar = scope:add(node[2].contents, "macro", node)
+				state:define(node.defVar)
 
 				node[3] = resolveNode(node[3], scope, state)
 				return node
 			elseif func == builtins["define-native"] then
 				expectType(node[2], node, "symbol", "name")
 
-				node.var = scope:add(node[2].contents, "defined", node)
-				state:define(node.var)
+				node.defVar = scope:add(node[2].contents, "defined", node)
+				state:define(node.defVar)
 				return node
 			elseif func.tag == "macro" then
-				if not funcState then error("Macro is not defined correctly") end
+				if not funcState then errorPositions(node, "Macro is not defined correctly") end
 				local replacement = funcState:get()(table.unpack(node, 2, #node))
 
 				if replacement == nil then
-					error("Macro " .. func.name .. " returned empty node")
+					errorPositions(node, "Macro " .. func.name .. " returned empty node")
 				end
 
 				tagMacro(funcState, replacement, node)
@@ -211,6 +216,7 @@ end
 
 return {
 	createScope = function() return rootScope:child() end,
+	declaredVars = declaredVars,
 	resolveNode = resolveNode,
 	resolveBlock = resolveBlock,
 }

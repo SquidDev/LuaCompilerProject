@@ -1,11 +1,16 @@
 local errorPositions = require "tacky.parser".errorPositions
+local builtins = require "tacky.analysis.resolve".declaredVars
 
 local function createLookup(t)
 	for i = 1, #t do t[t[i]] = true end
 	return t
 end
 
-local kwrds = createLookup { "and", "break", "do", "else", "elseif", "end", "for", "function", "if", "in", "local", "not", "or", "repeat", "return", "then", "until", "while" }
+local kwrds = createLookup {
+	"and", "break", "do", "else", "elseif", "end", "false", "for", "function",
+	"if", "in", "local", "nil", "not", "or", "repeat", "return", "then", "true",
+	"until", "while",
+}
 local function escape(name, args)
 	if name == "..." then
 		if args then
@@ -21,6 +26,26 @@ local function escape(name, args)
 	else
 		return "_e" .. name:gsub("([^_%w%d])", function(x) return "_" .. x:byte() .. "_" end)
 	end
+end
+
+local varLookup = {}
+local ctrLookup = {}
+
+local function escapeVar(var, args)
+	if builtins[var] then return var.name end
+	local v = escape(var.name, args)
+
+	if v ~= "..." then
+		local id = varLookup[var]
+		if not id then
+			id = (ctrLookup[var.name] or 0) + 1
+			ctrLookup[var.name] = id
+			varLookup[var] = id
+		end
+
+		v = v .. id
+	end
+	return v
 end
 
 local compileBlock, compileExpression, compileQuote
@@ -117,9 +142,13 @@ function compileExpression(expr, builder, retStmt)
 	if expr.tag == "string" or expr.tag == "number" or expr.tag == "symbol" then
 		if retStmt == "" then retStmt = "local _ = " end
 		if retStmt then append(retStmt) end
-		local contents = expr.contents
-		if expr.tag == "symbol" then contents = escape(contents) end
-		append(tostring(contents))
+		local contents
+		if expr.tag == "symbol" then
+			contents = escapeVar(expr.var)
+		else
+			contents = tostring(expr.contents)
+		end
+		append(contents)
 	elseif expr.tag == "list" then
 		local head = expr[1]
 		if head and head.tag == "symbol" then
@@ -132,14 +161,15 @@ function compileExpression(expr, builder, retStmt)
 				local args = expr[2]
 				for i = 1, #args do
 					if i > 1 then append(", ") end
-					append(escape(args[i].contents, true))
+					append(escapeVar(args[i].var, true))
 				end
 				append(")")
 
 				builder.indent() builder.line()
 
 				if #args > 0 and args[#args].contents == "..." then
-					append('local _args = table.pack(...) _args.tag = "list"')
+					local argsVar = escapeVar(args[#args].var)
+					append('local ' .. argsVar .. ' = table.pack(...) ' .. argsVar .. '.tag = "list"')
 					builder.line()
 				end
 
@@ -215,22 +245,22 @@ function compileExpression(expr, builder, retStmt)
 					append("end)()")
 				end
 			elseif name == "set!" then
-				compileExpression(expr[3], builder, escape(expr[2].contents) .. " = ")
+				compileExpression(expr[3], builder, escapeVar(expr[2].var) .. " = ")
 				if retStmt and retStmt ~= "" then
 					builder.line()
 					append(retStmt)
 					append("nil")
 				end
 			elseif name == "define" or name == "define-macro" then
-				if expr[3].tag == "number" or expr[3].tag == "string" or (expr[3].tag == "symbol" and expr[2].contents ~= expr[3].contents) then
-					compileExpression(expr[3], builder, "local " .. escape(expr[2].contents) .. " = ")
+				if expr[3].tag == "number" or expr[3].tag == "string" or (expr[3].tag == "symbol" and expr.defVar ~= expr[3].var) then
+					compileExpression(expr[3], builder, "local " .. escapeVar(expr.defVar) .. " = ")
 				else
-					append("local " .. escape(expr[2].contents))
+					append("local " .. escapeVar(expr.defVar))
 					builder.line()
-					compileExpression(expr[3], builder, escape(expr[2].contents) .. " = ")
+					compileExpression(expr[3], builder, escapeVar(expr.defVar) .. " = ")
 				end
 			elseif name == "define-native" then
-				append(("local %s = _libs[%q]"):format(escape(expr[2].contents), expr[2].contents))
+				append(("local %s = _libs[%q]"):format(escapeVar(expr.defVar), expr[2].contents))
 			elseif name == "quote" then
 				if retStmt == "" then retStmt = "local _ = " end
 				if retStmt then append(retStmt) end
@@ -267,7 +297,7 @@ function compileExpression(expr, builder, retStmt)
 				if #args > 0 then
 					for i = 1, #args do
 						if i > 1 then append(", ") end
-						append(escape(args[i].contents))
+						append(escapeVar(args[i].var))
 					end
 				else
 					append("_")
@@ -334,6 +364,7 @@ end
 
 return {
 	escape = escape,
+	escapeVar = escapeVar,
 	block = compileBlock,
 	expression = compileExpression,
 }

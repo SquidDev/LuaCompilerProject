@@ -1,5 +1,6 @@
 local pprint = require "tacky.pprint"
 
+local randCtr = 0
 return {
 	['print!'] = print,
 	['pretty-print!'] = pprint.print,
@@ -29,7 +30,8 @@ return {
 	["or"] = function(x, y) return x or y end,
 
 	['gensym'] = function()
-		return { tag = "symbol", contents = ("r_%08x"):format(math.random(0, 16^8)) }
+		randCtr = randCtr + 1
+		return { tag = "symbol", contents = ("r_%d"):format(randCtr) }
 	end,
 
 	['cdr'] = function(xs)
