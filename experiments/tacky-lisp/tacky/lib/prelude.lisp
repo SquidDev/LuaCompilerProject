@@ -189,8 +189,7 @@
 
 (defmacro let* (vars ...)
   (if (! (nil? vars))
-    (progn
-      `((lambda (,(caar vars)) (let* ,(cdr vars) ,@...)) ,(cadar vars)))
+    `((lambda (,(caar vars)) (let* ,(cdr vars) ,@...)) ,(cadar vars))
     `((lambda () ,@...))))
 
 (defmacro letrec (vars ...)
