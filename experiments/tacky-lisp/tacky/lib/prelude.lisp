@@ -264,7 +264,7 @@
         (cond
           ((list? form) `(,@form ,x))
           (true `(,form ,x))))
-      `(-> ,threaded ,@(cdr ...)))
+      `(->> ,threaded ,@(cdr ...)))
     x))
 
 (defun succ (x) (+ 1 x))
