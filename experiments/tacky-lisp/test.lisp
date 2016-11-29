@@ -88,3 +88,11 @@
       (even? (lambda (x) (if (== x 0) true (odd? (- x 1)))))
       (odd? (lambda (x) (if (== x 0) false (even? (- x 1))))))
     (even? 10)))
+
+(print!
+  (let* ((a 1)
+         (b 2)
+         (c (+ a b)))
+    (print! a)
+    (print! b)
+    c))

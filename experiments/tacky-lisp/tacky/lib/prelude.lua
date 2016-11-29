@@ -6,6 +6,10 @@ return {
 	['print!'] = print,
 	['pretty-print!'] = pprint.print,
 
+	['dump-node!'] = function(x)
+		print(pprint.tostring(x, pprint.nodeConfig))
+	end,
+
 	['get-idx'] = rawget,
 	['set-idx!'] = rawset,
 

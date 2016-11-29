@@ -52,6 +52,8 @@
 ;; Pretty-print one or more values to standard ouput
 (define-native pretty-print!)
 
+(define-native dump-node!)
+
 ;; Get a table key
 (define-native get-idx)
 
@@ -187,8 +189,7 @@
     (progn
       (define var (car vars))
       (define next (cdr vars))
-
-      `((lambda (,(car var)) ,@(let* next ...)) ,(cadr var)))
+      `((lambda (,(car var)) (let* ,next ,@...)) ,(cadr var)))
     `((lambda () ,@...))))
 
 (defmacro letrec (vars ...)
