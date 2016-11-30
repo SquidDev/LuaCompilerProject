@@ -103,6 +103,13 @@ function State:get()
 
 	while #queue > 0 do
 		local state = table.remove(queue, 1)
+		if state.stage ~= "built" then
+			coroutine.yield({
+				tag = "build",
+				state = state,
+			})
+		end
+
 		if not required[state] then
 			required[state] = true
 
@@ -120,13 +127,6 @@ function State:get()
 	-- And then we execute all non-executed nodes.
 	for i = #requiredQueue, 1, -1 do
 		local state = requiredQueue[i]
-		if state.stage ~= "built" then
-			coroutine.yield({
-				tag = "build",
-				state = state,
-			})
-		end
-
 		if state.stage ~= "executed" then
 			coroutine.yield({
 				tag = "execute",

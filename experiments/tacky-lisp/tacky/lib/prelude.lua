@@ -35,6 +35,11 @@ return {
 	end,
 
 	['cdr'] = function(xs)
+		if type(xs) ~= "table" then
+			error("Expected list, got " .. type(xs), 2)
+		elseif xs.tag ~= "list" then
+			error("Expected list, got " .. xs.tag, 2)
+		end
 		return { tag = "list", n = xs.n - 1, table.unpack(xs, 2) }
 	end,
 	['invoke-dynamic'] = function(f, ...)

@@ -1,4 +1,5 @@
 local backend = require "tacky.backend.init"
+local formatPositions = require "tacky.parser".formatPositions
 local resolve = require "tacky.analysis.resolve"
 local State = require "tacky.analysis.state"
 local writer = require "tacky.backend.writer"
@@ -23,6 +24,7 @@ return function(parsed, global, env, scope, loader, debugEnabled)
 			_idx   = i,
 			_co    = coroutine.create(resolve.resolveNode),
 			_state = state,
+			_node  = parsed[i],
 		}
 	end
 
@@ -41,6 +43,7 @@ return function(parsed, global, env, scope, loader, debugEnabled)
 			result._idx   = action._idx
 			result._co    = action._co
 			result._state = action._state
+			result._node  = action._node
 
 			-- And requeue node
 			queue[#queue + 1] = result
@@ -50,7 +53,7 @@ return function(parsed, global, env, scope, loader, debugEnabled)
 	while #queue > 0 do
 		local head = table.remove(queue, 1)
 
-		debugPrint(head.tag .. " for " .. head._state.stage)
+		debugPrint(head.tag .. " for " .. head._state.stage .. " at " .. formatPositions(head._node) .. " (" .. (head._state.var and head._state.var.name or "?") .. ")")
 
 		if head.tag == "init" then
 			-- Start the parser with the initial data
@@ -72,12 +75,16 @@ return function(parsed, global, env, scope, loader, debugEnabled)
 				resume(head)
 			else
 				debugPrint("  Awaiting building of node (" .. (head.state.var and head.state.var.name or "?") .. ")")
+				queue[#queue + 1] = head
+				-- io.read("*l")
 			end
 		elseif head.tag == "execute" then
 			if head.state.stage ~= "executed" then
 				local state = head.state
 				local node = assert(state.node, "State is in " .. state.stage .. " instead")
 				local var = assert(state.var, "State has no variable")
+
+				debugPrint("  Executing " .. var.name)
 
 				local builder = writer()
 				backend.lua.backend.expression(node, builder, "")

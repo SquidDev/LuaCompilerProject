@@ -19,7 +19,7 @@
 
 ;; Perform an action whilst a value is true
 (defmacro while (check ...)
-  (let* (impl (gensym))
+  (let* ((impl (gensym)))
     `(progn
       (letrec ((,impl (lambda ()
                         (cond
@@ -32,15 +32,16 @@
          (ctr' (gensym))
          (end' (gensym))
          (step' (gensym)))
-    (letrec ((,end' ,end)
-             (,step' ,step)
-             (,impl (lambda (,ctr')
-                      (cond
-                        ((if (< 0 ,step) (<= ,ctr' ,end') (>= ,ctr' ,end'))
-                          (let* ((,ctr ,ctr')) ,@...)
-                          (,impl (+ ,ctr' ,step')))
-                        (true)))))
-      (,impl ,start))))
+    `(let* ((,end' ,end)
+              (,step' ,step)
+              (,impl nil))
+       (set! ,impl (lambda (,ctr')
+                     (cond
+                       ((if (< 0 ,step) (<= ,ctr' ,end') (>= ,ctr' ,end'))
+                         (let* ((,ctr ,ctr')) ,@...)
+                         (,impl (+ ,ctr' ,step')))
+                       (true))))
+       (,impl ,start))))
 
 (defun ! (expr) (cond (expr false) (true true)))
 
@@ -104,10 +105,10 @@
 
 ;; Map a function over every item in the list, creating a new list
 (defun map (fn li)
-  (let* ((out '())
+  (let* ((out '()))
     (set-idx! out "n" (# li))
     (for i 1 (# li) 1 (set-idx! out i (fn (get-idx li i))))
-    out)))
+    out))
 
 (defun traverse (li fn) (map fn li))
 
@@ -187,8 +188,6 @@
     `((lambda () ,@...))))
 
 (defmacro letrec (vars ...)
-  ; Note, this depends on as few library functions as possible: it is used
-  ; by most macros to "bootstrap" then language.
   `((lambda ,(cars vars)
     ,@(map (lambda (var) `(set! ,(car var) ,(cadr var))) vars)
     ,@...)))
@@ -198,10 +197,10 @@
 
 ;; Return a new list where only the predicate matches
 (defun filter (fn li)
-  (let* ((out '())
+  (with (out '())
     (for i 1 (# li 1) 1 (let ((item (get-idx li i)))
       (if (fn item) (push-cdr! out item))))
-    out)))
+    out))
 
 ;; Determine whether any element matches a predicate
 (defun any (fn li)
