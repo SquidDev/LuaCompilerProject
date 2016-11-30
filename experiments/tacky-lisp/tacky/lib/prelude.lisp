@@ -19,30 +19,28 @@
 
 ;; Perform an action whilst a value is true
 (defmacro while (check ...)
-  (define impl (gensym))
-  `(progn
-    (defun ,impl ()
-      (cond
-        (,check ,@... (,impl))
-        (true)))
-    (,impl)))
+  (let* (impl (gensym))
+    `(progn
+      (letrec ((,impl (lambda ()
+                        (cond
+                          (,check ,@... (,impl))
+                          (true)))))
+        (,impl)))))
 
 (defmacro for (ctr start end step ...)
-  (define impl (gensym))
-  (define ctr' (gensym))
-  (define end' (gensym))
-  (define step' (gensym))
-
-  `(progn
-    (define ,end' ,end)
-    (define ,step' ,step)
-    (defun ,impl (,ctr') (cond
-      ((if (< 0 ,step) (<= ,ctr' ,end') (>= ,ctr' ,end'))
-        (define ,ctr ,ctr')
-        ,@...
-        (,impl (+ ,ctr' ,step')))
-      (true)))
-    (,impl ,start)))
+  (let* ((impl (gensym))
+         (ctr' (gensym))
+         (end' (gensym))
+         (step' (gensym)))
+    (letrec ((,end' ,end)
+             (,step' ,step)
+             (,impl (lambda (,ctr')
+                      (cond
+                        ((if (< 0 ,step) (<= ,ctr' ,end') (>= ,ctr' ,end'))
+                          (let* ((,ctr ,ctr')) ,@...)
+                          (,impl (+ ,ctr' ,step')))
+                        (true)))))
+      (,impl ,start))))
 
 (defun ! (expr) (cond (expr false) (true true)))
 
@@ -96,26 +94,22 @@
 
 ;; Push an entry on to the end of this list
 (defun push-cdr! (li val)
-  (define len (+ (# li) 1))
-  (set-idx! li "n" len)
-  (set-idx! li len val)
-  li)
+  (let* ((len (+ (# li) 1)))
+    (set-idx! li "n" len)
+    (set-idx! li len val)
+    li))
 
 ;; Build a list from the arguments
 (defun list (...) ...)
 
 ;; Map a function over every item in the list, creating a new list
 (defun map (fn li)
-  (define out '())
-  (set-idx! out "n" (# li))
-  (for i 1 (# li) 1 (set-idx! out i (fn (get-idx li i))))
-  out)
+  (let* ((out '())
+    (set-idx! out "n" (# li))
+    (for i 1 (# li) 1 (set-idx! out i (fn (get-idx li i))))
+    out)))
 
-(defun traverse (li fn)
-  (define out '())
-  (set-idx! out "n" (# li))
-  (for i 1 (# li) 1 (set-idx! out i (fn (get-idx li i))))
-  out)
+(defun traverse (li fn) (map fn li))
 
 (defun car (xs) (get-idx xs 1))
 (define-native cdr)
@@ -186,11 +180,15 @@
   `((lambda ,(cars vars) ,@...) ,@(cadrs vars)))
 
 (defmacro let* (vars ...)
+  ; Note, this depends on as few library functions as possible: it is used
+  ; by most macros to "bootstrap" then language.
   (if (! (nil? vars))
     `((lambda (,(caar vars)) (let* ,(cdr vars) ,@...)) ,(cadar vars))
     `((lambda () ,@...))))
 
 (defmacro letrec (vars ...)
+  ; Note, this depends on as few library functions as possible: it is used
+  ; by most macros to "bootstrap" then language.
   `((lambda ,(cars vars)
     ,@(map (lambda (var) `(set! ,(car var) ,(cadr var))) vars)
     ,@...)))
@@ -200,28 +198,28 @@
 
 ;; Return a new list where only the predicate matches
 (defun filter (fn li)
-  (define out '())
-  (for i 1 (# li 1) 1 (let ((item (get-idx li i)))
-    (if (fn item) (push-cdr! out item))))
-  out)
+  (let* ((out '())
+    (for i 1 (# li 1) 1 (let ((item (get-idx li i)))
+      (if (fn item) (push-cdr! out item))))
+    out)))
 
 ;; Determine whether any element matches a predicate
 (defun any (fn li)
-  (defun any-impl (i)
-    (cond
-      ((>= i (# li)) false)
-      ((fn (get-idx li i)) true)
-      (true (any-impl (+ i 1)))))
-  (any-impl 1))
+  (letrec ((any-impl (lambda (i)
+                       (cond
+                         ((>= i (# li)) false)
+                         ((fn (get-idx li i)) true)
+                         (true (any-impl (+ i 1)))))))
+    (any-impl 1)))
 
 ;; Determine whether all elements match a predicate
 (defun all (fn li)
-  (defun all-impl (i)
-    (cond
-      ((>= i (# li)) true)
-      ((fn (get-idx li i)) (all-impl (+ i 1)))
-      (true false)))
-  (all-impl 1))
+  (letrec ((all-impl (lambda(i)
+                       (cond
+                         ((>= i (# li)) true)
+                         ((fn (get-idx li i)) (all-impl (+ i 1)))
+                         (true false)))))
+    (all-impl 1)))
 
 ;; Fold left across a list
 (defun foldl (func accum li)
@@ -236,33 +234,29 @@
   accum)
 
 (defmacro case (x ...)
-  (define cases ...)
-  (define name (gensym))
-  (defun transform-case (case)
-    (if (list? case)
-      `((,@(car case) ,name) ,@(cdr case))
-      `(true)))
-  `((lambda (,name) (cond ,@(map transform-case cases))) ,x))
+  (let* ((cases ...)
+         (name (gensym))
+         (transform-case (lambda (case)
+                           (if (list? case)
+                             `((,@(car case) ,name) ,@(cdr case))
+                             `(true)))))
+    `((lambda (,name) (cond ,@(map transform-case cases))) ,x)))
 
 (defmacro -> (x ...)
   (if (/= (# ...) 0)
-    (progn
-      (define form (car ...))
-      (define threaded
-        (cond
-          ((list? form) `(,(car form) ,x ,@(cdr form)))
-          (true `(,form ,x))))
+    (let* ((form (car ...))
+           (threaded (cond
+                       ((list? form) `(,(car form) ,x ,@(cdr form)))
+                       (true `(,form ,x)))))
       `(-> ,threaded ,@(cdr ...)))
     x))
 
 (defmacro ->> (x ...)
   (if (/= (# ...) 0)
-    (progn
-      (define form (car ...))
-      (define threaded
-        (cond
-          ((list? form) `(,@form ,x))
-          (true `(,form ,x))))
+    (let* ((form (car ...))
+           (threaded (cond
+                       ((list? form) `(,@form ,x))
+                       (true `(,form ,x)))))
       `(->> ,threaded ,@(cdr ...)))
     x))
 

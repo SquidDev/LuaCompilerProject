@@ -71,11 +71,7 @@ return function(parsed, global, env, scope, loader, debugEnabled)
 			if head.state.stage ~= "parsed" then
 				resume(head)
 			else
-				debugPrint("  Awaiting building of node")
-				M.print(head, M.nodeConfig)
-				queue[#queue + 1] = head
-
-				io.read("*l")
+				debugPrint("  Awaiting building of node (" .. (head.state.var and head.state.var.name or "?") .. ")")
 			end
 		elseif head.tag == "execute" then
 			if head.state.stage ~= "executed" then

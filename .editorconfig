@@ -16,6 +16,6 @@ indent_style = space
 indent_style = space
 indent_size = 4
 
-[{*.lisp}]
+[*.lisp]
 indent_style = space
 indent_size = 2
