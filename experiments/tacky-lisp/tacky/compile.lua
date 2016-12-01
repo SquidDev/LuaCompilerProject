@@ -65,7 +65,7 @@ return function(parsed, global, env, scope, loader, debugEnabled)
 			if scope.variables[head.name] then
 				resume(head, scope.variables[head.name])
 			else
-				debugPrint("  Awaiting definition of " .. head.name)
+				print("  Awaiting definition of " .. head.name)
 				queue[#queue + 1] = head
 
 				io.read("*l")

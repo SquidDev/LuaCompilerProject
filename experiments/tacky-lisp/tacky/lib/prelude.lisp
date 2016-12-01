@@ -43,6 +43,12 @@
                        (true))))
        (,impl ,start))))
 
+(defmacro for-each (var lst ...)
+  (let ((ctr' (gensym))
+        (lst' (gensym)))
+       `(with (,lst' ,lst)
+         (for ,ctr' 1 (# ,lst') 1 (with (,var (get-idx ,lst' ,ctr')) ,@...)))))
+
 (defun ! (expr) (cond (expr false) (true true)))
 
 ;; Print one or more values to standard output
@@ -83,9 +89,15 @@
 (define-native type)
 
 (defun list? (x) (== (type x) "list"))
+(defun string? (x) (== (type x) "string"))
+(defun number? (x) (== (type x) "number"))
+(defun symbol? (x) (== (type x) "symbol"))
+(defun boolean? (x) (== (type x) "boolean"))
 
 ;; Check if this is a list and it is empty
 (defun nil? (x) (and (list? x) (== (# x) 0)))
+
+(defun symbol->string (x) (and (symbol? x) (get-idx x "contents")))
 
 ;; TODO: Fix up the resolver
 (defun /= (x y) (~= x y))
@@ -262,3 +274,30 @@
 
 (defun succ (x) (+ 1 x))
 (defun pred (x) (- x 1))
+
+;; Partially apply a function, where <> is replaced by an argument to a function.
+;; Values are evaluated every time the resulting function is called.
+(defmacro cut (...)
+  (let ((args '())
+        (call '()))
+    (for-each item ...
+      (if (= (symbol->string item) "<>")
+        (with (symb (gensym))
+          (push-cdr! args symb)
+          (push-cdr! call symb))
+        (push-cdr! call item)))
+    `(lambda ,args ,call)))
+
+;; Partially apply a function, where <> is replaced by an argument to a function.
+;; Values are evaluated when this function is defined.
+(defmacro cute (...)
+  (let ((args '())
+        (vals '())
+        (call '()))
+    (for-each item ...
+      (with (symb (gensym))
+        (push-cdr! call symb)
+        (if (= (symbol->string item) "<>")
+          (push-cdr! args symb)
+          (push-cdr! vals (list symb item)))))
+    `(let ,vals (lambda ,args ,call))))

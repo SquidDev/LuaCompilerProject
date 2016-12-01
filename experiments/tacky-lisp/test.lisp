@@ -118,3 +118,6 @@
 ; (define-macro foo (lambda (x) (bar x)))
 ; (define bar (lambda (x) (baz x)))
 ; (define baz (lambda (x) (foo x)))
+
+(define inc' (cut + <> 1))
+(define inc'' (cute + <> 1))
