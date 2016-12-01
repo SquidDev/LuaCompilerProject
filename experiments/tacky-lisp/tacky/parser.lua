@@ -1,9 +1,16 @@
+local logger = require "tacky.logger"
+
 local function lex(str, name)
 	local line, column = 1, 1
 	local offset, length = 1, #str
 	local out, n = {}, 0
 
 	name = name or "<in>"
+
+	local lines = {}
+	for line in str:gmatch("[^\n]*") do
+		lines[#lines + 1] = line
+	end
 
 	local function consume()
 		if str:sub(offset, offset) == "\n" then
@@ -16,13 +23,13 @@ local function lex(str, name)
 	end
 
 	local function position()
-		return { line = line, column = column, offset = offset, name = name }
+		return { line = line, column = column, offset = offset }
 	end
 
 	local function append(tok, start, finish)
 		if not start then start = position() end
 		if not finish then finish = position() end
-		tok.start, tok.finish = start, finish
+		tok.range = { start = start, finish = finish, lines = lines, name = name }
 
 		tok.contents = str:sub(start.offset, finish.offset)
 
@@ -95,86 +102,10 @@ local function lex(str, name)
 	return out
 end
 
-local function formatPosition(pos) return pos.line .. ":" .. pos.column end
-local function formatPositions(item)
-	if item.start and item.contents then
-		return ("%s %s-%s (%q)"):format(item.start.name, formatPosition(item.start), formatPosition(item.finish), item.contents)
-	elseif item.start then
-		return ("%s %s-%s"):format(item.start.name, formatPosition(item.start), formatPosition(item.finish))
-	elseif item.macro then
-		local macVar = item.macro.var
-		return ("macro expansion of %s (%s)"):format(macVar.name, formatPositions(item.macro.node))
-	else
-		return "?"
-	end
-end
-
-local function getSource(item)
-	repeat
-		if item.lines and item.start then
-			return item
-		end
-		item = item.parent
-	until not item
-end
-
-local function errorPositions(item, msg)
-	local out = { msg }
-
-	local source = getSource(item)
-	if source then
-		out[#out + 1] = source.lines[source.start.line]
-
-		if source.start.line == source.finish.line then
-			out[#out + 1] = (" "):rep(source.start.column - 1) .. ("^"):rep(source.finish.column - source.start.column + 1)
-		else
-			out[#out + 1] = (" "):rep(source.start.column - 1) .. "^..."
-		end
-	end
-
-	local previous = nil
-	repeat
-		local formatted = formatPositions(item)
-		if formatted ~= previous then
-			out[#out + 1] = "  in " .. formatted
-			previous = formatted
-		end
-		item = item.parent
-	until not item
-
-	error(table.concat(out, "\n"), 0)
-end
-
-local function parse(toks, src)
+local function parse(toks)
 	local n = 1
-	local lines = nil
-	if src then
-		lines = {}
-		for line in src:gmatch("[^\n]*") do
-			lines[#lines + 1] = line
-		end
-	end
 
 	local function peek() return toks[n] end
-	local function consume(tag)
-		local item = toks[n]
-		if not tag or item.tag == tag then
-			n = n + 1
-			return item
-		else
-			return nil
-		end
-	end
-
-	local function expect(tag)
-		local item = toks[n]
-		if item.tag == tag then
-			n = n + 1
-			return item
-		else
-			errorPositions("Expected " .. tag .. ", got " .. item.tag)
-		end
-	end
 
 	local head = { tag = "list", n = 0 }
 	local stack = {}
@@ -225,72 +156,70 @@ local function parse(toks, src)
 					(foo) (bar) ; Has a different indent
 			]]
 
-			if previous and head.start and previous.start.line ~= head.start.line then
-				local prevPos, itemPos = previous.start, item.start
-				if prevPos.column ~= itemPos.column and prevPos.line ~= itemPos.line then
-					print("\27[33m[WARN] Different indent compared with previous expressions.\27[0m")
+			if previous and head.range and previous.range.start.line ~= head.range.start.line then
+				local prevPos, itemPos = previous.range, item.range
+				if prevPos.start.column ~= itemPos.start.column and prevPos.start.line ~= itemPos.start.line then
+					logger.printWarning("Different indent compared with previous expressions.")
+					logger.putTrace(item)
 
-					print(("\27[96m  => %s %s:%s.\27[0m"):format(itemPos.name, itemPos.line, itemPos.column))
+					logger.putInfo(
+						"You should try to maintain consistent indentation across a program,",
+						"try to ensure all expressions are lined up.",
+						"If this looks OK to you, check you're not missing a closing ')'."
+					)
 
-					print("  You should try to maintain consistent indentation across a program,")
-					print("  try to ensure all expressions are lined up.")
-					print("  If this looks OK to you, check you're not missing a closing ')'.")
-
-					if lines then
-						local code = "\27[92m %" .. #tostring(itemPos.line) .. "s |\27[0m %s"
-
-						print(code:format(tostring(prevPos.line), lines[prevPos.line]))
-						print(code:format("", (" "):rep(prevPos.column - 1).. "^"))
-
-						-- Don't display the ... on adjacent lines
-						if (itemPos.line - prevPos.line) > 2 then
-							print(" \27[92m...\27[0m")
-						end
-
-						print(code:format(tostring(itemPos.line), lines[itemPos.line]))
-						print(code:format("", (" "):rep(itemPos.column - 1) .. "^"))
-					end
+					logger.putLines(false,
+						prevPos, "",
+						itemPos, ""
+					)
 				end
 			end
 
 			push()
-			head.start = item.start
+			head.range = {
+				start = item.range.start,
+				name  = item.range.name,
+				lines = item.range.lines,
+			}
 		elseif tag == "close" then
 			if #stack == 0 then
-				errorPositions(item, "')' without matching '('")
+				logger.errorPositions(item, "')' without matching '('")
 			end
 
-			head.finish = item.finish
+			head.range.finish = item.range.finish
 			pop()
 		elseif tag == "quote" or tag == "unquote" or tag == "quasiquote" or tag == "unquote-splice" then
 			push()
-			head.start = item.start
+			head.range = {
+				start = item.range.start,
+				name  = item.range.name,
+				lines = item.range.lines,
+			}
 
 			append({
 				tag = "symbol",
 				contents = tag,
-				start = item.start,
-				finish = item.finish,
+				range = item.range,
 			})
 
 			autoClose = true
 			head.autoClose = true
 		elseif tag == "eof" then
 			if #stack ~= 0 then
-				errorPositions(item, "Expected ')', got eof")
+				logger.errorPositions(item, "Expected ')', got eof")
 			else
 				break
 			end
 		else
-			errorPositions(item, "Unsuported type " .. item.tag)
+			logger.errorPositions(item, "Unsuported type " .. item.tag)
 		end
 
 		if not autoClose and head.autoClose then
 			if #stack == 0 then
-				errorPositions(item, "')' without matching '('")
+				logger.errorPositions(item, "')' without matching '('")
 			end
 			head.autoClose = nil
-			head.finish = item.finish
+			head.range.finish = item.range.finish
 			pop()
 		end
 	end
@@ -301,7 +230,4 @@ end
 return {
 	lex = lex,
 	parse = parse,
-	formatPosition = formatPosition,
-	formatPositions = formatPositions,
-	errorPositions = errorPositions,
 }

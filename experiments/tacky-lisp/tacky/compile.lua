@@ -1,13 +1,10 @@
 local backend = require "tacky.backend.init"
-local formatPositions = require "tacky.parser".formatPositions
+local logger = require "tacky.logger"
 local resolve = require "tacky.analysis.resolve"
 local State = require "tacky.analysis.state"
 local writer = require "tacky.backend.writer"
 
-return function(parsed, global, env, scope, loader, debugEnabled)
-	local function debugPrint(...)
-		if debugEnabled then print(...) end
-	end
+return function(parsed, global, env, scope, loader)
 
 	local queue = {}
 	local out = {}
@@ -34,7 +31,7 @@ return function(parsed, global, env, scope, loader, debugEnabled)
 		if not status then
 			error(result .. "\n" .. debug.traceback(action._co), 0)
 		elseif coroutine.status(action._co) == "dead" then
-			debugPrint("  Finished: " .. #queue .. " remaining")
+			logger.printDebug("  Finished: " .. #queue .. " remaining")
 			-- We have successfully built the node.
 			action._state:built(result)
 			out[action._idx] = result
@@ -53,7 +50,7 @@ return function(parsed, global, env, scope, loader, debugEnabled)
 	while #queue > 0 do
 		local head = table.remove(queue, 1)
 
-		debugPrint(head.tag .. " for " .. head._state.stage .. " at " .. formatPositions(head._node) .. " (" .. (head._state.var and head._state.var.name or "?") .. ")")
+		logger.printDebug(head.tag .. " for " .. head._state.stage .. " at " .. logger.formatNode(head._node) .. " (" .. (head._state.var and head._state.var.name or "?") .. ")")
 
 		if head.tag == "init" then
 			-- Start the parser with the initial data
@@ -74,7 +71,7 @@ return function(parsed, global, env, scope, loader, debugEnabled)
 			if head.state.stage ~= "parsed" then
 				resume(head)
 			else
-				debugPrint("  Awaiting building of node (" .. (head.state.var and head.state.var.name or "?") .. ")")
+				logger.printDebug("  Awaiting building of node (" .. (head.state.var and head.state.var.name or "?") .. ")")
 				queue[#queue + 1] = head
 			end
 		elseif head.tag == "execute" then

@@ -1,4 +1,4 @@
-local errorPositions = require "tacky.parser".errorPositions
+local errorPositions = require "tacky.logger".errorPositions
 
 local Scope = {}
 Scope.__index = Scope

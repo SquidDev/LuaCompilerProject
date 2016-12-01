@@ -1,4 +1,4 @@
-local errorPositions = require "tacky.parser".errorPositions
+local errorPositions = require "tacky.logger".errorPositions
 local builtins = require "tacky.analysis.resolve".declaredVars
 
 local function createLookup(t)

@@ -1,10 +1,11 @@
 local backend = require "tacky.backend.init"
 local compile = require "tacky.compile"
+local logger = require "tacky.logger"
 local parser = require "tacky.parser"
 local pprint = require "tacky.pprint"
 local resolve = require "tacky.analysis.resolve"
 
-local inputs, output, debug = {}, "out", false
+local inputs, output, verbosity = {}, "out", 0
 
 local args = table.pack(...)
 local i = 1
@@ -13,8 +14,13 @@ while i <= args.n do
 	if arg == "--output" or arg == "-o" then
 		i = i + 1
 		output = args[i] or error("Expected output after " .. arg, 0)
-	elseif arg == "--debug" or arg == "-d" then
-		debug = true
+	elseif arg == "-v" then
+		verbosity = verbosity + 1
+		logger.setVerbosity(verbosity)
+	elseif arg == "--info" or arg == "-i" then
+		logger.setInfo(true)
+	elseif arg:sub(1, 1) == "-" then
+		error("Unknown option " .. arg, 0)
 	else
 		inputs[#inputs + 1] = arg
 	end
@@ -43,9 +49,7 @@ local function libLoader(name)
 		return current
 	end
 
-	if debug then
-		print("Loading " .. name)
-	end
+	logger.printVerbose("Loading " .. name)
 
 	libCache[name] = true
 
@@ -70,9 +74,7 @@ local function libLoader(name)
 		for i = 1, #libs do
 			local tempLib = libs[i]
 			if tempLib.path == path then
-				if debug then
-					print("Reusing " .. tempLib.name .. " for " .. name)
-				end
+				logger.printVerbose("Reusing " .. tempLib.name .. " for " .. name)
 				local current = libCache[tempLib.name]
 				libCache[name] = current
 				return current
@@ -97,7 +99,7 @@ local function libLoader(name)
 	local lexed = parser.lex(lib.lisp, lib.path)
 	local parsed = parser.parse(lexed, lib.lisp)
 
-	local compiled, state = compile(parsed, global, env, scope, libLoader, debug)
+	local compiled, state = compile(parsed, global, env, scope, libLoader)
 
 	libs[#libs + 1] = lib
 	libCache[name] = state
@@ -105,15 +107,7 @@ local function libLoader(name)
 		out[#out + 1] = compiled[i]
 	end
 
-	if debug then
-		for k, v in pairs(env) do
-			print(("%20s => %s"):format(k.name, v.stage))
-		end
-	end
-
-	if debug then
-		print("Loaded " .. name)
-	end
+	logger.printVerbose("Loaded " .. name)
 
 	return state
 end

@@ -1,5 +1,5 @@
 local Scope = require "tacky.analysis.scope"
-local errorPositions = require "tacky.parser".errorPositions
+local errorPositions = require "tacky.logger".errorPositions
 
 local function expectType(node, parent, type, name)
 	if not node or node.tag ~= type then
@@ -43,7 +43,7 @@ local function tagMacro(macro, node, parent)
 	node.parent = parent
 
 	-- We've already tagged this so continue
-	if not node.start and not node.macro then
+	if not node.range and not node.macro then
 		node.macro = macro
 	end
 
@@ -206,7 +206,7 @@ function resolveNode(node, scope, state)
 
 				local success, replacement = xpcall(function() return builder(table.unpack(node, 2, #node)) end, debug.traceback)
 				if not success then
-					errorPositions(node, replacement)
+					errorPositions(first, replacement)
 				elseif replacement == nil then
 					errorPositions(first, "Macro " .. func.name .. " returned empty node")
 				end
