@@ -211,6 +211,48 @@ local function parse(toks, src)
 		if tag == "string" or tag == "number" or tag == "symbol" then
 			append(item)
 		elseif tag == "open" then
+			local previous = head[#head]
+
+			--[[
+				We want to detect places where the indent is different.
+
+				Initially we check that they aren't on the same line as the parent:
+				this catches cases like:
+					(define x (lambda (x)
+						(foo))) ; Has a different line and indent then parent.
+
+				We obviously shouldn't report entries which are on the same line:
+					(foo) (bar) ; Has a different indent
+			]]
+
+			if previous and head.start and previous.start.line ~= head.start.line then
+				local prevPos, itemPos = previous.start, item.start
+				if prevPos.column ~= itemPos.column and prevPos.line ~= itemPos.line then
+					print("\27[33m[WARN] Different indent compared with previous expressions.\27[0m")
+
+					print(("\27[96m  => %s %s:%s.\27[0m"):format(itemPos.name, itemPos.line, itemPos.column))
+
+					print("  You should try to maintain consistent indentation across a program,")
+					print("  try to ensure all expressions are lined up.")
+					print("  If this looks OK to you, check you're not missing a closing ')'.")
+
+					if lines then
+						local code = "\27[92m %" .. #tostring(itemPos.line) .. "s |\27[0m %s"
+
+						print(code:format(tostring(prevPos.line), lines[prevPos.line]))
+						print(code:format("", (" "):rep(prevPos.column - 1).. "^"))
+
+						-- Don't display the ... on adjacent lines
+						if (itemPos.line - prevPos.line) > 2 then
+							print(" \27[92m...\27[0m")
+						end
+
+						print(code:format(tostring(itemPos.line), lines[itemPos.line]))
+						print(code:format("", (" "):rep(itemPos.column - 1) .. "^"))
+					end
+				end
+			end
+
 			push()
 			head.start = item.start
 		elseif tag == "close" then
