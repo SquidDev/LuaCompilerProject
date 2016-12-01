@@ -17,7 +17,7 @@ M.nodeConfig = {
 		macro = true, start = true, finish = true,
 		variables = true, scope = true, required = true,
 	},
-	dups = false
+	dups = true
 }
 
 local function validId(x, cfg)

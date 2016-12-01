@@ -80,7 +80,15 @@
     ((>= 1) "derp")
     ((= 1) "herp")))
 
+(defun partial (func param) (lambda (x) (func param x)))
+
+(print! "->")
 (print! (-> 1 succ succ succ))
+(print! (-> '(1 2 3)
+  (map succ <>)
+  (map pred <>)
+  (foldl + 0 <>)
+  (partial + 2)))
 
 (print!
   (letrec

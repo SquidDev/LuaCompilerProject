@@ -26,9 +26,6 @@ return {
 	['%'] = function(x, y) return x % y end,
 	['^'] = function(x, y) return x ^ y end,
 
-	["and"] = function(x, y) return x and y end,
-	["or"] = function(x, y) return x or y end,
-
 	['gensym'] = function()
 		randCtr = randCtr + 1
 		return { tag = "symbol", contents = ("r_%d"):format(randCtr) }

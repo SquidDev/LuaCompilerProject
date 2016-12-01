@@ -49,6 +49,14 @@
        `(with (,lst' ,lst)
          (for ,ctr' 1 (# ,lst') 1 (with (,var (get-idx ,lst' ,ctr')) ,@body)))))
 
+(defmacro and (a b)
+  (with (symb (gensym))
+    `(with (,symb ,a) (if ,symb ,b ,symb))))
+
+(defmacro or (a b)
+  (with (symb (gensym))
+    `(with (,symb ,a) (if ,symb ,symb ,b))))
+
 (defun ! (expr) (cond (expr false) (true true)))
 
 ;; Print one or more values to standard output
@@ -82,9 +90,6 @@
 (define-native %)
 (define-native ^)
 
-(define-native and)
-(define-native or)
-
 (define-native invoke-dynamic)
 (define-native type)
 
@@ -95,9 +100,9 @@
 (defun boolean? (x) (== (type x) "boolean"))
 
 ;; Check if this is a list and it is empty
-(defun nil? (x) (and (list? x) (== (# x) 0)))
+(defun nil? (x) (if (list? x) (== (# x) 0) false))
 
-(defun symbol->string (x) (and (symbol? x) (get-idx x "contents")))
+(defun symbol->string (x) (if (symbol? x) (get-idx x "contents") nil))
 
 ;; TODO: Fix up the resolver
 (defun /= (x y) (~= x y))
@@ -206,7 +211,7 @@
     ,@body)))
 
 ;; Binds a single variable
-(defmacro with (var &body) `(let (,var) ,@body))
+(defmacro with (var &body) `((lambda (,(car var)) ,@body) ,(cadr var)))
 
 ;; Return a new list where only the predicate matches
 (defun filter (fn li)
@@ -219,7 +224,7 @@
 (defun any (fn li)
   (letrec ((any-impl (lambda (i)
                        (cond
-                         ((>= i (# li)) false)
+                         ((> i (# li)) false)
                          ((fn (get-idx li i)) true)
                          (true (any-impl (+ i 1)))))))
     (any-impl 1)))
@@ -228,7 +233,7 @@
 (defun all (fn li)
   (letrec ((all-impl (lambda(i)
                        (cond
-                         ((>= i (# li)) true)
+                         ((> i (# li)) true)
                          ((fn (get-idx li i)) (all-impl (+ i 1)))
                          (true false)))))
     (all-impl 1)))
@@ -253,26 +258,11 @@
                              `(true)))))
     `((lambda (,name) (cond ,@(map transform-case cases))) ,x)))
 
-(defmacro -> (x &funcs)
-  (if (/= (# funcs) 0)
-    (let* ((form (car funcs))
-           (threaded (cond
-                       ((list? form) `(,(car form) ,x ,@(cdr form)))
-                       (true `(,form ,x)))))
-      `(-> ,threaded ,@(cdr funcs)))
-    x))
-
-(defmacro ->> (x &funcs)
-  (if (/= (# funcs) 0)
-    (let* ((form (car funcs))
-           (threaded (cond
-                       ((list? form) `(,@form ,x))
-                       (true `(,form ,x)))))
-      `(->> ,threaded ,@(cdr funcs)))
-    x))
-
 (defun succ (x) (+ 1 x))
 (defun pred (x) (- x 1))
+
+;; Checks if this symbol is a wildcard
+(defun is-slot (symb) (= (symbol->string symb) "<>"))
 
 ;; Partially apply a function, where <> is replaced by an argument to a function.
 ;; Values are evaluated every time the resulting function is called.
@@ -280,7 +270,7 @@
   (let ((args '())
         (call '()))
     (for-each item func
-      (if (= (symbol->string item) "<>")
+      (if (is-slot item)
         (with (symb (gensym))
           (push-cdr! args symb)
           (push-cdr! call symb))
@@ -296,7 +286,16 @@
     (for-each item func
       (with (symb (gensym))
         (push-cdr! call symb)
-        (if (= (symbol->string item) "<>")
+        (if (is-slot item)
           (push-cdr! args symb)
           (push-cdr! vals (list symb item)))))
     `(let ,vals (lambda ,args ,call))))
+
+(defmacro -> (x &funcs)
+  (with (res x)
+    (for-each form funcs
+      (with (symb (gensym))
+        (if (and (list? form) (any is-slot form))
+          (set! res (map (lambda (x) (if (is-slot x) res x)) form))
+          (set! res (list form res)))))
+    res))
