@@ -1,14 +1,14 @@
 ;; Creates a top-level function
-(define-macro defun (lambda (name args ...)
-  `(define ,name (lambda ,args ,@...))))
+(define-macro defun (lambda (name args &body)
+  `(define ,name (lambda ,args ,@body))))
 
 ;; Create a top-level macro
-(define-macro defmacro (lambda (name args ...)
-  `(define-macro ,name (lambda ,args ,@...))))
+(define-macro defmacro (lambda (name args &body)
+  `(define-macro ,name (lambda ,args ,@body))))
 
 ;; Creates a code block, for use where an expression would normally be required.
-(defmacro progn (...)
-  `((lambda () ,@...)))
+(defmacro progn (&body)
+  `((lambda () ,@body)))
 
 ;; Evaluates a condition, evaluating the second argument if truthy, the third
 ;; argument if falsey.
@@ -18,16 +18,16 @@
 (define-native gensym)
 
 ;; Perform an action whilst a value is true
-(defmacro while (check ...)
+(defmacro while (check &body)
   (let* ((impl (gensym)))
     `(progn
       (letrec ((,impl (lambda ()
                         (cond
-                          (,check ,@... (,impl))
+                          (,check ,@body (,impl))
                           (true)))))
         (,impl)))))
 
-(defmacro for (ctr start end step ...)
+(defmacro for (ctr start end step &body)
   (let* ((impl (gensym))
          (ctr' (gensym))
          (end' (gensym))
@@ -38,16 +38,16 @@
        (set! ,impl (lambda (,ctr')
                      (cond
                        ((if (< 0 ,step) (<= ,ctr' ,end') (>= ,ctr' ,end'))
-                         (let* ((,ctr ,ctr')) ,@...)
+                         (let* ((,ctr ,ctr')) ,@body)
                          (,impl (+ ,ctr' ,step')))
                        (true))))
        (,impl ,start))))
 
-(defmacro for-each (var lst ...)
+(defmacro for-each (var lst &body)
   (let ((ctr' (gensym))
         (lst' (gensym)))
        `(with (,lst' ,lst)
-         (for ,ctr' 1 (# ,lst') 1 (with (,var (get-idx ,lst' ,ctr')) ,@...)))))
+         (for ,ctr' 1 (# ,lst') 1 (with (,var (get-idx ,lst' ,ctr')) ,@body)))))
 
 (defun ! (expr) (cond (expr false) (true true)))
 
@@ -114,7 +114,7 @@
     li))
 
 ;; Build a list from the arguments
-(defun list (...) ...)
+(defun list (&entries) entries)
 
 ;; Map a function over every item in the list, creating a new list
 (defun map (fn li)
@@ -190,23 +190,23 @@
 (defun cddddrs (xs) (map cddddr xs))
 
 ;; Binds a variable to an expression
-(defmacro let (vars ...)
-  `((lambda ,(cars vars) ,@...) ,@(cadrs vars)))
+(defmacro let (vars &body)
+  `((lambda ,(cars vars) ,@body) ,@(cadrs vars)))
 
-(defmacro let* (vars ...)
+(defmacro let* (vars &body)
   ; Note, this depends on as few library functions as possible: it is used
   ; by most macros to "bootstrap" then language.
   (if (! (nil? vars))
-    `((lambda (,(caar vars)) (let* ,(cdr vars) ,@...)) ,(cadar vars))
-    `((lambda () ,@...))))
+    `((lambda (,(caar vars)) (let* ,(cdr vars) ,@body)) ,(cadar vars))
+    `((lambda () ,@body))))
 
-(defmacro letrec (vars ...)
+(defmacro letrec (vars &body)
   `((lambda ,(cars vars)
     ,@(map (lambda (var) `(set! ,(car var) ,(cadr var))) vars)
-    ,@...)))
+    ,@body)))
 
 ;; Binds a single variable
-(defmacro with (var ...) `(let (,var) ,@...))
+(defmacro with (var &body) `(let (,var) ,@body))
 
 ;; Return a new list where only the predicate matches
 (defun filter (fn li)
@@ -245,31 +245,30 @@
     (set! accum (func (get-idx li i) accum)))
   accum)
 
-(defmacro case (x ...)
-  (let* ((cases ...)
-         (name (gensym))
+(defmacro case (x &cases)
+  (let* ((name (gensym))
          (transform-case (lambda (case)
                            (if (list? case)
                              `((,@(car case) ,name) ,@(cdr case))
                              `(true)))))
     `((lambda (,name) (cond ,@(map transform-case cases))) ,x)))
 
-(defmacro -> (x ...)
-  (if (/= (# ...) 0)
-    (let* ((form (car ...))
+(defmacro -> (x &funcs)
+  (if (/= (# funcs) 0)
+    (let* ((form (car funcs))
            (threaded (cond
                        ((list? form) `(,(car form) ,x ,@(cdr form)))
                        (true `(,form ,x)))))
-      `(-> ,threaded ,@(cdr ...)))
+      `(-> ,threaded ,@(cdr funcs)))
     x))
 
-(defmacro ->> (x ...)
-  (if (/= (# ...) 0)
-    (let* ((form (car ...))
+(defmacro ->> (x &funcs)
+  (if (/= (# funcs) 0)
+    (let* ((form (car funcs))
            (threaded (cond
                        ((list? form) `(,@form ,x))
                        (true `(,form ,x)))))
-      `(->> ,threaded ,@(cdr ...)))
+      `(->> ,threaded ,@(cdr funcs)))
     x))
 
 (defun succ (x) (+ 1 x))
@@ -277,10 +276,10 @@
 
 ;; Partially apply a function, where <> is replaced by an argument to a function.
 ;; Values are evaluated every time the resulting function is called.
-(defmacro cut (...)
+(defmacro cut (&func)
   (let ((args '())
         (call '()))
-    (for-each item ...
+    (for-each item func
       (if (= (symbol->string item) "<>")
         (with (symb (gensym))
           (push-cdr! args symb)
@@ -290,11 +289,11 @@
 
 ;; Partially apply a function, where <> is replaced by an argument to a function.
 ;; Values are evaluated when this function is defined.
-(defmacro cute (...)
+(defmacro cute (&func)
   (let ((args '())
         (vals '())
         (call '()))
-    (for-each item ...
+    (for-each item func
       (with (symb (gensym))
         (push-cdr! call symb)
         (if (= (symbol->string item) "<>")

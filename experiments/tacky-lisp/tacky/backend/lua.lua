@@ -11,14 +11,8 @@ local kwrds = createLookup {
 	"if", "in", "local", "nil", "not", "or", "repeat", "return", "then", "true",
 	"until", "while",
 }
-local function escape(name, args)
-	if name == "..." then
-		if args then
-			return "..."
-		else
-			return "_args"
-		end
-	elseif kwrds[name] then
+local function escape(name)
+	if kwrds[name] then
 		return "_e" .. name
 	elseif name:match("^%w[_%w%d]*$") then
 		-- We explicitly forbid leading _ as that is used for compiler internals
@@ -33,19 +27,21 @@ local ctrLookup = {}
 
 local function escapeVar(var, args)
 	if builtins[var] then return var.name end
-	local v = escape(var.name, args)
 
-	if v ~= "..." then
-		local id = varLookup[var]
-		if not id then
-			id = (ctrLookup[var.name] or 0) + 1
-			ctrLookup[var.name] = id
-			varLookup[var] = id
-		end
-
-		v = v .. id
+	if var.isVariadic and args then
+		return "..."
 	end
-	return v
+
+	local v = escape(var.name)
+
+	local id = varLookup[var]
+	if not id then
+		id = (ctrLookup[var.name] or 0) + 1
+		ctrLookup[var.name] = id
+		varLookup[var] = id
+	end
+
+	return v .. id
 end
 
 local compileBlock, compileExpression, compileQuote
@@ -167,7 +163,7 @@ function compileExpression(expr, builder, retStmt)
 
 				builder.indent() builder.line()
 
-				if #args > 0 and args[#args].contents == "..." then
+				if #args > 0 and args[#args].var.isVariadic then
 					local argsVar = escapeVar(args[#args].var)
 					append('local ' .. argsVar .. ' = table.pack(...) ' .. argsVar .. '.tag = "list"')
 					builder.line()
@@ -303,7 +299,7 @@ function compileExpression(expr, builder, retStmt)
 
 				append(" = ")
 
-				local varargs = #args > 0 and args[#args].contents == "..."
+				local varargs = #args > 0 and args[#args].var.isVariadic
 				for i = 2, varargs and #args or #expr do
 					if i > 2 then append(", ") end
 					if expr[i] then

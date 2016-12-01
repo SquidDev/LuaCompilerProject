@@ -111,7 +111,20 @@ function resolveNode(node, scope, state)
 
 				for i = 1, #args do
 					expectType(args[i], args, "symbol", "argument")
-					args[i].var = childScope:add(args[i].contents, "arg", args[i])
+					local name = args[i].contents
+
+					-- Strip "&" for variadic arguments.
+					local isVar = name:sub(1, 1) == "&"
+					if isVar then
+						if i == #args then
+							name = name:sub(2)
+						else
+							errorPositions(args[i], "Only last argument can be variadic")
+						end
+					end
+
+					args[i].var = childScope:add(name, "arg", args[i])
+					args[i].var.isVariadic = isVar
 				end
 
 				resolveBlock(node, 3, childScope, state)
