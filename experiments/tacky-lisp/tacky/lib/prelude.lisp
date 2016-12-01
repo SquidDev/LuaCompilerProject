@@ -87,8 +87,9 @@
 ;; Check if this is a list and it is empty
 (defun nil? (x) (and (list? x) (== (# x) 0)))
 
-(define /= ~=)
-(define = ==)
+;; TODO: Fix up the resolver
+(defun /= (x y) (~= x y))
+(defun = (x y) (== x y))
 
 ;; Get the length of a list
 (defun # (li) (get-idx li "n"))

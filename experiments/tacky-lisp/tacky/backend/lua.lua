@@ -252,15 +252,9 @@ function compileExpression(expr, builder, retStmt)
 					append("nil")
 				end
 			elseif name == "define" or name == "define-macro" then
-				if expr[3].tag == "number" or expr[3].tag == "string" or (expr[3].tag == "symbol" and expr.defVar ~= expr[3].var) then
-					compileExpression(expr[3], builder, "local " .. escapeVar(expr.defVar) .. " = ")
-				else
-					append("local " .. escapeVar(expr.defVar))
-					builder.line()
-					compileExpression(expr[3], builder, escapeVar(expr.defVar) .. " = ")
-				end
+				compileExpression(expr[3], builder, escapeVar(expr.defVar) .. " = ")
 			elseif name == "define-native" then
-				append(("local %s = _libs[%q]"):format(escapeVar(expr.defVar), expr[2].contents))
+				append(("%s = _libs[%q]"):format(escapeVar(expr.defVar), expr[2].contents))
 			elseif name == "quote" then
 				if retStmt == "" then retStmt = "local _ = " end
 				if retStmt then append(retStmt) end

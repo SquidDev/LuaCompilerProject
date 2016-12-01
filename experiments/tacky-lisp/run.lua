@@ -147,9 +147,22 @@ for i = 1, #libs do
 	end
 end
 
+-- Predeclare all variables
+handle:write("local ")
+local first = true
+for var, _ in pairs(env) do
+	if first then
+		first = false
+	else
+		handle:write(", ")
+	end
+
+	handle:write(backend.lua.backend.escapeVar(var))
+end
+
+handle:write("\n")
 handle:write(result)
 handle:close()
-
 
 local result = backend.lisp.block(out, 1)
 local handle = io.open(output .. ".lisp", "w")

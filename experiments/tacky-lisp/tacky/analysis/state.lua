@@ -90,19 +90,48 @@ function State:get()
 		return self.value
 	end
 
-	if self.stage ~= "built" then
-		coroutine.yield({
-			tag = "build",
-			state = self,
-		})
-	end
+	local required, requiredList = {}, {}
 
-	local required = {}
-	local requiredQueue = {}
-	local queue = { self }
+	--- We walk the tree of all nodes, marking them as required
+	-- but also detecting loops in definitions.
+	-- This could probably be optimised so we don't walk the same tree multiple
+	-- times.
+	local function visit(state, stack, stackHash)
+		local idx = stackHash[state]
+		if idx then
+			if state.var.tag ~= "macro" then
+				return
+			end
 
-	while #queue > 0 do
-		local state = table.remove(queue, 1)
+			local states = {}
+			for i = idx, #stack do
+				states[#states + 1] = stack[i].var.name
+			end
+			states[#states + 1] = state.var.name
+
+			error("Loop in macro: " .. table.concat(states, " -> "))
+		end
+
+		idx = #stack + 1
+
+		stack[idx] = state
+		stackHash[state] = idx
+
+		if not required[state] then
+			required[state] = true
+
+			-- Ensures they are emitted in the same order, not the correct one though.
+			requiredList[#requiredList + 1] = state
+		end
+
+		local visited ={}
+
+		-- Look for loops the first time round
+		for inner, _ in pairs(state.required) do
+			visited[inner] = true
+			visit(inner, stack, stackHash)
+		end
+
 		if state.stage ~= "built" then
 			coroutine.yield({
 				tag = "build",
@@ -110,30 +139,23 @@ function State:get()
 			})
 		end
 
-		if not required[state] then
-			required[state] = true
-
-			for inner, _ in pairs(state.required) do
-				queue[#queue + 1] = inner
+		-- Add remaining dependencies now
+		for inner, _ in pairs(state.required) do
+			if not visited[inner] then
+				visit(inner, stack, stackHash)
 			end
 		end
 
-		-- Sure, it'll be on the queue a lot but it isn't too bad.
-		requiredQueue[#requiredQueue + 1] = state
+		stack[idx] = nil
+		stackHash[state] = nil
 	end
 
-	-- Instead we should scan for all nodes which haven't been built
-	-- and request that they are finished.
-	-- And then we execute all non-executed nodes.
-	for i = #requiredQueue, 1, -1 do
-		local state = requiredQueue[i]
-		if state.stage ~= "executed" then
-			coroutine.yield({
-				tag = "execute",
-				state = state,
-			})
-		end
-	end
+	visit(self, {}, {})
+
+	coroutine.yield({
+		tag    = "execute",
+		states = requiredList,
+	})
 
 	return self.value
 end

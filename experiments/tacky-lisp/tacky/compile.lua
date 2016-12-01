@@ -76,28 +76,56 @@ return function(parsed, global, env, scope, loader, debugEnabled)
 			else
 				debugPrint("  Awaiting building of node (" .. (head.state.var and head.state.var.name or "?") .. ")")
 				queue[#queue + 1] = head
-				-- io.read("*l")
 			end
 		elseif head.tag == "execute" then
-			if head.state.stage ~= "executed" then
-				local state = head.state
-				local node = assert(state.node, "State is in " .. state.stage .. " instead")
-				local var = assert(state.var, "State has no variable")
+			local states = head.states
 
-				debugPrint("  Executing " .. var.name)
+			local stateList, nameTable, nameList, escapeList = {}, {}, {}, {}
 
+			for j = 1, #states do
+				local state = states[j]
+				if state.stage ~= "executed" then
+					local node = assert(state.node, "State is in " .. state.stage .. " instead")
+					local var = assert(state.var, "State has no variable")
+
+					local escaped, name = backend.lua.backend.escapeVar(var), var.name
+
+					local i = #stateList + 1
+
+					stateList[i] = state
+					nameTable[i] = escaped .. " = " .. escaped
+					nameList[i] = name
+					escapeList[i] = escaped
+				end
+			end
+
+			if #stateList > 0 then
 				local builder = writer()
-				backend.lua.backend.expression(node, builder, "")
+
+				builder.add("local " .. table.concat(escapeList, ", "))
 				builder.line()
-				builder.add("return " .. backend.lua.backend.escapeVar(var))
+
+				for i = 1, #stateList do
+					backend.lua.backend.expression(stateList[i].node, builder, "")
+					builder.line()
+				end
+
+				builder.add("return {" .. table.concat(nameTable, ", ") .. "}")
 
 				local str = builder.toString()
-				local fun, msg = load(str, "=compile{" .. var.name .. "}", "t", global)
-				if not fun then error(msg .. ":" .. str, 0) end
+				local fun, msg = load(str, "=compile{" .. table.concat(nameList, ",") .. "}", "t", global)
+				if not fun then error(msg .. ":\n" .. str, 0) end
 
-				local result = fun()
-				state:executed(result)
-				global[backend.lua.backend.escapeVar(var)] = result
+				local success, result = xpcall(fun, debug.traceback)
+				if not success then error(result .. ":\n" .. str, 0) end
+
+				for i = 1, #stateList do
+					local state = stateList[i]
+					local escaped = escapeList[i]
+					local res = result[escaped]
+					state:executed(res)
+					global[escaped] = res
+				end
 			end
 
 			resume(head)

@@ -185,13 +185,17 @@ function resolveNode(node, scope, state)
 				})
 				return node
 			elseif func.tag == "macro" then
-				if not funcState then errorPositions(node, "Macro is not defined correctly") end
+				if not funcState then errorPositions(first, "Macro is not defined correctly") end
 				local builder = funcState:get()
+				if type(builder) ~= "function" then
+					errorPositions(first, "Macro is of type " .. type(builder))
+				end
+
 				local success, replacement = xpcall(function() return builder(table.unpack(node, 2, #node)) end, debug.traceback)
 				if not success then
 					errorPositions(node, replacement)
 				elseif replacement == nil then
-					errorPositions(node, "Macro " .. func.name .. " returned empty node")
+					errorPositions(first, "Macro " .. func.name .. " returned empty node")
 				end
 
 				tagMacro(funcState, replacement, node)

@@ -113,3 +113,8 @@
 (import tacky/lib/prelude)
 
 (print! map prelude/map tacky/lib/prelude/map)
+
+;; This should cause the code to fail to compile
+; (define-macro foo (lambda (x) (bar x)))
+; (define bar (lambda (x) (baz x)))
+; (define baz (lambda (x) (foo x)))
