@@ -5,7 +5,7 @@ local parser = require "tacky.parser"
 local pprint = require "tacky.pprint"
 local resolve = require "tacky.analysis.resolve"
 
-local inputs, output, verbosity = {}, "out", 0
+local inputs, output, verbosity, run = {}, "out", 0, fasle
 
 local args = table.pack(...)
 local i = 1
@@ -19,6 +19,8 @@ while i <= args.n do
 		logger.setVerbosity(verbosity)
 	elseif arg == "--info" or arg == "-i" then
 		logger.setInfo(true)
+	elseif arg == "--run" or arg == "-r" then
+		run = true
 	elseif arg:sub(1, 1) == "-" then
 		error("Unknown option " .. arg, 0)
 	else
@@ -118,7 +120,7 @@ for i = 1, #inputs do
 	libLoader(inputs[i])
 end
 
-local result = backend.lua.block(out, 1)
+local compiledLua = backend.lua.block(out, 1)
 local handle = io.open(output .. ".lua", "w")
 
 handle:write("local _libs = {}\n")
@@ -155,11 +157,15 @@ for var, _ in pairs(env) do
 end
 
 handle:write("\n")
-handle:write(result)
+handle:write(compiledLua)
 handle:close()
 
-local result = backend.lisp.block(out, 1)
+local compiledLisp = backend.lisp.block(out, 1)
 local handle = io.open(output .. ".lisp", "w")
 
-handle:write(result)
+handle:write(compiledLisp)
 handle:close()
+
+if run then
+	dofile(output .. ".lua")
+end
