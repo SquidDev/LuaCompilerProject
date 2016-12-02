@@ -92,6 +92,10 @@
 
 (define-native invoke-dynamic)
 (define-native type)
+(define-native struct)
+
+(define-native error)
+(define-native assert)
 
 (defun list? (x) (== (type x) "list"))
 (defun string? (x) (== (type x) "string"))

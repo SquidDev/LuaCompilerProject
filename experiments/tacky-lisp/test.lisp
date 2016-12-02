@@ -130,5 +130,14 @@
 (define inc' (cut + <> 1))
 (define inc'' (cute + <> 1))
 
+(pretty-print! (struct
+  "foo" 1
+  "bar" 2
+  "baz" 3
+))
+
 (import string)
 (print! (string/upper "foo"))
+(pretty-print! (string/split "foo\nbar\n" "\n"))
+
+(print! (string/.. "foo" "bar" "baz"))

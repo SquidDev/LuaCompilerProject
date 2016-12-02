@@ -54,4 +54,19 @@ return {
 			return ty
 		end
 	end,
+
+	['struct'] = function(...)
+		local args =  table.pack(...)
+		if args.n % 2 == 1 then error("Expected even number of arguments to struct") end
+
+		local out = {}
+		for i = 1, args.n, 2 do
+			out[args[i]] = args[i + 1]
+		end
+
+		return out
+	end,
+
+	['error'] = error,
+	['assert'] = assert,
 }
