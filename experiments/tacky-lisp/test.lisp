@@ -129,3 +129,6 @@
 
 (define inc' (cut + <> 1))
 (define inc'' (cute + <> 1))
+
+(import string)
+(print! (string/upper "foo"))
