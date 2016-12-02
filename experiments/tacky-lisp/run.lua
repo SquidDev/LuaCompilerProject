@@ -5,6 +5,7 @@ local parser = require "tacky.parser"
 local pprint = require "tacky.pprint"
 local resolve = require "tacky.analysis.resolve"
 
+local paths = { "?", "tacky/lib/?" }
 local inputs, output, verbosity, run = {}, "out", 0, fasle
 
 local args = table.pack(...)
@@ -21,6 +22,19 @@ while i <= args.n do
 		logger.setInfo(true)
 	elseif arg == "--run" or arg == "-r" then
 		run = true
+	elseif arg == "--include" or arg == "-i" then
+		i = i + 1
+		local path = args[i] or error("Expected directory after " .. arg, 0)
+
+		path = path:gsub("\\", "/")
+		if not path:find("?") then
+			if path:sub(#path, #path) == "/" then
+				path = path .. "?"
+			else
+				path = path .. "/?"
+			end
+		end
+		paths[#paths + 1] = path
 	elseif arg:sub(1, 1) == "-" then
 		error("Unknown option " .. arg, 0)
 	else
@@ -32,18 +46,19 @@ end
 
 if #inputs == 0 then error("No inputs specified", 0) end
 
+logger.printVerbose("Using path: " .. table.concat(paths, ":"))
+
 local libEnv = {}
 local libs = {}
 local libCache = {}
 local global = setmetatable({ _libs = libEnv }, {__index = _ENV})
 
-local scope = resolve.createScope()
+local rootScope = resolve.createScope()
+rootScope.isRoot = true
 local env = {}
 local out = {}
 
-local paths = { "?", "tacky/lib/?" }
-
-local function libLoader(name)
+local function libLoader(name, scope)
 	local current = libCache[name]
 	if current == true then
 		error("Loop: already loading " .. name, 2)
@@ -101,6 +116,10 @@ local function libLoader(name)
 	local lexed = parser.lex(lib.lisp, lib.path)
 	local parsed = parser.parse(lexed, lib.lisp)
 
+	if not scope then
+		scope = rootScope:child()
+		scope.isRoot = true
+	end
 	local compiled, state = compile(parsed, global, env, scope, libLoader)
 
 	libs[#libs + 1] = lib
@@ -114,7 +133,7 @@ local function libLoader(name)
 	return true, state
 end
 
-libLoader("tacky/lib/prelude")
+libLoader("tacky/lib/prelude", rootScope)
 
 for i = 1, #inputs do
 	libLoader(inputs[i])

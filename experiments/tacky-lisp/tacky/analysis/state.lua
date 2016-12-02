@@ -39,7 +39,7 @@ function State:require(var)
 		error("Cannot add requirement when in stage " .. self.stage, 2)
 	end
 
-	if var.scope == self.scope then
+	if var.scope.isRoot then
 		local state = assert(self.variables[var], "Variable's State is nil: it probably hasn't finished parsing: " .. var.name)
 		self.required[state] = true
 		return state
@@ -124,7 +124,7 @@ function State:get()
 			requiredList[#requiredList + 1] = state
 		end
 
-		local visited ={}
+		local visited = {}
 
 		-- Look for loops the first time round
 		for inner, _ in pairs(state.required) do
