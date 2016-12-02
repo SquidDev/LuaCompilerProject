@@ -93,10 +93,13 @@
 (define-native ^)
 
 (define-native invoke-dynamic)
+(define-native empty-struct)
 (define-native type)
 
 (define-native error)
 (define-native assert)
+
+(defun fail (msg) (error msg 0))
 
 (defun list? (x) (== (type x) "list"))
 (defun string? (x) (== (type x) "string"))
@@ -123,9 +126,14 @@
 ;; Push an entry on to the end of this list
 (defun push-cdr! (li val)
   (let* ((len (+ (# li) 1)))
-    (set-idx! li "n" len)
+    (set-idx! li :n len)
     (set-idx! li len val)
     li))
+
+(defun pop-last! (li)
+  (set-idx! li (# li) nil)
+  (set-idx! li :n (pred (# li)))
+  li)
 
 ;; Build a list from the arguments
 (defun list (&entries) entries)
@@ -144,6 +152,8 @@
 
 (defun car (xs) (get-idx xs 1))
 (define-native cdr)
+
+(defun last (xs) (get-idx xs (# xs)))
 
 (defun cars (xs) (map car xs))
 (defun cdrs (xs) (map cdr xs))
@@ -323,12 +333,20 @@
     (for-each key keys (set! res `(get-idx ,res ,key)))
     res))
 
-(defmacro struct (&keys)
-  (when (= (% (# keys)) 1)
+(defmacro .<! (x &keys)
+  (with (res x)
+    ; I lied, the last entry of keys contains the value to set
+    (for i 1 (- (# keys) 2) 1
+      (with (key (get-idx keys i))
+        (set! res `(get-idx ,res ,key))))
+    `(set-idx! ,res ,(get-idx keys (pred (# keys))) ,(get-idx keys (# keys)))))
+
+(defun struct (&keys)
+  (when (= (% (# keys) 1) 1)
     (error "Expected an even number of arguments to struct"))
   (let ((contents (lambda (key)
                     (invoke-dynamic "string.sub" (get-idx key "contents") 2)))
-        (out '()))
+        (out (empty-struct)))
     (for i 1 (# keys) 2
       (let ((key (get-idx keys i))
             (val (get-idx keys (+ 1 i))))

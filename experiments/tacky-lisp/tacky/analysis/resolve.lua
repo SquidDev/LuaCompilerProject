@@ -40,6 +40,17 @@ local function tagMacro(macro, node, parent)
 		return
 	end
 
+	local ty = type(node)
+	if ty == "string" then
+		node = { tag = "string", contents = ("%q"):format(node) }
+	elseif ty == "number" then
+		node = { tag = "number", contents = node }
+	elseif ty == "boolean" then
+		node = { tag = "symbol", contents = node and declaredVars["true"] or declaredVars["false"] }
+	elseif ty == "function" then
+		error("Returned function from macro")
+	end
+
 	node.parent = parent
 
 	-- We've already tagged this so continue
@@ -49,9 +60,11 @@ local function tagMacro(macro, node, parent)
 
 	if node.tag == "list" then
 		for i = 1, node.n do
-			tagMacro(macro, node[i], node)
+			node[i] = tagMacro(macro, node[i], node)
 		end
 	end
+
+	return node
 end
 
 local resolveNode, resolveBlock, resolveQuote

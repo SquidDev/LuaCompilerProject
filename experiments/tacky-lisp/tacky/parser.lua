@@ -133,7 +133,6 @@ local function parse(toks)
 		head.n = head.n + 1
 
 		item.parent = head
-		item.lines = lines
 	end
 
 	local function push()

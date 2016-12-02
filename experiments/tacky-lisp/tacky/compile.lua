@@ -166,7 +166,7 @@ return function(parsed, global, env, scope, loader)
 					if source then logger.putLines(true, source, "") end
 				end
 			elseif entry.tag == "build" then
-				logger.printError("Could not build " .. head.state.var.name)
+				logger.printError("Could not build " .. entry.state.var.name)
 			else
 				error("State should not be " .. entry.tag)
 			end
