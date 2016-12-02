@@ -61,7 +61,7 @@ function resolveQuote(node, scope, state, level)
 		return resolveNode(node, scope, state)
 	end
 
-	if node.tag == "string" or node.tag == "number" or node.tag == "symbol" then
+	if node.tag == "string" or node.tag == "number" or node.tag == "symbol" or node.tag == "key" then
 		return node
 	elseif node.tag == "list" then
 		local first = node[1]
@@ -87,7 +87,7 @@ end
 
 function resolveNode(node, scope, state)
 	local kind = node.tag
-	if kind == "number" or kind == "boolean" or kind == "string" then
+	if kind == "number" or kind == "boolean" or kind == "string" or node.tag == "key" then
 		-- Do nothing: this is a constant term after all
 		return node
 	elseif kind == "symbol" then

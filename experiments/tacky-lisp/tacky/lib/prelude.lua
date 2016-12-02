@@ -9,8 +9,20 @@ return {
 		print(pprint.tostring(x, pprint.nodeConfig))
 	end,
 
-	['get-idx'] = rawget,
-	['set-idx!'] = rawset,
+	['get-idx'] = function(tbl, key)
+		if type(key) == "table" and key.tag == "key" then
+			key = key.contents:sub(2)
+		end
+
+		return rawget(tbl, key)
+	end,
+	['set-idx!'] = function(tbl, key, val)
+		if type(key) == "table" and key.tag == "key" then
+			key = key.contents:sub(2)
+		end
+
+		return rawset(tbl, key, val)
+	end,
 
 	['=='] = function(x, y) return x == y end,
 	['~='] = function(x, y) return x ~= y end,
@@ -61,7 +73,12 @@ return {
 
 		local out = {}
 		for i = 1, args.n, 2 do
-			out[args[i]] = args[i + 1]
+			local key = args[i]
+			if type(key) == "table" and key.tag == "key" then
+				key = key.contents:sub(2)
+			end
+
+			out[key] = args[i + 1]
 		end
 
 		return out
@@ -69,4 +86,6 @@ return {
 
 	['error'] = error,
 	['assert'] = assert,
+
+	['number->string'] = tostring,
 }

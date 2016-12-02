@@ -58,8 +58,8 @@ function compileQuote(node, builder, level)
 		else
 			append(node.contents)
 		end
-	elseif node.tag == "symbol" then
-		append('{tag = "symbol", contents = ' .. ("%q"):format(node.contents):gsub("\n", "\\n") .. '}')
+	elseif node.tag == "symbol" or node.tag == "key" then
+		append('{tag = "' .. node.tag .. '", contents = ' .. ("%q"):format(node.contents):gsub("\n", "\\n") .. '}')
 	elseif node.tag == "list" then
 		local first = node[1]
 		if first and first.tag == "symbol" then
@@ -139,12 +139,16 @@ end
 function compileExpression(expr, builder, retStmt)
 	local append = builder.add
 
-	if expr.tag == "string" or expr.tag == "number" or expr.tag == "symbol" then
+	if expr.tag == "string" or expr.tag == "number" or expr.tag == "symbol" or expr.tag == "key" then
 		if retStmt == "" then retStmt = "local _ = " end
 		if retStmt then append(retStmt) end
 		local contents
 		if expr.tag == "symbol" then
 			contents = escapeVar(expr.var)
+		elseif expr.tag == "key" then
+			-- TODO: Should we write this as a table instead?
+			-- ATM this is kinda a kludge.
+			contents = ("%q"):format(expr.contents:sub(2))
 		else
 			contents = tostring(expr.contents)
 		end

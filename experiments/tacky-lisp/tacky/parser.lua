@@ -92,7 +92,10 @@ local function lex(str, name)
 
 				consume()
 			end
-			append({ tag = "symbol" }, start)
+
+			local tag = "symbol"
+			if char == ":" then tag = "key" end
+			append({ tag = tag }, start)
 		end
 		consume()
 	end
@@ -139,7 +142,7 @@ local function parse(toks)
 		n = n + 1
 
 		local tag = item.tag
-		if tag == "string" or tag == "number" or tag == "symbol" then
+		if tag == "string" or tag == "number" or tag == "symbol" or tag == "key" then
 			append(item)
 		elseif tag == "open" then
 			local previous = head[#head]
@@ -206,7 +209,14 @@ local function parse(toks)
 			head.autoClose = true
 		elseif tag == "eof" then
 			if #stack ~= 0 then
-				logger.errorPositions(item, "Expected ')', got eof")
+				logger.printError("Expected ')', got eof")
+				logger.putTrace(item)
+
+				logger.putLines(false,
+					head.range, "block opened here",
+					item.range, "end of file here"
+				)
+				error("An error occured", 0)
 			else
 				break
 			end

@@ -20,7 +20,7 @@ local function estimateLength(node, max)
 end
 local function expression(node, writer)
 	local tag = node.tag
-	if tag == "string" or tag == "number" or tag == "symbol" then
+	if tag == "string" or tag == "number" or tag == "symbol" or node.tag == "key" then
 		writer.add(tostring(node.contents))
 	elseif tag == "list" then
 		writer.add("(")

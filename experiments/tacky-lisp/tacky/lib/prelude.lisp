@@ -107,6 +107,7 @@
 (defun nil? (x) (if (list? x) (== (# x) 0) false))
 
 (defun symbol->string (x) (if (symbol? x) (get-idx x "contents") nil))
+(defun number->string (x) (if (symbol? x) (get-idx x "contents") nil))
 
 ;; TODO: Fix up the resolver
 (defun /= (x y) (~= x y))
@@ -131,6 +132,9 @@
     (set-idx! out "n" (# li))
     (for i 1 (# li) 1 (set-idx! out i (fn (get-idx li i))))
     out))
+
+(defun iter (fn li)
+  (for i 1 (# li) 1 (fn (get-idx li i))))
 
 (defun traverse (li fn) (map fn li))
 
@@ -295,11 +299,19 @@
           (push-cdr! vals (list symb item)))))
     `(let ,vals (lambda ,args ,call))))
 
+;; Chain a series of method calls together.
+;; If the list contains <> then the value is placed there, otherwise the expression is invoked
+;; with the previous entry as an argument
 (defmacro -> (x &funcs)
   (with (res x)
     (for-each form funcs
-      (with (symb (gensym))
-        (if (and (list? form) (any is-slot form))
-          (set! res (map (lambda (x) (if (is-slot x) res x)) form))
-          (set! res (list form res)))))
+      (if (and (list? form) (any is-slot form))
+        (set! res (map (lambda (x) (if (is-slot x) res x)) form))
+        (set! res (list form res))))
+    res))
+
+;; Chain a series of index accesses together
+(defmacro .> (x &keys)
+  (with (res x)
+    (for-each key keys (set! res `(get-idx ,res ,key)))
     res))

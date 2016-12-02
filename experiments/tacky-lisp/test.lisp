@@ -131,9 +131,9 @@
 (define inc'' (cute + <> 1))
 
 (pretty-print! (struct
-  "foo" 1
-  "bar" 2
-  "baz" 3
+  :foo 1
+  :bar 2
+  :baz 3
 ))
 
 (import string)
@@ -141,3 +141,6 @@
 (pretty-print! (string/split "foo\nbar\n" "\n"))
 
 (print! (string/.. "foo" "bar" "baz"))
+
+(print! (with (x (struct :foo (struct :bar (struct :baz 2))))
+  (.> x :foo :bar :baz)))
