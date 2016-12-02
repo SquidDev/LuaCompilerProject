@@ -49,13 +49,13 @@
        `(with (,lst' ,lst)
          (for ,ctr' 1 (# ,lst') 1 (with (,var (get-idx ,lst' ,ctr')) ,@body)))))
 
-(defmacro and (a b)
+(defmacro and (a b &rest)
   (with (symb (gensym))
-    `(with (,symb ,a) (if ,symb ,b ,symb))))
+    `(with (,symb ,a) (if ,symb ,(if (nil? rest) b `(and ,b ,@rest)) ,symb))))
 
-(defmacro or (a b)
+(defmacro or (a b &rest)
   (with (symb (gensym))
-    `(with (,symb ,a) (if ,symb ,symb ,b))))
+    `(with (,symb ,a) (if ,symb ,symb ,(if (nil? rest) b `(or ,b ,@rest))))))
 
 (defun ! (expr) (cond (expr false) (true true)))
 
@@ -103,11 +103,13 @@
 (defun symbol? (x) (== (type x) "symbol"))
 (defun boolean? (x) (== (type x) "boolean"))
 
+(defun between? (val min max) (and (>= val min) (<= val max)))
+
 ;; Check if this is a list and it is empty
 (defun nil? (x) (if (list? x) (== (# x) 0) false))
 
 (defun symbol->string (x) (if (symbol? x) (get-idx x "contents") nil))
-(defun number->string (x) (if (symbol? x) (get-idx x "contents") nil))
+(define-native number->string)
 
 ;; TODO: Fix up the resolver
 (defun /= (x y) (~= x y))

@@ -12,7 +12,7 @@
 
 (define-native #s)
 
-(defun char-at (text pos) (char text pos pos))
+(defun char-at (text pos) (sub text pos pos))
 
 (defun .. (&args) (concat args))
 

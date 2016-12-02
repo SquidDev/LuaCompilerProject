@@ -144,3 +144,5 @@
 
 (print! (with (x (struct :foo (struct :bar (struct :baz 2))))
   (.> x :foo :bar :baz)))
+
+(print! (or 1 2 3))
