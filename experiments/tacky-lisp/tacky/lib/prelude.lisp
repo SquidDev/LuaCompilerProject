@@ -13,6 +13,8 @@
 ;; Evaluates a condition, evaluating the second argument if truthy, the third
 ;; argument if falsey.
 (defmacro if (c t b) `(cond (,c ,t) (true ,b)))
+(defmacro when (c &body) `(if ,c (progn ,@body) nil))
+(defmacro unless (c &body) `(if ,c nil (progn ,@body)))
 
 ;; Create a random symbol
 (define-native gensym)
@@ -92,7 +94,6 @@
 
 (define-native invoke-dynamic)
 (define-native type)
-(define-native struct)
 
 (define-native error)
 (define-native assert)
@@ -102,6 +103,7 @@
 (defun number? (x) (== (type x) "number"))
 (defun symbol? (x) (== (type x) "symbol"))
 (defun boolean? (x) (== (type x) "boolean"))
+(defun key? (x) (== (type x) "key"))
 
 (defun between? (val min max) (and (>= val min) (<= val max)))
 
@@ -320,3 +322,15 @@
   (with (res x)
     (for-each key keys (set! res `(get-idx ,res ,key)))
     res))
+
+(defmacro struct (&keys)
+  (when (= (% (# keys)) 1)
+    (error "Expected an even number of arguments to struct"))
+  (let ((contents (lambda (key)
+                    (invoke-dynamic "string.sub" (get-idx key "contents") 2)))
+        (out '()))
+    (for i 1 (# keys) 2
+      (let ((key (get-idx keys i))
+            (val (get-idx keys (+ 1 i))))
+        (set-idx! out (if (key? key) (contents key) key) val)))
+    out))
