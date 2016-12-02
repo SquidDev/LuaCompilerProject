@@ -26,10 +26,14 @@ local function lex(str, name)
 		return { line = line, column = column, offset = offset }
 	end
 
+	local function makeRange(start, finish)
+		return { start = start, finish = finish, lines = lines, name = name }
+	end
+
 	local function append(tok, start, finish)
 		if not start then start = position() end
 		if not finish then finish = position() end
-		tok.range = { start = start, finish = finish, lines = lines, name = name }
+		tok.range = makeRange(start, finish)
 
 		tok.contents = str:sub(start.offset, finish.offset)
 
@@ -68,8 +72,19 @@ local function lex(str, name)
 			consume()
 			while true do
 				local char = str:sub(offset, offset)
-				if char == nil then error("Unexpected EOF")
-				elseif char == "\\" then consume()
+				if char == nil or char == "" then
+					logger.printError("Expected '\"', got eof")
+					local start, finish = makeRange(start), makeRange(position())
+					logger.putTrace(finish)
+
+					logger.putLines(false,
+						start, "string started here",
+						finish, "end of file here"
+					)
+
+					error("An error occured", 0)
+				elseif char == "\\" then
+					consume()
 				elseif char == "\"" then
 					break
 				end
