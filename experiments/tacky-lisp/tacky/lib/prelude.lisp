@@ -269,6 +269,9 @@
 (defun succ (x) (+ 1 x))
 (defun pred (x) (- x 1))
 
+(defmacro inc! (x) `(set! ,x (+ ,x 1)))
+(defmacro dec! (x) `(set! ,x (- ,x 1)))
+
 ;; Checks if this symbol is a wildcard
 (defun is-slot (symb) (= (symbol->string symb) "<>"))
 

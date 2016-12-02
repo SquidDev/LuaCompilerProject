@@ -48,7 +48,7 @@ local function libLoader(name)
 	if current == true then
 		error("Loop: already loading " .. name, 2)
 	elseif current ~= nil then
-		return current
+		return true, current
 	end
 
 	logger.printVerbose("Loading " .. name)
@@ -70,7 +70,7 @@ local function libLoader(name)
 		end
 	end
 
-	if not path then error("Cannot find " .. name) end
+	if not lib.path then return false, "Cannot find " .. name end
 
 	if not current then
 		for i = 1, #libs do
@@ -79,7 +79,7 @@ local function libLoader(name)
 				logger.printVerbose("Reusing " .. tempLib.name .. " for " .. name)
 				local current = libCache[tempLib.name]
 				libCache[name] = current
-				return current
+				return true, current
 			end
 		end
 	end
@@ -111,7 +111,7 @@ local function libLoader(name)
 
 	logger.printVerbose("Loaded " .. name)
 
-	return state
+	return true, state
 end
 
 libLoader("tacky/lib/prelude")

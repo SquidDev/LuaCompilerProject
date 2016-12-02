@@ -25,7 +25,10 @@ return function(parsed, global, env, scope, loader)
 		}
 	end
 
+	local iterations = 0
 	local function resume(action, ...)
+		-- Reset the iteration count as something successful happened
+		iterations = 0
 		local status, result = coroutine.resume(action._co, ...)
 
 		if not status then
@@ -47,7 +50,7 @@ return function(parsed, global, env, scope, loader)
 		end
 	end
 
-	while #queue > 0 do
+	while #queue > 0 and iterations <= #queue do
 		local head = table.remove(queue, 1)
 
 		logger.printDebug(head.tag .. " for " .. head._state.stage .. " at " .. logger.formatNode(head._node) .. " (" .. (head._state.var and head._state.var.name or "?") .. ")")
@@ -62,16 +65,21 @@ return function(parsed, global, env, scope, loader)
 			if scope.variables[head.name] then
 				resume(head, scope.variables[head.name])
 			else
-				print("  Awaiting definition of " .. head.name)
-				queue[#queue + 1] = head
+				logger.printDebug("  Awaiting definition of " .. head.name)
 
-				io.read("*l")
+				-- Increment the fact that we've done nothing
+				iterations = iterations + 1
+				queue[#queue + 1] = head
 			end
 		elseif head.tag == "build" then
 			if head.state.stage ~= "parsed" then
 				resume(head)
 			else
 				logger.printDebug("  Awaiting building of node (" .. (head.state.var and head.state.var.name or "?") .. ")")
+
+				-- Increment the fact that we've done nothing
+				iterations = iterations + 1
+
 				queue[#queue + 1] = head
 			end
 		elseif head.tag == "execute" then
@@ -127,7 +135,11 @@ return function(parsed, global, env, scope, loader)
 
 			resume(head)
 		elseif head.tag == "import" then
-			local module = loader(head.module)
+			local success, module = loader(head.module)
+
+			if not success then
+				logger.errorPositions(head._node, module)
+			end
 
 			for _, state in pairs(module) do
 				if state.var then
@@ -138,6 +150,29 @@ return function(parsed, global, env, scope, loader)
 		else
 			error("Unknown tag " .. head.tag)
 		end
+	end
+
+	if #queue ~= 0 then
+		for i = 1, #queue do
+			local entry = queue[i]
+
+			if entry.tag == "define" then
+				logger.printError("Cannot find variable " .. entry.name)
+
+				if entry.node then
+					logger.putTrace(entry.node)
+
+					local source = logger.getSource(entry.node)
+					if source then logger.putLines(true, source, "") end
+				end
+			elseif entry.tag == "build" then
+				logger.printError("Could not build " .. head.state.var.name)
+			else
+				error("State should not be " .. entry.tag)
+			end
+		end
+
+		error("Compilation could not continue")
 	end
 
 	return out, states

@@ -17,7 +17,7 @@ end
 
 Scope.empty = Scope.child(nil)
 
-function Scope:get(name)
+function Scope:get(name, user)
 	local element = self
 
 	while element do
@@ -33,6 +33,7 @@ function Scope:get(name)
 	return coroutine.yield({
 		tag = "define",
 		name = name,
+		node = user,
 	})
 end
 

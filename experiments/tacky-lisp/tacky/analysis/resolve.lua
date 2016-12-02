@@ -91,13 +91,13 @@ function resolveNode(node, scope, state)
 		-- Do nothing: this is a constant term after all
 		return node
 	elseif kind == "symbol" then
-		node.var = scope:get(node.contents)
+		node.var = scope:get(node.contents, node)
 		state:require(node.var)
 		return node
 	elseif kind == "list" then
 		local first = node[1]
 		if first and first.tag == "symbol" then
-			local func = scope:get(first.contents)
+			local func = scope:get(first.contents, first)
 			first.var = func
 
 			local funcState = state:require(func)
@@ -146,7 +146,7 @@ function resolveNode(node, scope, state)
 				expectType(node[2], node, "symbol")
 				expect(node[3], node, "value")
 
-				local var = scope:get(node[2].contents)
+				local var = scope:get(node[2].contents, node[2])
 				state:require(var)
 				node[2].var = var
 				if var.const then

@@ -151,6 +151,7 @@ return {
 	putLines     = putLines,
 	putTrace     = putTrace,
 	putInfo      = putInfo,
+	getSource    = getSource,
 
 	printWarning   = printWarning,
 	printError     = printError,
