@@ -143,7 +143,7 @@ return function(parsed, global, env, scope, loader)
 
 			for _, state in pairs(module) do
 				if state.var then
-					scope:import(head.module, state.var)
+					scope:import(head.as, state.var)
 				end
 			end
 			resume(head)

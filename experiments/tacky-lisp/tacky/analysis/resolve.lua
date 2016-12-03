@@ -205,9 +205,14 @@ function resolveNode(node, scope, state)
 			elseif func == builtins["import"] then
 				expectType(node[2], node, "symbol", "module name")
 
+				if node[3] then
+					expectType(node[3], node, "symbol", "alias name")
+				end
+
 				coroutine.yield({
 					tag = "import",
 					module = node[2].contents,
+					as = node[3] and node[3].contents or node[2].contents
 				})
 				return node
 			elseif func.tag == "macro" then
