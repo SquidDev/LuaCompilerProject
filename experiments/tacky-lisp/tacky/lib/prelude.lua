@@ -67,6 +67,8 @@ return {
 		end
 	end,
 
+	['type#'] = type,
+
 	['empty-struct'] = function() return {} end,
 
 	['error'] = error,

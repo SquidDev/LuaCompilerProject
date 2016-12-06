@@ -95,6 +95,7 @@
 (define-native invoke-dynamic)
 (define-native empty-struct)
 (define-native type)
+(define-native type#)
 
 (define-native error)
 (define-native assert)
@@ -114,6 +115,8 @@
 (defun nil? (x) (if (list? x) (== (# x) 0) false))
 
 (defun symbol->string (x) (if (symbol? x) (get-idx x "contents") nil))
+(defun bool->string (x) (if x "true" "false"))
+
 (define-native number->string)
 
 ;; TODO: Fix up the resolver

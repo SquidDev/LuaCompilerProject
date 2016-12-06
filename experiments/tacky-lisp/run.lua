@@ -6,7 +6,7 @@ local pprint = require "tacky.pprint"
 local resolve = require "tacky.analysis.resolve"
 
 local paths = { "?", "tacky/lib/?" }
-local inputs, output, verbosity, run = {}, "out", 0, fasle
+local inputs, output, verbosity, run, prelude = {}, "out", 0, false, "tacky/lib/prelude"
 
 local args = table.pack(...)
 local i = 1
@@ -35,6 +35,9 @@ while i <= args.n do
 			end
 		end
 		paths[#paths + 1] = path
+	elseif arg == "--prelude" or arg == "-p" then
+		i = i + 1
+		prelude = args[i] or error("Expected prelude after " .. arg, 0)
 	elseif arg:sub(1, 1) == "-" then
 		error("Unknown option " .. arg, 0)
 	else
@@ -58,7 +61,11 @@ rootScope.isRoot = true
 local env = {}
 local out = {}
 
-local function libLoader(name, scope)
+local function libLoader(name, scope, resolve)
+	if name:sub(-5) == ".lisp" then
+		name = name:sub(1, -6)
+	end
+
 	local current = libCache[name]
 	if current == true then
 		error("Loop: already loading " .. name, 2)
@@ -72,20 +79,27 @@ local function libLoader(name, scope)
 
 	local lib = { name = name }
 
-	local path
-	for i = 1, #paths do
-		path = paths[i]:gsub("%?", name)
+	local path, handle
+	if resolve == false then
+		path = name
 
-		local handle = io.open(path .. ".lisp", "r")
-		if handle then
-			lib.lisp = handle:read("*a")
-			lib.path = path
-			handle:close()
-			break
+		handle = io.open(path .. ".lisp", "r")
+	else
+		for i = 1, #paths do
+			path = paths[i]:gsub("%?", name)
+
+			handle = io.open(path .. ".lisp", "r")
+			if handle then
+				break
+			end
 		end
 	end
 
-	if not lib.path then return false, "Cannot find " .. name end
+	if not handle then return false, "Cannot find " .. name end
+
+	lib.lisp = handle:read("*a")
+	lib.path = path
+	handle:close()
 
 	if not current then
 		for i = 1, #libs do
@@ -133,10 +147,10 @@ local function libLoader(name, scope)
 	return true, state
 end
 
-libLoader("tacky/lib/prelude", rootScope)
+assert(libLoader(prelude, rootScope, false))
 
 for i = 1, #inputs do
-	libLoader(inputs[i])
+	assert(libLoader(inputs[i]))
 end
 
 local compiledLua = backend.lua.block(out, 1)
@@ -163,6 +177,8 @@ for i = 1, #libs do
 end
 
 -- Predeclare all variables
+-- TEMP HACK to prevent "too many local variable" errors.
+--[[
 handle:write("local ")
 local first = true
 for var, _ in pairs(env) do
@@ -174,7 +190,7 @@ for var, _ in pairs(env) do
 
 	handle:write(backend.lua.backend.escapeVar(var))
 end
-
+]]
 handle:write("\n")
 handle:write(compiledLua)
 handle:close()
