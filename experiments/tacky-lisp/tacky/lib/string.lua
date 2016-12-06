@@ -1,4 +1,5 @@
-return {
+local str
+str = {
 	byte    = string.byte,
 	char    = string.char,
 	concat  = table.concat,
@@ -19,4 +20,13 @@ return {
 	upper   = string.upper,
 
 	['#s']   = string.len,
+  ['->string'] = function(x)
+    if type(x) == 'table' and x.contents then
+      return str['->string'](x.contents)
+    else
+      return tostring(x)
+    end
+  end
 }
+
+return str
