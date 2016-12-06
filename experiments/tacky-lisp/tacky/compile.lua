@@ -4,14 +4,14 @@ local resolve = require "tacky.analysis.resolve"
 local State = require "tacky.analysis.state"
 local writer = require "tacky.backend.writer"
 
-return function(parsed, global, env, scope, loader)
+return function(parsed, global, env, inStates, scope, loader)
 
 	local queue = {}
 	local out = {}
 	local states = {}
 
 	for i = 1, #parsed do
-		local state = State.create(env, scope)
+		local state = State.create(env, inStates, scope)
 		states[i] = state
 		queue[i] = {
 			tag  = "init",
@@ -143,7 +143,15 @@ return function(parsed, global, env, scope, loader)
 
 			for _, state in pairs(module) do
 				if state.var then
-					scope:import(head.as, state.var)
+					if head.as then
+						scope:import(head.as, state.var, state, head._node)
+					elseif head.symbols then
+						if head.symbols[state.var.name] then
+							scope:import(nil, state.var, state, head._node)
+						end
+					else
+						scope:import(nil, state.var, state, head._node)
+					end
 				end
 			end
 			resume(head)

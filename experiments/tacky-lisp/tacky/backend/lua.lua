@@ -52,14 +52,26 @@ function compileQuote(node, builder, level)
 	end
 
 	local append = builder.add
-	if node.tag == "string" or node.tag == "number" then
+	if node.tag == "string" then
+		if level then
+			append('{tag = "' .. node.tag .. '", contents = ' .. ("%q"):format(node.contents) .. '}')
+		else
+			append(node.contents)
+		end
+	elseif node.tag == "number" then
 		if level then
 			append('{tag = "' .. node.tag .. '", contents = ' .. node.contents .. '}')
 		else
 			append(node.contents)
 		end
-	elseif node.tag == "symbol" or node.tag == "key" then
-		append('{tag = "' .. node.tag .. '", contents = ' .. ("%q"):format(node.contents):gsub("\n", "\\n") .. '}')
+	elseif node.tag == "symbol" then
+		append('{tag = "symbol", contents = ' .. ("%q"):format(node.contents):gsub("\n", "\\n"))
+
+		if node.var then append(', var = ' .. ("%q"):format(tostring(node.var))) end
+
+		append('}')
+	elseif node.tag == "key" then
+		append('{tag = "key", contents = ' .. ("%q"):format(node.contents):gsub("\n", "\\n") .. '}')
 	elseif node.tag == "list" then
 		local first = node[1]
 		if first and first.tag == "symbol" then
@@ -181,6 +193,8 @@ function compileExpression(expr, builder, retStmt)
 
 				builder.unindent()
 				append("end)")
+
+				if retStmt ~= nil then append(";") end
 			elseif name == "cond" then
 				local forceClosure = not retStmt
 

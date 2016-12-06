@@ -22,6 +22,8 @@ local declaredSymbols = {
 }
 
 local rootScope = Scope.child()
+rootScope.builtin = true
+
 local builtins = {}
 for i = 1, #declaredSymbols do
 	local symbol = declaredSymbols[i]
@@ -35,7 +37,7 @@ for i = 1, #declaredVariables do
 	declaredVars[rootScope:add(defined, "defined", nil)] = true
 end
 
-local function tagMacro(macro, node, parent)
+local function resolveMacroResult(macro, node, parent, scope, state)
 	if not node then
 		return
 	end
@@ -60,8 +62,10 @@ local function tagMacro(macro, node, parent)
 
 	if node.tag == "list" then
 		for i = 1, node.n do
-			node[i] = tagMacro(macro, node[i], node)
+			node[i] = resolveMacroResult(macro, node[i], node, scope, state)
 		end
+	elseif node.tag == "symbol" and type(node.var) == "string" then
+		node.var = assert(state.variables[node.var], "Invalid variable key '" .. node.var .. "'")
 	end
 
 	return node
@@ -74,7 +78,16 @@ function resolveQuote(node, scope, state, level)
 		return resolveNode(node, scope, state)
 	end
 
-	if node.tag == "string" or node.tag == "number" or node.tag == "symbol" or node.tag == "key" then
+	if node.tag == "string" or node.tag == "number" or node.tag == "key" then
+		return node
+	elseif node.tag == "symbol" then
+		if not node.var then
+			node.var = scope:get(node.contents, node)
+
+			if not node.var.scope.isRoot and not node.var.scope.builtin then
+				errorPositions(node, "Cannot use non-top level definition in quasiquote")
+			end
+		end
 		return node
 	elseif node.tag == "list" then
 		local first = node[1]
@@ -104,15 +117,19 @@ function resolveNode(node, scope, state)
 		-- Do nothing: this is a constant term after all
 		return node
 	elseif kind == "symbol" then
-		node.var = scope:get(node.contents, node)
+		if not node.var then
+			node.var = scope:get(node.contents, node)
+		end
 		state:require(node.var)
 		return node
 	elseif kind == "list" then
 		local first = node[1]
 		if first and first.tag == "symbol" then
-			local func = scope:get(first.contents, first)
-			first.var = func
+			if not first.var then
+				first.var = scope:get(first.contents, first)
+			end
 
+			local func = first.var
 			local funcState = state:require(func)
 
 			if func == builtins["lambda"] then
@@ -205,14 +222,38 @@ function resolveNode(node, scope, state)
 			elseif func == builtins["import"] then
 				expectType(node[2], node, "symbol", "module name")
 
+				local as = node[2].contents
+				local as, symbols
 				if node[3] then
-					expectType(node[3], node, "symbol", "alias name")
+					if node[3].tag == "symbol" then
+						as = node[3].contents
+						symbols = nil
+					elseif node[3].tag == "list" then
+						as = nil
+						if node[3].n == 0 then
+							symbols = nil
+						else
+							symbols = {}
+							for i = 1, node[3].n do
+								local entry = node[3][i]
+								expectType(entry, node[3], "symbol")
+
+								symbols[entry.contents] = true
+							end
+						end
+					else
+						expectType(node[3], node, "symbol", "alias name or import list")
+					end
+				else
+					as = node[2].contents
+					symbols = nil
 				end
 
 				coroutine.yield({
 					tag = "import",
 					module = node[2].contents,
-					as = node[3] and node[3].contents or node[2].contents
+					as = as,
+					symbols = symbols
 				})
 				return node
 			elseif func.tag == "macro" then
@@ -229,7 +270,8 @@ function resolveNode(node, scope, state)
 					errorPositions(first, "Macro " .. func.name .. " returned empty node")
 				end
 
-				tagMacro(funcState, replacement, node)
+				replacement = resolveMacroResult(funcState, replacement, node, scope, state)
+
 				return resolveNode(replacement, scope, state)
 			elseif func.tag == "defined" or func.tag == "arg" then
 				return resolveList(node, 1, scope, state)
@@ -262,6 +304,7 @@ end
 
 return {
 	createScope = function() return rootScope:child() end,
+	rootScope = rootScope,
 	declaredVars = declaredVars,
 	resolveNode = resolveNode,
 	resolveBlock = resolveBlock,

@@ -1,8 +1,10 @@
 local State = {}
 State.__index = State
 
-function State.create(variables, scope)
+local ctr = 0
+function State.create(variables, states, scope)
 	if not variables then error("variables cannot be nil", 2) end
+	if not states then error("states cannot be nil", 2) end
 	if not scope then error("scope cannot be nil", 2) end
 
 	local state = setmetatable({
@@ -10,6 +12,9 @@ function State.create(variables, scope)
 		scope = scope,
 
 		--- Variable to state mapping
+		states = states,
+
+		-- Variable ID to variable mapping
 		variables = variables,
 
 		--- List of all required variables
@@ -26,7 +31,7 @@ function State.create(variables, scope)
 		-- has finished.
 		node = nil,
 
-		-- The actual value of this node. This is set when this function
+		--- The actual value of this node. This is set when this function
 		-- is executed.
 		value = nil,
 	}, State)
@@ -40,7 +45,7 @@ function State:require(var)
 	end
 
 	if var.scope.isRoot then
-		local state = assert(self.variables[var], "Variable's State is nil: it probably hasn't finished parsing: " .. var.name)
+		local state = assert(self.states[var], "Variable's State is nil: it probably hasn't finished parsing: " .. var.name)
 		self.required[state] = true
 		return state
 	end
@@ -58,7 +63,10 @@ function State:define(var)
 	end
 
 	self.var = var
-	self.variables[var] = self
+	self.states[var] = self
+
+	-- Also store this as the hash.
+	self.variables[tostring(var)] = var
 end
 
 function State:built(node)

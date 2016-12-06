@@ -1,4 +1,4 @@
-local errorPositions = require "tacky.logger".errorPositions
+local logger = require "tacky.logger"
 
 local Scope = {}
 Scope.__index = Scope
@@ -45,7 +45,7 @@ function Scope:add(name, kind, node)
 
 	local previous = self.variables[name]
 	if previous then
-		errorPositions(node, "Previous declaration of " .. name)
+		logger.errorPositions(node, "Previous declaration of " .. name)
 	end
 
 	local var = {
@@ -59,12 +59,25 @@ function Scope:add(name, kind, node)
 	return var
 end
 
-function Scope:import(prefix, var)
+function Scope:import(prefix, var, state, node)
 	if var == nil then error("var is nil", 2) end
 
 	local name = prefix and (prefix .. '/' .. var.name) or var.name
+
 	if self.variables[name] then
-		error("Previous declaration of " .. name)
+		local current = state.states[var]
+		local previous = state.states[self.variables[name]]
+
+		logger.printError("Previous declaration of " .. name)
+		logger.putTrace(node)
+
+		logger.putLines(true,
+			logger.getSource(node), "imported here",
+			logger.getSource(current.node), "new definition here",
+			logger.getSource(previous.node), "old definition here"
+		)
+
+		error("An error occured", 0)
 	end
 
 	self.variables[name] = var

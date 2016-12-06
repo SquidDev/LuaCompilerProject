@@ -5,7 +5,7 @@ local parser = require "tacky.parser"
 local pprint = require "tacky.pprint"
 local resolve = require "tacky.analysis.resolve"
 
-local paths = { "?", "tacky/lib/?" }
+local paths = { "?" }
 local inputs, output, verbosity, run, prelude = {}, "out", 0, false, "tacky/lib/prelude"
 
 local args = table.pack(...)
@@ -58,8 +58,10 @@ local global = setmetatable({ _libs = libEnv }, {__index = _ENV})
 
 local rootScope = resolve.createScope()
 rootScope.isRoot = true
-local env = {}
+local variables, states = {}, {}
 local out = {}
+
+for _, var in pairs(resolve.rootScope.variables) do variables[tostring(var)] = var end
 
 local function libLoader(name, scope, resolve)
 	if name:sub(-5) == ".lisp" then
@@ -134,7 +136,7 @@ local function libLoader(name, scope, resolve)
 		scope = rootScope:child()
 		scope.isRoot = true
 	end
-	local compiled, state = compile(parsed, global, env, scope, libLoader)
+	local compiled, state = compile(parsed, global, variables, states, scope, libLoader)
 
 	libs[#libs + 1] = lib
 	libCache[name] = state
@@ -150,7 +152,7 @@ end
 assert(libLoader(prelude, rootScope, false))
 
 for i = 1, #inputs do
-	assert(libLoader(inputs[i]))
+	assert(libLoader(inputs[i]), nil, false)
 end
 
 local compiledLua = backend.lua.block(out, 1)
