@@ -238,13 +238,15 @@ local function parse(toks)
 			logger.errorPositions(item, "Unsuported type " .. item.tag)
 		end
 
-		if not autoClose and head.autoClose then
-			if #stack == 0 then
-				logger.errorPositions(item, "')' without matching '('")
+		if not autoClose then
+			while head.autoClose do
+				if #stack == 0 then
+					logger.errorPositions(item, "')' without matching '('")
+				end
+				head.autoClose = nil
+				head.range.finish = item.range.finish
+				pop()
 			end
-			head.autoClose = nil
-			head.range.finish = item.range.finish
-			pop()
 		end
 	end
 
