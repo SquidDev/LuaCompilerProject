@@ -47,8 +47,16 @@ local function lex(str, name)
 		elseif char == "'" then
 			append { tag = "quote" }
 		elseif char == "(" then
-			append { tag = "open" }
+			append { tag = "open", close = ")" }
 		elseif char == ")" then
+			append { tag = "close" }
+		elseif char == "{" then
+			append { tag = "open", close = "}" }
+		elseif char == "}" then
+			append { tag = "close" }
+		elseif char == "[" then
+			append { tag = "open", close = "]" }
+		elseif char == "]" then
 			append { tag = "close" }
 		elseif char == "`" then
 			append { tag = "quasiquote" }
@@ -193,6 +201,7 @@ local function parse(toks)
 			end
 
 			push()
+			head.close = item.close
 			head.range = {
 				start = item.range.start,
 				name  = item.range.name,
@@ -200,7 +209,18 @@ local function parse(toks)
 			}
 		elseif tag == "close" then
 			if #stack == 0 then
-				logger.errorPositions(item, "')' without matching '('")
+				logger.errorPositions(item, "'" .. item.contents .. "' without matching '" .. item.close .. "'")
+			end
+
+			if head.close ~= item.contents then
+				logger.printError("Expected '" .. head.close .. "', got '" .. item.contents .. "'")
+				logger.putTrace(item)
+
+				logger.putLines(false,
+					head.range, "block opened with '" .. head.close .. "'",
+					item.range, "'" .. item.contents .. "' used here"
+				)
+				error("An error occured", 0)
 			end
 
 			head.range.finish = item.range.finish
@@ -223,7 +243,7 @@ local function parse(toks)
 			head.autoClose = true
 		elseif tag == "eof" then
 			if #stack ~= 0 then
-				logger.printError("Expected ')', got eof")
+				logger.printError("Expected '" .. head.close .. "', got eof")
 				logger.putTrace(item)
 
 				logger.putLines(false,
