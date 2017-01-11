@@ -155,6 +155,18 @@ local function gatherUsages(nodes, varLookup)
 end
 
 return function(nodes)
+	-- Strip all import expressions
+	for i = #nodes, 1, -1 do
+		local node = nodes[i]
+		if node.tag == "list" then
+			local first = node[1]
+			if first and first.tag == "symbol" and first.var == builtins["import"] then
+				table.remove(nodes, i)
+			end
+		end
+	end
+
+
 	local varLookup = {}
 	gatherDefinitions(nodes, varLookup)
 	gatherUsages(nodes, varLookup)

@@ -198,7 +198,7 @@ handle:write("\n")
 handle:write(compiledLua)
 handle:close()
 
-local compiledLisp = backend.lisp.block(out, 1)
+local compiledLisp = backend.lisp.block(out, 1, "return ")
 local handle = io.open(output .. ".lisp", "w")
 
 handle:write(compiledLisp)
