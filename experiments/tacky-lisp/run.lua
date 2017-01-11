@@ -1,6 +1,7 @@
 local backend = require "tacky.backend.init"
 local compile = require "tacky.compile"
 local logger = require "tacky.logger"
+local optimise = require "tacky.analysis.optimise"
 local parser = require "tacky.parser"
 local pprint = require "tacky.pprint"
 local resolve = require "tacky.analysis.resolve"
@@ -26,7 +27,7 @@ while i <= args.n do
 		i = i + 1
 		local path = args[i] or error("Expected directory after " .. arg, 0)
 
-		path = path:gsub("\\", "/")
+		path = path:gsub("\\", "/"):gsub("^%./", "")
 		if not path:find("?") then
 			if path:sub(#path, #path) == "/" then
 				path = path .. "?"
@@ -103,15 +104,13 @@ local function libLoader(name, scope, resolve)
 	lib.path = path
 	handle:close()
 
-	if not current then
-		for i = 1, #libs do
-			local tempLib = libs[i]
-			if tempLib.path == path then
-				logger.printVerbose("Reusing " .. tempLib.name .. " for " .. name)
-				local current = libCache[tempLib.name]
-				libCache[name] = current
-				return true, current
-			end
+	for i = 1, #libs do
+		local tempLib = libs[i]
+		if tempLib.path == path then
+			logger.printVerbose("Reusing " .. tempLib.name .. " for " .. name)
+			local current = libCache[tempLib.name]
+			libCache[name] = current
+			return true, current
 		end
 	end
 
@@ -154,6 +153,8 @@ assert(libLoader(prelude, rootScope, false))
 for i = 1, #inputs do
 	assert(libLoader(inputs[i]), nil, false)
 end
+
+out = optimise(out)
 
 local compiledLua = backend.lua.block(out, 1)
 local handle = io.open(output .. ".lua", "w")

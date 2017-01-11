@@ -305,6 +305,7 @@ end
 return {
 	createScope = function() return rootScope:child() end,
 	rootScope = rootScope,
+	builtins = builtins,
 	declaredVars = declaredVars,
 	resolveNode = resolveNode,
 	resolveBlock = resolveBlock,
