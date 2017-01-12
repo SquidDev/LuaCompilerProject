@@ -146,3 +146,29 @@
   (.> x :foo :bar :baz)))
 
 (print! (or 1 2 3))
+
+(print! "Variaidic in the middle (call)")
+(defun slice-var (fst snd &middle last) (pretty-print! "Values" fst snd middle last))
+(slice-var 1 2)
+(slice-var 1 2 3)
+(slice-var 1 2 3 4)
+(slice-var 1 2 3 4 5)
+
+(print! "Variaidic at the end (call)")
+(defun norm-var (fst snd &last) (pretty-print! "Values" fst snd last))
+(norm-var 1 2)
+(norm-var 1 2 3)
+(norm-var 1 2 3 4)
+(norm-var 1 2 3 4 5)
+
+(print! "Variaidic in the middle (inlined)")
+((lambda (fst snd &middle last) (pretty-print! "Values" fst snd middle last)) 1 2)
+((lambda (fst snd &middle last) (pretty-print! "Values" fst snd middle last)) 1 2 3)
+((lambda (fst snd &middle last) (pretty-print! "Values" fst snd middle last)) 1 2 3 4)
+((lambda (fst snd &middle last) (pretty-print! "Values" fst snd middle last)) 1 2 3 4 5)
+
+(print! "Variaidic in the end (inlined)")
+((lambda (fst snd &last) (pretty-print! "Values" fst snd last)) 1 2)
+((lambda (fst snd &last) (pretty-print! "Values" fst snd last)) 1 2 3)
+((lambda (fst snd &last) (pretty-print! "Values" fst snd last)) 1 2 3 4)
+((lambda (fst snd &last) (pretty-print! "Values" fst snd last)) 1 2 3 4 5)

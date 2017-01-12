@@ -4,14 +4,14 @@ return function()
 	local indent, tabsPending = 0, false
 
 	function out.line(txt)
+		if txt then out.add(txt) end
+
 		-- Don't write empty lines
 		if tabsPending then return end
 
 		tabsPending = true
 		n = n + 1
 		out[n] = "\n"
-
-		if txt then out.add(txt) end
 	end
 
 	function out.indent() indent = indent + 1 end
@@ -28,6 +28,26 @@ return function()
 		n = n + 1
 		out[n] = txt
 	end
+
+	function out.beginBlock(txt)
+		out.add(txt)
+		out.line()
+		out.indent()
+	end
+
+	function out.splitBlock(txt)
+		out.unindent()
+		out.add(txt)
+		out.line()
+		out.indent()
+	end
+
+	function out.endBlock(txt)
+		out.unindent()
+		out.add(txt)
+		out.line()
+	end
+
 	function out.toString() return table.concat(out) end
 
 	return out

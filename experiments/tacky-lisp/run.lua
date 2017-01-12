@@ -156,7 +156,7 @@ end
 
 out = optimise(out)
 
-local compiledLua = backend.lua.block(out, 1)
+local compiledLua = backend.lua.block(out, 1, "return ")
 local handle = io.open(output .. ".lua", "w")
 
 handle:write("local _libs = {}\n")
@@ -198,7 +198,7 @@ handle:write("\n")
 handle:write(compiledLua)
 handle:close()
 
-local compiledLisp = backend.lisp.block(out, 1, "return ")
+local compiledLisp = backend.lisp.block(out, 1)
 local handle = io.open(output .. ".lisp", "w")
 
 handle:write(compiledLisp)

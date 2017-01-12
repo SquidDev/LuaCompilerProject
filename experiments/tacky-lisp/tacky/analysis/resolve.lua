@@ -139,6 +139,7 @@ function resolveNode(node, scope, state)
 
 				local args = node[2]
 
+				local hasVariadic
 				for i = 1, #args do
 					expectType(args[i], args, "symbol", "argument")
 					local name = args[i].contents
@@ -146,10 +147,11 @@ function resolveNode(node, scope, state)
 					-- Strip "&" for variadic arguments.
 					local isVar = name:sub(1, 1) == "&"
 					if isVar then
-						if i == #args then
-							name = name:sub(2)
+						if hasVariadic then
+							errorPositions(args[i], "Cannot have multiple variadic arguments")
 						else
-							errorPositions(args[i], "Only last argument can be variadic")
+							name = name:sub(2)
+							hasVariadic = true
 						end
 					end
 

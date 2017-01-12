@@ -175,18 +175,62 @@ function compileExpression(expr, builder, retStmt)
 
 				append("(function(")
 				local args = expr[2]
+				local variadic = nil
 				for i = 1, #args do
 					if i > 1 then append(", ") end
-					append(escapeVar(args[i].var, true))
+					local var = args[i].var
+					append(escapeVar(var, true))
+
+					if var.isVariadic then
+						variadic = i
+						break
+					end
 				end
 				append(")")
 
 				builder.indent() builder.line()
 
-				if #args > 0 and args[#args].var.isVariadic then
-					local argsVar = escapeVar(args[#args].var)
-					append('local ' .. argsVar .. ' = table.pack(...) ' .. argsVar .. '.tag = "list"')
-					builder.line()
+				if variadic then
+					local argsVar = escapeVar(args[variadic].var)
+
+					if variadic == #args then
+						builder.line('local ' .. argsVar .. ' = table.pack(...) ' .. argsVar .. '.tag = "list"')
+					else
+						local remaining = #args - variadic
+
+						builder.line('local _n = select("#", ...) - ' .. remaining)
+
+						append('local ' .. argsVar)
+						for i = variadic + 1, #args do
+							append(', ' .. escapeVar(args[i].var))
+						end
+						builder.line()
+
+						builder.beginBlock('if _n > 0 then')
+
+						builder.line(argsVar .. ' = { tag = "list", n = _n, table.unpack(table.pack(...), 1, _n)}')
+
+						for i = variadic + 1, #args do
+							append(escapeVar(args[i].var))
+							if i < #args then append(', ') end
+						end
+
+						builder.line(' = select(_n + 1, ...)')
+
+						builder.splitBlock("else")
+
+						builder.line(argsVar .. ' = { tag = "list", n = 0}')
+
+						for i = variadic + 1, #args do
+							append(escapeVar(args[i].var))
+							if i < #args then append(', ') end
+						end
+
+						append(' = ...')
+						builder.line()
+
+						builder.endBlock("end")
+					end
 				end
 
 				compileBlock(expr, builder, 3, "return ")
@@ -307,40 +351,46 @@ function compileExpression(expr, builder, retStmt)
 		elseif head and head.tag == "list" and head[1].tag == "symbol" and head[1].contents == "lambda" and retStmt then
 			-- ((lambda (args) body) values)
 			local args = head[2]
-			if #args > 0 and #expr > 1 then
+			if #args > 0 then
 				append("local ")
 
-				if #args > 0 then
-					for i = 1, #args do
-						if i > 1 then append(", ") end
-						append(escapeVar(args[i].var))
-					end
-				else
-					append("_")
+				for i = 1, #args do
+					if i > 1 then append(", ") end
+					append(escapeVar(args[i].var))
 				end
 
-				append(" = ")
+				builder.line()
+			end
 
-				local varargs = #args > 0 and args[#args].var.isVariadic
-				for i = 2, varargs and #args or #expr do
-					if i > 2 then append(", ") end
-					if expr[i] then
-						compileExpression(expr[i], builder)
-					else
-						append("nil")
-					end
-				end
+			-- TODO: Variadic in the middle
+			local offset = 1
+			for i = 1, #args do
+				local var = args[i].var
 
-				if varargs then
-					if #args > 1 then append(", ") end
-					append("{ tag = 'list', n = " .. (#expr - #args + 1))
-					for i = #args + 1, #expr do
+				if var.isVariadic then
+					local count = #expr - #args
+					if count < 0 then count = 0 end
+
+					append(escapeVar(var) .. ' = { tag = "list", n = ' .. count)
+					for j = 1, count do
 						append(", ")
-						compileExpression(expr[i], builder)
+						compileExpression(expr[i + j], builder)
 					end
-					append(" }")
-				end
 
+					offset = count
+					append("}")
+					builder.line()
+				else
+					local expr = expr[i + offset]
+					if expr then
+						compileExpression(expr, builder, escapeVar(var) .. " = ")
+						builder.line()
+					end
+				end
+			end
+
+			for i = #args + offset + 1, #expr do
+				compileExpression(expr[i], builder, "")
 				builder.line()
 			end
 
