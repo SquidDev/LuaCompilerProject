@@ -49,15 +49,15 @@ local function lex(str, name)
 		elseif char == "(" then
 			append { tag = "open", close = ")" }
 		elseif char == ")" then
-			append { tag = "close" }
+			append { tag = "close", open = "(" }
 		elseif char == "{" then
 			append { tag = "open", close = "}" }
 		elseif char == "}" then
-			append { tag = "close" }
+			append { tag = "close", open = "{" }
 		elseif char == "[" then
 			append { tag = "open", close = "]" }
 		elseif char == "]" then
-			append { tag = "close" }
+			append { tag = "close", open = "[" }
 		elseif char == "`" then
 			append { tag = "quasiquote" }
 		elseif char == "," then
@@ -154,6 +154,9 @@ local function parse(toks)
 	end
 
 	local function pop()
+		head.open = nil
+		head.close = nil
+
 		head = stack[#stack]
 		stack[#stack] = nil
 	end
@@ -201,6 +204,7 @@ local function parse(toks)
 			end
 
 			push()
+			head.open = item.contents
 			head.close = item.close
 			head.range = {
 				start = item.range.start,
@@ -209,7 +213,7 @@ local function parse(toks)
 			}
 		elseif tag == "close" then
 			if #stack == 0 then
-				logger.errorPositions(item, "'" .. item.contents .. "' without matching '" .. item.close .. "'")
+				logger.errorPositions(item, "'" .. item.contents .. "' without matching '" .. item.open .. "'")
 			end
 
 			if head.close ~= item.contents then
@@ -217,7 +221,7 @@ local function parse(toks)
 				logger.putTrace(item)
 
 				logger.putLines(false,
-					head.range, "block opened with '" .. head.close .. "'",
+					head.range, "block opened with '" .. head.open .. "'",
 					item.range, "'" .. item.contents .. "' used here"
 				)
 				error("An error occured", 0)
